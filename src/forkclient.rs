@@ -317,6 +317,7 @@ impl BranchStats {
     }
 }
 
+/*
 fn main() {
     println!("{}", env::args().nth(0).unwrap());
 
@@ -376,3 +377,4 @@ fn main() {
     //stats.print();
 
 }
+*/
