@@ -1,15 +1,14 @@
 extern crate libc;
-extern crate time;
 
-use std::env;
+use std;
 use std::ffi::{CString};
 use std::collections::{HashMap};
 
 // from `afl/config.h`
-const MAP_SIZE: usize = 1 << 26;
-const MEM_LIMIT: usize = 250 << 20;  // 250MB
+pub const MAP_SIZE: usize = 1 << 26;
+pub const MEM_LIMIT: usize = 250 << 20;  // 250MB
 const SHM_ENV_VAR: &'static str = "__AFL_SHM_ID";
-const FORKSRV_FD: i32 = 198;
+pub const FORKSRV_FD: i32 = 198;
 const EXEC_FAIL_SIG: u32 = 0xfee1dead;
 
 fn setenv(name: &str, value: &str, overwrite: bool) {
@@ -39,12 +38,6 @@ fn open(pathname: &str, flags: i32) -> Option<i32> {
 	if fd < 0 { None } else { Some(fd) }
 }
 
-fn open_mode(pathname: &str, flags: i32, mode: i32) -> Option<i32> {
-	let fd = unsafe {
-		libc::open(CString::new(pathname).unwrap().as_ptr(), flags, mode)
-	};
-	if fd < 0 { None } else { Some(fd) }
-}
 
 fn close(fd: i32) -> Option<()> {
 	match unsafe { libc::close(fd) } {
@@ -53,19 +46,12 @@ fn close(fd: i32) -> Option<()> {
 	}
 }
 
-fn short_write(fd: i32, data: &[u8]) -> Option<()> {
-	let len = unsafe {
-		libc::write(fd, data.as_ptr() as *const libc::c_void, data.len())
-	};
-	if len == data.len() as isize { Some(()) } else { None }
-}
-
 fn duplicate_fd(oldfd: i32, newfd: i32) -> Option<i32> {
 	let fd = unsafe { libc::dup2(oldfd, newfd) };
 	if fd < 0 { None } else { Some(fd) }
 }
 
-struct SharedMemory {
+pub struct SharedMemory {
 	data: *mut libc::c_void,
 	size: usize,
 	id: i32
@@ -86,16 +72,16 @@ impl SharedMemory {
 		SharedMemory { id: shm_id, size: size, data: data }
 	}
 
-	fn as_slice_u8(&self) -> &[u8] {
+	pub fn as_slice_u8(&self) -> &[u8] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u8, self.size) }
 	}
-	fn as_slice_u16(&self) -> &[u16] {
+	pub fn as_slice_u16(&self) -> &[u16] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u16, self.size / 2) }
 	}
-	fn as_slice_u32_mut(&self) -> &mut [u32] {
+	pub fn as_slice_u32_mut(&self) -> &mut [u32] {
 		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
 	}
-	fn reset(&self) {
+	pub fn reset(&self) {
 		unsafe { libc::memset(self.data, 0, self.size) };
 	}
 }
@@ -107,29 +93,29 @@ impl Drop for SharedMemory {
 	}
 }
 
-struct ForkServerConfiguration<'a> {
-	argv: &'a[&'a str],
-	map_size: usize,
-	mem_limit: usize,
-	stdin_fd: i32,      /// set to 0 if you do not want to fuzz stdin
-	control_fd: i32,
-	status_fd: i32
+pub struct ForkServerConfiguration<'a> {
+	pub argv: &'a[&'a str],
+	pub map_size: usize,
+	pub mem_limit: usize,
+	pub stdin_fd: i32,      /// set to 0 if you do not want to fuzz stdin
+	pub control_fd: i32,
+	pub status_fd: i32
 }
 
 // TODO: implement Hang, Error, NoInst, NoBits
 #[derive(Debug)]
-enum Fault { None, Crash{signal: i32}}
+pub enum Fault { None, Crash{signal: i32}}
 
-struct ForkServer {
+pub struct ForkServer {
 	control_pipe: i32,
 	status_pipe: i32,
-	trace_bits: SharedMemory,
+	pub trace_bits: SharedMemory,
 	prev_timed_out: u32
 }
 
 impl ForkServer {
 	// TODO: more rusty argument
-	fn create(cfg: &ForkServerConfiguration) -> ForkServer {
+	pub fn create(cfg: &ForkServerConfiguration) -> ForkServer {
 		// println!("ForkServer.create");
 
 		// basic sanity check
@@ -259,7 +245,7 @@ impl ForkServer {
 		}
 	}
 
-	fn run_target(&self) -> Fault {
+	pub fn run_target(&self) -> Fault {
 		self.trace_bits.reset();
 		std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
 
