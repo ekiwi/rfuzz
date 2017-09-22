@@ -4,11 +4,11 @@ use std;
 use std::ffi::{CString};
 use std::collections::{HashMap};
 
+use super::{CoverageMap, Fault};
+
 // from `afl/config.h`
-pub const MAP_SIZE: usize = 1 << 16;
-pub const MEM_LIMIT: usize = 25 << 20;  // 25MB
 const SHM_ENV_VAR: &'static str = "__AFL_SHM_ID";
-pub const FORKSRV_FD: i32 = 198;
+const FORKSRV_FD: i32 = 198;
 const EXEC_FAIL_SIG: u32 = 0xfee1dead;
 
 fn setenv(name: &str, value: &str, overwrite: bool) {
@@ -51,7 +51,7 @@ fn duplicate_fd(oldfd: i32, newfd: i32) -> Option<i32> {
 	if fd < 0 { None } else { Some(fd) }
 }
 
-pub struct SharedMemory {
+struct SharedMemory {
 	data: *mut libc::c_void,
 	size: usize,
 	id: i32
@@ -72,17 +72,20 @@ impl SharedMemory {
 		SharedMemory { id: shm_id, size: size, data: data }
 	}
 
-	pub fn as_slice_u8(&self) -> &[u8] {
+	fn reset(&self) {
+		unsafe { libc::memset(self.data, 0, self.size) };
+	}
+}
+
+impl super::CoverageMap for SharedMemory {
+	fn as_slice_u8(&self) -> &[u8] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u8, self.size) }
 	}
-	pub fn as_slice_u16(&self) -> &[u16] {
+	fn as_slice_u16(&self) -> &[u16] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u16, self.size / 2) }
 	}
-	pub fn as_slice_u32_mut(&self) -> &mut [u32] {
+	fn as_slice_u32_mut(&self) -> &mut [u32] {
 		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
-	}
-	pub fn reset(&self) {
-		unsafe { libc::memset(self.data, 0, self.size) };
 	}
 }
 
@@ -97,25 +100,23 @@ pub struct ForkServerConfiguration<'a> {
 	pub argv: &'a[&'a str],
 	pub map_size: usize,
 	pub mem_limit: usize,
-	pub stdin_fd: i32,      /// set to 0 if you do not want to fuzz stdin
-	pub control_fd: i32,
-	pub status_fd: i32
+	/// set to 0 if you do not want to fuzz stdin
+	pub stdin_fd: i32
 }
 
-// TODO: implement Hang, Error, NoInst, NoBits
-#[derive(Debug)]
-pub enum Fault { None, Crash{signal: i32}}
 
-pub struct ForkServer {
+struct ForkServer {
 	control_pipe: i32,
 	status_pipe: i32,
-	pub trace_bits: SharedMemory,
+	trace_bits: SharedMemory,
 	prev_timed_out: u32
 }
 
 impl ForkServer {
 	// TODO: more rusty argument
-	pub fn create(cfg: &ForkServerConfiguration) -> ForkServer {
+	fn create(cfg: &ForkServerConfiguration) -> ForkServer {
+		let control_fd = FORKSRV_FD;
+		let status_fd  = FORKSRV_FD + 1;
 		// println!("ForkServer.create");
 
 		// basic sanity check
@@ -175,8 +176,8 @@ impl ForkServer {
 			}
 
 			// wire control and status pipe to default fds
-			duplicate_fd(control_pipe[0], cfg.control_fd);    // read
-			duplicate_fd(status_pipe[1],  cfg.status_fd);     // write
+			duplicate_fd(control_pipe[0], control_fd);    // read
+			duplicate_fd(status_pipe[1],  status_fd);     // write
 
 			// close fds that are no longer needed
 			close(control_pipe[0]).unwrap();
@@ -245,7 +246,7 @@ impl ForkServer {
 		}
 	}
 
-	pub fn run_target(&self) -> Fault {
+	fn run_target(&self) -> Fault {
 		self.trace_bits.reset();
 		std::sync::atomic::fence(std::sync::atomic::Ordering::SeqCst);
 
@@ -276,29 +277,65 @@ impl Drop for ForkServer {
 	}
 }
 
-struct BranchStats {
-	count: HashMap<usize, u64>,
+
+fn open_mode(pathname: &str, flags: i32, mode: i32) -> Option<i32> {
+	let fd = unsafe {
+		libc::open(CString::new(pathname).unwrap().as_ptr(), flags, mode)
+	};
+	if fd < 0 { None } else { Some(fd) }
 }
 
-impl BranchStats {
-	fn create() -> BranchStats {
-		BranchStats { count: HashMap::new() }
-	}
+fn short_write(fd: i32, data: &[u8]) -> Option<()> {
+	let len = unsafe {
+		libc::write(fd, data.as_ptr() as *const libc::c_void, data.len())
+	};
+	if len == data.len() as isize { Some(()) } else { None }
+}
 
-	fn update(&mut self, map: &[u8]) {
-		for (id, count) in map.iter().enumerate() {
-			if *count > 0 {
-				*self.count.entry(id).or_insert(0) += *count as u64;
-			}
-		}
-	}
 
-	fn print(&self) {
-		println!("unique branches: {}", self.count.len());
-		for id in 0..MAP_SIZE {
-			if self.count.contains_key(&id) {
-				println!("{}: {}", id, self.count.get(&id).unwrap());
-			}
-		}
+pub struct AflConfig<'a> {
+	pub argv: &'a[&'a str],
+	pub map_size: usize,
+	pub mem_limit: usize,
+}
+
+pub struct AflRunner {
+	fuzz_fd : i32,
+	client: ForkServer
+}
+
+impl AflRunner {
+	pub fn create(cfg: &AflConfig) -> AflRunner {
+		// create fuzz input file
+		// unsafe { libc::unlink(CString::new("cur_input").unwrap().as_ptr()) };
+		let fuzz_fd = open_mode("cur_input",
+			                    libc::O_RDWR | libc::O_CREAT | libc::O_EXCL,
+			                    0o600).unwrap();
+		assert!(fuzz_fd >= 0);
+
+		let cfg = ForkServerConfiguration {
+			argv: cfg.argv, map_size: cfg.map_size,
+			mem_limit: cfg.mem_limit, stdin_fd: fuzz_fd };
+		let client = ForkServer::create(&cfg);
+
+		AflRunner { fuzz_fd : fuzz_fd, client : client }
+	}
+}
+
+impl Drop for AflRunner {
+	fn drop(&mut self) {
+		close(self.fuzz_fd).unwrap();
+		unsafe { libc::unlink(CString::new("cur_input").unwrap().as_ptr()) };
+	}
+}
+
+impl super::TestRunner for AflRunner {
+	fn run(&self, input: &[u8]) {
+		// write fuzz stuff, TODO: move to function
+		unsafe { libc::lseek(self.fuzz_fd, 0, libc::SEEK_SET) };
+		short_write(self.fuzz_fd, input).unwrap();
+		unsafe { libc::ftruncate(self.fuzz_fd, input.len() as i64) };
+		unsafe { libc::lseek(self.fuzz_fd, 0, libc::SEEK_SET) };
+		let fault = self.client.run_target();
 	}
 }
