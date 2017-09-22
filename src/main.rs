@@ -25,7 +25,7 @@ fn main() {
 	println!("{}", env::args().nth(0).unwrap());
 
 	// TODO: extract from command line args
-	let argv = &["./minigzip", "-d"];
+	let argv = &["./put/build-zlib/minigzip", "-d"];
 	let input = b"\x00\x00\x00\x00\x00\x00\x00\x00";
 	//let input = b"\x1f\x8b\x08\xfb";
 

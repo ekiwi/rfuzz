@@ -5,8 +5,8 @@ use std::ffi::{CString};
 use std::collections::{HashMap};
 
 // from `afl/config.h`
-pub const MAP_SIZE: usize = 1 << 26;
-pub const MEM_LIMIT: usize = 250 << 20;  // 250MB
+pub const MAP_SIZE: usize = 1 << 16;
+pub const MEM_LIMIT: usize = 25 << 20;  // 25MB
 const SHM_ENV_VAR: &'static str = "__AFL_SHM_ID";
 pub const FORKSRV_FD: i32 = 198;
 const EXEC_FAIL_SIG: u32 = 0xfee1dead;

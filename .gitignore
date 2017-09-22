@@ -3,3 +3,9 @@
 
 # ProgramUnderTest
 put/
+
+# for now ignore Cargo.lock
+Cargo.lock
+
+# runtime files
+cur_input
