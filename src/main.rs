@@ -1,17 +1,25 @@
 extern crate libc;
 extern crate time;
+extern crate twox_hash;
 mod run;
 mod mutation;
 
 use std::env;
-use std::ffi::{CString};
 use run::{TestRunner};
 use run::afl::{AflConfig, AflRunner};
 use mutation::{BitFlip};
+use std::hash::Hasher;
+use twox_hash::XxHash;
 
 // from `afl/config.h`
 pub const MAP_SIZE: usize = 1 << 16;
 pub const MEM_LIMIT: usize = 25 << 20;  // 25MB
+
+fn hash_xx(input: &[u8]) -> u64 {
+	let mut hasher = XxHash::default();
+	hasher.write(input);
+	hasher.finish()
+}
 
 fn main() {
 	println!("{}", env::args().nth(0).unwrap());
@@ -28,10 +36,16 @@ fn main() {
 	let runs = mutator.max;
 	println!("running {} {} times simple input mutation", argv[0], runs);
 	let start = time::PreciseTime::now();
+	let mut old_hash = 0u64;
 	for mutation in mutator {
 		mutation.run(&mut input);
-		println!("{:?}", input);
 		runner.run(&input);
+		// analyze
+		let new_hash = hash_xx(runner.coverage().as_slice_u8());
+		if new_hash != old_hash {
+			println!("Input generated new coverage: {:?}", input);
+			old_hash = new_hash;
+		}
 		// reset input
 		input = [0u8; 8];
 	}

@@ -2,7 +2,6 @@ extern crate libc;
 
 use std;
 use std::ffi::{CString};
-use std::collections::{HashMap};
 
 use super::{CoverageMap, Fault};
 
@@ -75,6 +74,10 @@ impl SharedMemory {
 	fn reset(&self) {
 		unsafe { libc::memset(self.data, 0, self.size) };
 	}
+
+	fn as_slice_u32_mut(&self) -> &mut [u32] {
+		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
+	}
 }
 
 impl super::CoverageMap for SharedMemory {
@@ -83,9 +86,6 @@ impl super::CoverageMap for SharedMemory {
 	}
 	fn as_slice_u16(&self) -> &[u16] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u16, self.size / 2) }
-	}
-	fn as_slice_u32_mut(&self) -> &mut [u32] {
-		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
 	}
 }
 
@@ -337,5 +337,8 @@ impl super::TestRunner for AflRunner {
 		unsafe { libc::ftruncate(self.fuzz_fd, input.len() as i64) };
 		unsafe { libc::lseek(self.fuzz_fd, 0, libc::SEEK_SET) };
 		let fault = self.client.run_target();
+	}
+	fn coverage(&self) -> &CoverageMap {
+		&self.client.trace_bits
 	}
 }
