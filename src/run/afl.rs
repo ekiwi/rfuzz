@@ -310,7 +310,7 @@ impl AflRunner {
 		// unsafe { libc::unlink(CString::new("cur_input").unwrap().as_ptr()) };
 		let fuzz_fd = open_mode("cur_input",
 			                    libc::O_RDWR | libc::O_CREAT | libc::O_EXCL,
-			                    0o600).unwrap();
+			                    0o600).expect("failed to create cur_input");
 		assert!(fuzz_fd >= 0);
 
 		let cfg = ForkServerConfiguration {
