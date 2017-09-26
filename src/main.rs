@@ -1,8 +1,9 @@
 extern crate libc;
 extern crate time;
-extern crate twox_hash;
+
 mod run;
 mod mutation;
+mod analysis;
 
 use std::env;
 use std::fs::File;
@@ -10,19 +11,11 @@ use std::io::prelude::*;
 use run::{TestRunner};
 use run::afl::{AflConfig, AflRunner};
 use mutation::{MUTATIONS};
-use std::hash::Hasher;
-use twox_hash::XxHash;
-use std::collections::HashSet;
+use analysis::{Analysis};
 
 // from `afl/config.h`
 pub const MAP_SIZE: usize = 1 << 16;
 pub const MEM_LIMIT: usize = 25 << 20;  // 25MB
-
-fn hash_xx(input: &[u8]) -> u64 {
-	let mut hasher = XxHash::default();
-	hasher.write(input);
-	hasher.finish()
-}
 
 fn load_input(filename: &str) -> Vec<u8> {
 	let mut f = File::open(filename).expect("file not found");
@@ -45,7 +38,7 @@ fn main() {
 	let mut runs : usize = 0;
 
 	let start = time::PreciseTime::now();
-	let mut old_hashes : HashSet<u64> = HashSet::new();
+	let mut analysis = Analysis::new();
 	let mut input = orig_input.clone();
 
 	for mutation in MUTATIONS.iter() {
@@ -55,12 +48,7 @@ fn main() {
 		for mutator in iterator {
 			mutator.run(&mut input);
 			runner.run(&input);
-			// analyze
-			let new_hash = hash_xx(runner.coverage().as_slice_u8());
-			if !old_hashes.contains(&new_hash) {
-				// println!("Input generated new coverage: {:?}", input);
-				old_hashes.insert(new_hash);
-			}
+			analysis.run(runner.coverage().as_slice_u8());
 			// reset input
 			input = orig_input.clone();
 		}
@@ -68,5 +56,5 @@ fn main() {
 	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
 	println!("{:.1} runs/s", runs_per_second);
-	println!("Discovered {} new paths.", old_hashes.len());
+	println!("Discovered {} new paths.", analysis.path_count());
 }
