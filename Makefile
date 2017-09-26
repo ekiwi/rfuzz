@@ -39,7 +39,7 @@ VERILATOR_FLAGS := --top-module $(TOP) \
   -CFLAGS "-O1 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -include $(src_dir)/afl.h -std=c++11 -fpermissive" \
 
 $(TARGET_VERILATOR): $(TARGET_V) $(TOP_CPP)
-	$(VERILATOR) $< $(TOP_CPP) $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)
+	$(VERILATOR) $^ $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)
 
 $(TARGET_BINARY): $(TARGET_VERILATOR)
 	make VM_PARALLEL_BUILDS=1 -C $(build_dir) -f $<
