@@ -1,3 +1,6 @@
 *.class
 *.log
 build/
+
+dump.vcd
+out*/
