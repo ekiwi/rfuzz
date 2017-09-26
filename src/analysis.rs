@@ -2,6 +2,7 @@ extern crate twox_hash;
 use std::hash::Hasher;
 use std::collections::HashSet;
 use self::twox_hash::XxHash;
+use run::Fault;
 
 
 pub struct Analysis {
@@ -13,7 +14,7 @@ impl Analysis {
 		Analysis { path_hashes: HashSet::new() }
 	}
 
-	pub fn run(&mut self, trace_bits: &[u8]) {
+	pub fn run(&mut self, fault: Fault, trace_bits: &[u8]) {
 		let new_hash = hash_xx(trace_bits);
 		if !self.path_hashes.contains(&new_hash) {
 			self.path_hashes.insert(new_hash);
@@ -29,7 +30,8 @@ fn hash_xx(input: &[u8]) -> u64 {
 	hasher.finish()
 }
 
-fn is_interesting(trace_bits: &[u8]) {
+
+fn is_interesting(fault: Fault, trace_bits: &[u8]) {
 	// TODO
 }
 

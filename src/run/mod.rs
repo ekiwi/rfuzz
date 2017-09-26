@@ -21,6 +21,6 @@ pub trait CoverageMap {
 // }
 
 pub trait TestRunner {
-	fn run(&self, input : &[u8]);
+	fn run(&self, input : &[u8]) -> Fault;
 	fn coverage(&self) -> &CoverageMap;
 }

@@ -330,13 +330,14 @@ impl Drop for AflRunner {
 }
 
 impl super::TestRunner for AflRunner {
-	fn run(&self, input: &[u8]) {
+	fn run(&self, input: &[u8]) -> Fault {
 		// write fuzz stuff, TODO: move to function
 		unsafe { libc::lseek(self.fuzz_fd, 0, libc::SEEK_SET) };
 		short_write(self.fuzz_fd, input).unwrap();
 		unsafe { libc::ftruncate(self.fuzz_fd, input.len() as i64) };
 		unsafe { libc::lseek(self.fuzz_fd, 0, libc::SEEK_SET) };
 		let fault = self.client.run_target();
+		fault
 	}
 	fn coverage(&self) -> &CoverageMap {
 		&self.client.trace_bits

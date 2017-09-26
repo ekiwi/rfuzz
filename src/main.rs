@@ -47,8 +47,8 @@ fn main() {
 		println!("running {} {} times with {} mutation", argv[0], iterator.max, mutation.name);
 		for mutator in iterator {
 			mutator.run(&mut input);
-			runner.run(&input);
-			analysis.run(runner.coverage().as_slice_u8());
+			let fault = runner.run(&input);
+			analysis.run(fault, runner.coverage().as_slice_u8());
 			// reset input
 			input = orig_input.clone();
 		}
