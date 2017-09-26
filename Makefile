@@ -3,7 +3,7 @@ root_dir =  $(abspath .)
 firrtl_dir = $(root_dir)/firrtl
 src_dir = $(root_dir)/src
 build_dir = $(root_dir)/build
-afl_dir = /scratch/jack/afl-2.41b
+AFL_DIR ?= /scratch/jack/afl-2.41b
 afl_out_dir = $(root_dir)/out
 FIRRTL ?= $(firrtl_dir)/utils/bin/firrtl
 FIRRTL_JAR ?= $(firrtl_dir)/utils/bin/firrtl.jar
@@ -48,7 +48,7 @@ $(TARGET_BINARY): $(TARGET_VERILATOR)
 #cat in/test0 | $<
 run: $(TARGET_BINARY)
 	mkdir -p $(afl_out_dir)
-	AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1 AFL_SKIP_CPUFREQ=1 $(afl_dir)/afl-fuzz -i in -o $(afl_out_dir) $<
+	AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1 AFL_SKIP_CPUFREQ=1 $(AFL_DIR)/afl-fuzz -i in -o $(afl_out_dir) $<
 
 .PHONY: clean all binary run
 
