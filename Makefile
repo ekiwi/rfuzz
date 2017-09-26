@@ -36,7 +36,7 @@ VERILATOR_FLAGS := --top-module $(TOP) \
   +define+TOP_TYPE=V$(TOP) \
   +define+PRINTF_COND='!$(TOP).reset' \
   +define+STOP_COND='!$(TOP).reset' \
-  -CFLAGS "-O1 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -include $(src_dir)/afl.h -std=c++11 -fpermissive" \
+  -CFLAGS "-O1 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -include $(src_dir)/afl.h -std=c++11" \
 
 $(TARGET_VERILATOR): $(TARGET_V) $(TOP_CPP)
 	$(VERILATOR) $^ $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)

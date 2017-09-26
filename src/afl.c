@@ -39,7 +39,7 @@ static void __afl_map_shm() {
   //hacky .init code to work correctly in projects such as OpenSSL.
   if (id_str) {
     uint32_t shm_id = atoi(id_str);
-   __afl_area_ptr = shmat(shm_id, NULL, 0);
+   __afl_area_ptr = (uint8_t*)shmat(shm_id, NULL, 0);
 
     // Whooooops.
     if (__afl_area_ptr == (void *)-1) { _exit(1); }
