@@ -38,7 +38,7 @@ fn main() {
 	let mut runs : usize = 0;
 
 	let start = time::PreciseTime::now();
-	let mut analysis = Analysis::new();
+	let mut analysis = Analysis::new(MAP_SIZE);
 	let mut input = orig_input.clone();
 
 	for mutation in MUTATIONS.iter() {
@@ -57,4 +57,6 @@ fn main() {
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
 	println!("{:.1} runs/s", runs_per_second);
 	println!("Discovered {} new paths.", analysis.path_count());
+	println!("Discovered {} new inputs.", analysis.new_inputs_count());
+	println!("TODO: this seems like a lot of new inputs ... is there a bug?");
 }
