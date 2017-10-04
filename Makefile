@@ -31,8 +31,7 @@ VERILATOR_FLAGS := --top-module $(TOP) \
 	-Wno-fatal \
 	-Wno-WIDTH \
 	-Wno-STMTDLY \
-	--trace \
-	-O1 \
+	-O3 \
   +define+TOP_TYPE=V$(TOP) \
   +define+PRINTF_COND='!$(TOP).reset' \
   +define+STOP_COND='!$(TOP).reset' \
