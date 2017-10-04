@@ -1,0 +1,26 @@
+# This file contains all information needed to generate the
+# verilator C++ test harness and for the fuzzer to generate test inputs.
+# This is using TOML instead of JSON for improved readability!
+
+[general]
+name = "gcd"
+
+[input]
+reset = 1
+io_in_valid = 1
+io_out_ready = 1
+io_in_bits_a = 32
+io_in_bits_b = 32
+
+[coverage]
+io_in_ready = "count(0)"
+io_out_valid = "count(1)"
+cov_valid = "count(2)"
+cov_bits_T_43_true = "count(3)"
+cov_bits_T_43_false = "count(4)"
+cov_bits_T_45_true = "count(5)"
+cov_bits_T_45_false = "count(6)"
+cov_bits_T_54_true = "count(7)"
+cov_bits_T_54_false = "count(8)"
+cov_bits_start_true = "count(9)"
+cov_bits_start_false = "count(10)"

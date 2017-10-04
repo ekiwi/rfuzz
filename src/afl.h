@@ -20,5 +20,7 @@ static inline void afl_set(uint16_t id, uint8_t value)
 { __afl_area_ptr[id] = value; }
 static inline uint8_t afl_get(uint16_t id)
 { return __afl_area_ptr[id]; }
+static inline void afl_copy(const void* src, size_t len)
+{ memcpy(__afl_area_ptr, src, len); }
 
 #endif // AFL_H

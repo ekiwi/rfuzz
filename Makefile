@@ -9,7 +9,7 @@ FIRRTL ?= $(firrtl_dir)/utils/bin/firrtl
 FIRRTL_JAR ?= $(firrtl_dir)/utils/bin/firrtl.jar
 
 TOP := gcdcov
-TOP_CPP := aflwrap.cpp
+TOP_CPP := src/top.cpp
 TARGET_V := $(build_dir)/$(TOP).v
 TARGET_VERILATOR := $(build_dir)/V$(TOP).mk
 TARGET_BINARY := $(build_dir)/V$(TOP)
@@ -19,7 +19,7 @@ all: $(TARGET_BINARY)
 $(FIRRTL_JAR):
 	make -C $(firrtl_dir) build
 
-$(TARGET_V): $(src_dir)/$(TOP).fir $(FIRRTL_JAR)
+$(TARGET_V): example/$(TOP).fir $(FIRRTL_JAR)
 	$(FIRRTL) -i $< -o $@ -X verilog
 
 binary: $(TARGET_VERILATOR)
@@ -32,10 +32,10 @@ VERILATOR_FLAGS := --top-module $(TOP) \
 	-Wno-WIDTH \
 	-Wno-STMTDLY \
 	-O3 \
-  +define+TOP_TYPE=V$(TOP) \
-  +define+PRINTF_COND='!$(TOP).reset' \
-  +define+STOP_COND='!$(TOP).reset' \
-  -CFLAGS "-O1 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -include $(src_dir)/afl.h -std=c++11" \
+	+define+TOP_TYPE=V$(TOP) \
+	+define+PRINTF_COND='!$(TOP).reset' \
+	+define+STOP_COND='!$(TOP).reset' \
+	-CFLAGS "-O3 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -I../src -I../example -std=c++11" \
 
 $(TARGET_VERILATOR): $(TARGET_V) $(TOP_CPP)
 	$(VERILATOR) $^ $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)
