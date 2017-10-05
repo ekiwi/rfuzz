@@ -6,17 +6,40 @@ mod mutation;
 mod analysis;
 
 use std::env;
+
+#[cfg(not(FUZZ_AFL))]
+fn main() {
+	println!("{}", env::args().nth(0).unwrap());
+}
+
+
+
+
+
+
+
+
+
+#[cfg(FUZZ_AFL)]
 use std::fs::File;
+#[cfg(FUZZ_AFL)]
 use std::io::prelude::*;
+#[cfg(FUZZ_AFL)]
 use run::{TestRunner};
+#[cfg(FUZZ_AFL)]
 use run::afl::{AflConfig, AflRunner};
+#[cfg(FUZZ_AFL)]
 use mutation::{MUTATIONS};
+#[cfg(FUZZ_AFL)]
 use analysis::{Analysis};
 
 // from `afl/config.h`
+#[cfg(FUZZ_AFL)]
 pub const MAP_SIZE: usize = 1 << 16;
+#[cfg(FUZZ_AFL)]
 pub const MEM_LIMIT: usize = 25 << 20;  // 25MB
 
+#[cfg(FUZZ_AFL)]
 fn load_input(filename: &str) -> Vec<u8> {
 	let mut f = File::open(filename).expect("file not found");
 	let mut res = Vec::new();
@@ -24,6 +47,7 @@ fn load_input(filename: &str) -> Vec<u8> {
 	res
 }
 
+#[cfg(FUZZ_AFL)]
 fn main() {
 	println!("{}", env::args().nth(0).unwrap());
 
