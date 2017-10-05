@@ -2,6 +2,31 @@
 
 // implements the fuzzer interface similar to how it would work with the FPGA
 
+// Data is shared through buffers that are allocated by the fuzzer
+// and transfered (in an ownership sense) to the FPGA once the test input
+// data has been written to them.
+// The FPGA is processing one buffer at a time, reading and applying the
+// test inputs and writing back the coverage for each individual test.
+// Once all tests are done, the FPGA hands the buffer back to the fuzzer
+// and checks its queue for a new buffer to work on.
+
+// The basic data format is as follows:
+// struct Buffer {
+//     uint32_t MagicHeader = 0x19931993;
+//     uint32_t test_count;
+//     Test tests[test_count];
+// }
+// struct Test {
+//     uint64_t id;
+//     uint32_t input_count;
+//     Input inputs[input_count];
+//     Coverage coverage;
+// }
+// Every data item is 32bit word aligned!
+// TODO: deal with endianess issues.
+
+
+
 #ifndef FPGA_QUEUE_HPP
 #define FPGA_QUEUE_HPP
 
@@ -10,15 +35,18 @@
 
 class FPGAQueueFuzzer : public Fuzzer {
 private:
+	void wait_for_buffer() {
+
+	}
+	void release_buffer() {
+	}
+
 public:
 	void init() override {
 		// plan:
 		// 1. open file or named pipe to communicate
-		// 2. wait for fuzzer to send us two 32bit shared memory ids
-		//    one is for the input, one for the resulting coverage
+		// 2. wait for fuzzer to send us one 32bit shared memory id
 		// 3. open shared input memory + parse number of tests
-		// 4. open shared coverage memory + write coverage number
-		//    as indicated by the number of tests
 	}
 	bool done() override {
 		// plan
