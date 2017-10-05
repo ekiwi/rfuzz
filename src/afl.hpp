@@ -49,4 +49,5 @@ public:
 	}
 };
 
+using ActiveFuzzer = AflFuzzer;
 #endif // AFL_HPP

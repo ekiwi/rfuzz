@@ -13,7 +13,11 @@
 #endif
 
 #include <module_interface.hpp>
+#ifdef USE_AFL
 #include <afl.hpp>
+#else
+#include <fpga_queue.hpp>
+#endif
 
 // Override Verilator definition so first $finish ends simulation
 // Note: VL_USER_FINISH needs to be defined when compiling Verilator code
@@ -74,7 +78,7 @@ Simulation global_sim;
 // Called by $time in Verilog converts to double, to match what SystemC does
 double sc_time_stamp () { return global_sim.main_time; }
 int main(int argc, char** argv) {
-	AflFuzzer fuzzer;
+	ActiveFuzzer fuzzer;
 	fuzzer.init();
 
 	Verilated::commandArgs(argc, argv);
