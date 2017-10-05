@@ -38,7 +38,9 @@ VERILATOR_FLAGS := --top-module $(TOP) \
 	-CFLAGS "-O3 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -I../src -I../example -std=c++11" \
 
 $(TARGET_VERILATOR): $(TARGET_V) $(TOP_CPP)
-	$(VERILATOR) $^ $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)
+	$(VERILATOR) $^ $(src_dir)/fpga_queue.cpp $(VERILATOR_FLAGS) -Mdir $(build_dir)
+
+#	$(VERILATOR) $^ $(src_dir)/afl.c $(VERILATOR_FLAGS) -Mdir $(build_dir)
 
 $(TARGET_BINARY): $(TARGET_VERILATOR)
 	make VM_PARALLEL_BUILDS=1 -C $(build_dir) -f $<

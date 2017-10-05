@@ -12,7 +12,7 @@
 
 // The basic data format is as follows:
 // struct Buffer {
-//     uint32_t MagicHeader = 0x19931993;
+//     uint32_t MagicHeader = 0x19933991;
 //     uint32_t test_count;
 //     Test tests[test_count];
 // }
@@ -30,51 +30,60 @@
 #ifndef FPGA_QUEUE_HPP
 #define FPGA_QUEUE_HPP
 
+#include <module_interface.hpp>    // TODO: how and where should this be included?
 #include <fuzzer.hpp>
-#include <shared_memory.hpp>
+#include <cstdint>
+#include <cstddef>
+#include <string>
+#include <fstream>
+
+class NamedPipe {
+private:
+	std::string dir;
+	std::ifstream rx;
+	std::ofstream tx;
+public:
+	NamedPipe(const std::string& name);
+	~NamedPipe();
+	uint32_t pop_blocking();
+	void push(uint32_t value);
+};
+
+class SharedMemory {
+	const int32_t id;
+	void* const data;
+public:
+	SharedMemory(int32_t id, void* data) : id(id), data(data) {}
+	~SharedMemory();
+public:
+	template<typename T>
+	T get_as() { return static_cast<T>(data); }
+public:
+	static SharedMemory alloc(size_t bytes);
+	static SharedMemory from_id(int32_t id);
+};
 
 class FPGAQueueFuzzer : public Fuzzer {
 private:
-	void wait_for_buffer() {
+	// command pipe
 
-	}
-	void release_buffer() {
-	}
+	// current buffer
+	int shm_id = -1;
+	uint32_t tests_left;
+	char* buffer_ptr;
 
+	// current test
+	uint64_t test_id;
+	uint32_t inputs_left;
+
+	void wait_for_buffer();
+	void release_buffer();
 public:
-	void init() override {
-		// plan:
-		// 1. open file or named pipe to communicate
-		// 2. wait for fuzzer to send us one 32bit shared memory id
-		// 3. open shared input memory + parse number of tests
-	}
-	bool done() override {
-		// plan
-		// 1. check if there are tests left in our current input buffer
-		// if YES:
-		//     2. load test_id and test_length into local variables
-		//     3. return false
-		// if NO (no tests left):
-		//     2. detach input and coverage shared memory
-		//     3. notify fuzzer (send shared memory ids back?)
-		//     3. return true
-	}
-	bool pop(InputType* input) override {
-		if(next_input >= inputs.size()) {
-			// no more inputs for the current test
-			return false;
-		} else {
-			*input = inputs[next_input];
-			next_input += 1;
-			return true;
-		}
-	}
-	void push(const CoverageType& coverage) override {
-		// plan:
-		// 1. memcpy coverage to shared coverage memory
-		// 2. increment pointer to point to next free slot for coverage
-	}
+	void init() override;
+	bool done() override;
+	bool pop(InputType* input) override;
+	void push(const CoverageType& coverage) override;
 };
 
-using FPGAQueueFuzzer = AflFuzzer;
+using ActiveFuzzer = FPGAQueueFuzzer;
 #endif // FPGA_QUEUE_HPP
