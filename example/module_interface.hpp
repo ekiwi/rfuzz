@@ -30,7 +30,7 @@ public:
 		top.io_in_bits_b = io_in_bits_b;
 	}
 } __attribute__((packed));
-static_assert(sizeof(Input) == 3 * 4);
+static_assert(sizeof(Input) == 3 * 4, "");
 
 struct Coverage {
 protected:
@@ -52,7 +52,7 @@ public:
 		if (top.cov_bits_start_false) count[10]++;
 	}
 } __attribute__((packed));
-static_assert(sizeof(Coverage) == 3 * 4);
+static_assert(sizeof(Coverage) == 3 * 4, "");
 
 } // namespace Test
 

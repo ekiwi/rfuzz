@@ -45,66 +45,71 @@ void NamedPipe::push(uint32_t value) {
 	tx.flush();
 }
 
-SharedMemory::~SharedMemory() {
-	if(id >= 0) {
-		shmctl(id, IPC_RMID, NULL);
-	}
-}
-
-SharedMemory
-SharedMemory::alloc(size_t bytes) {
-	const int32_t shm_id = shmget(IPC_PRIVATE, bytes, IPC_CREAT | IPC_EXCL | 0600);
-	assert(shm_id >= 0);
-	return SharedMemory::from_id(shm_id);
-}
-
-
-SharedMemory
-SharedMemory::from_id(int32_t id) {
-	auto data = shmat(id, NULL, 0);
-	assert(data != nullptr);
-	return SharedMemory(id, data);
-}
-
 static constexpr uint32_t MagicHeader = 0x19933991;
 
-void FPGAQueueFuzzer::wait_for_buffer() {
-
+void FPGAQueueFuzzer::acquire_buffer() {
+	assert(shm_id == -1);
+	assert(shm_start_ptr == nullptr);
+	const auto id = command_pipe->pop_blocking();
+	auto data = shmat(id, NULL, 0);
+	assert(data != nullptr);
+	// register new buffer
+	shm_id = id;
+	shm_start_ptr = data;
+	buffer_io_ptr = static_cast<char*>(data);
 }
 void FPGAQueueFuzzer::release_buffer() {
+	assert(shm_id > -1);
+	assert(shm_start_ptr != nullptr);
+	// detach shared memory
+	assert(shmdt(shm_start_ptr) == 0);
+	// return control over buffer
+	command_pipe->push(shm_id);
+	// reset buffer state
+	shm_id = -1;
+	shm_start_ptr = nullptr;
 }
-
+void FPGAQueueFuzzer::parse_header() {
+	const auto magic_header = read_from_buffer<uint32_t>();
+	assert(magic_header == MagicHeader);
+	tests_left = read_from_buffer<uint32_t>();
+}
+void FPGAQueueFuzzer::parse_test() {
+	test_id = read_from_buffer<uint64_t>();
+	inputs_left = read_from_buffer<uint32_t>();
+}
 
 void FPGAQueueFuzzer::init() {
 	// plan:
 	// 1. open file or named pipe to communicate
+	command_pipe = std:: make_unique<NamedPipe>("0");
 	// 2. wait for fuzzer to send us one 32bit shared memory id
+	acquire_buffer();
 	// 3. open shared input memory + parse number of tests
+	parse_header();
 }
 bool FPGAQueueFuzzer::done() {
-	// plan
-	// 1. check if there are tests left in our current input buffer
-	// if YES:
-	//     2. load test_id and test_length into local variables
-	//     3. return false
-	// if NO (no tests left):
-	//     2. detach input and coverage shared memory
-	//     3. notify fuzzer (send shared memory ids back?)
-	//     3. return true
-}
-bool FPGAQueueFuzzer::pop(InputType* input) {
-	if(next_input >= inputs.size()) {
-		// no more inputs for the current test
+	if(tests_left > 0) {
+		parse_test();
+		tests_left -= 1;
 		return false;
 	} else {
-		*input = inputs[next_input];
-		next_input += 1;
+		release_buffer();
 		return true;
 	}
 }
+bool FPGAQueueFuzzer::pop(InputType* input) {
+	if(inputs_left > 0) {
+		*input = read_from_buffer<InputType>();
+		inputs_left -= 1;
+		return true;
+	} else {
+		// no more inputs left, expecting coverage now!
+		return false;
+	}
+}
 void FPGAQueueFuzzer::push(const CoverageType& coverage) {
-	// plan:
-	// 1. memcpy coverage to shared coverage memory
-	// 2. increment pointer to point to next free slot for coverage
+	assert(inputs_left == 0);
+	write_to_buffer(coverage);
 }
 

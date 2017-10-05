@@ -35,7 +35,7 @@ VERILATOR_FLAGS := --top-module $(TOP) \
 	+define+TOP_TYPE=V$(TOP) \
 	+define+PRINTF_COND='!$(TOP).reset' \
 	+define+STOP_COND='!$(TOP).reset' \
-	-CFLAGS "-O3 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -I../src -I../example -std=c++11" \
+	-CFLAGS "-O3 -DTOP_TYPE=V$(TOP) -DVL_USER_FINISH -include V$(TOP).h -I../src -I../example -std=c++14" \
 
 $(TARGET_VERILATOR): $(TARGET_V) $(TOP_CPP)
 	$(VERILATOR) $^ $(src_dir)/fpga_queue.cpp $(VERILATOR_FLAGS) -Mdir $(build_dir)

@@ -36,6 +36,7 @@
 #include <cstddef>
 #include <string>
 #include <fstream>
+#include <memory>
 
 class NamedPipe {
 private:
@@ -49,35 +50,34 @@ public:
 	void push(uint32_t value);
 };
 
-class SharedMemory {
-	const int32_t id;
-	void* const data;
-public:
-	SharedMemory(int32_t id, void* data) : id(id), data(data) {}
-	~SharedMemory();
-public:
-	template<typename T>
-	T get_as() { return static_cast<T>(data); }
-public:
-	static SharedMemory alloc(size_t bytes);
-	static SharedMemory from_id(int32_t id);
-};
-
 class FPGAQueueFuzzer : public Fuzzer {
 private:
-	// command pipe
+	std::unique_ptr<NamedPipe> command_pipe;
 
 	// current buffer
 	int shm_id = -1;
 	uint32_t tests_left;
-	char* buffer_ptr;
+	void* shm_start_ptr;
+	char* buffer_io_ptr;
+	template<typename T> inline T read_from_buffer() {
+		T value;
+		std::memcpy(&value, buffer_io_ptr, sizeof(T));
+		buffer_io_ptr += sizeof(T);
+		return value;
+	}
+	template<typename T> inline void write_to_buffer(const T& value) {
+		std::memcpy(buffer_io_ptr, &value, sizeof(T));
+		buffer_io_ptr += sizeof(T);
+	}
 
 	// current test
 	uint64_t test_id;
 	uint32_t inputs_left;
 
-	void wait_for_buffer();
+	void acquire_buffer();
 	void release_buffer();
+	void parse_header();
+	void parse_test();
 public:
 	void init() override;
 	bool done() override;
