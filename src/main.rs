@@ -7,9 +7,38 @@ mod analysis;
 
 use std::env;
 use std::fs;
+use std::path;
+use std::io;
+use std::io::prelude::*;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const MAGIC_HEADER: u32 = 0x19933991;
+
+#[cfg(not(FUZZ_AFL))]
+fn communicate_with_fpga(dir: &path::Path) {
+	let name = dir.file_name().unwrap().to_os_string().into_string().unwrap();
+	println!("found fpga: {}", name);
+
+	// open pipes in the same order as the fpga mockup interface server does
+	// (see hardware-afl:src/fpga_queue.cpp
+	let tx_path = dir.join("tx.fifo");
+	let mut tx = fs::File::open(&tx_path).expect("failed to open tx fifo!");
+	println!("Sucessfully opened {} to communicate with FPGA{}",
+	         tx_path.display(), name);
+	// the receive pipe of the fuzz server needs to be opened write only
+	// in order to fullfill the fifo interface
+	let rx_path = dir.join("rx.fifo");
+	let mut rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
+	println!("Sucessfully opened {} to communicate with FPGA{}",
+	         tx_path.display(), name);
+
+
+
+	// for now wait for user input to exit
+	println!("press ENTER-key to exit...");
+	let _ = io::stdin().read(&mut [0u8]).unwrap();
+}
+
 
 #[cfg(not(FUZZ_AFL))]
 fn main() {
@@ -17,8 +46,10 @@ fn main() {
 
 	// try to connect to fpga interface
 	let paths = fs::read_dir(FPGA_DIR).expect("failed to open fpga directory!");
-	for fpga_path in paths.filter_map(|path| path.ok().and_then(|p| p.path().file_name().and_then(|name| name.to_os_string().into_string().ok()))) {
-		println!("found fpga: {}", fpga_path);
+	for fpga_entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
+		if fpga_entry.is_dir() {
+			communicate_with_fpga(fpga_entry.as_path());
+		}
 	}
 
 }
