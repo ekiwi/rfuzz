@@ -56,9 +56,9 @@ private:
 
 	// current buffer
 	int shm_id = -1;
-	uint32_t tests_left;
-	void* shm_start_ptr;
-	char* buffer_io_ptr;
+	uint32_t tests_left = 0;
+	void* shm_start_ptr = nullptr;
+	char* buffer_io_ptr = nullptr;
 	template<typename T> inline T read_from_buffer() {
 		T value;
 		std::memcpy(&value, buffer_io_ptr, sizeof(T));
@@ -71,8 +71,8 @@ private:
 	}
 
 	// current test
-	uint64_t test_id;
-	uint32_t inputs_left;
+	uint64_t test_id = 0;
+	uint32_t inputs_left = 0;
 
 	void acquire_buffer();
 	void release_buffer();

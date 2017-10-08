@@ -15,29 +15,38 @@ NamedPipe::NamedPipe(const std::string& name) {
 	// we will try to create two fifos in /tmp/fpga/{name}/
 	std::string fpga_path = "/tmp/fpga";
 	dir = fpga_path + "/" + name;
-	assert(mkdir(dir.c_str(), ACCESSPERMS) == 0);
+	mkdir(dir.c_str(), ACCESSPERMS);
 	// make pipes
-	const auto rx_filename = dir + "/rx.fifo";
-	assert(mkfifo(rx_filename.c_str(), DEFFILEMODE) == 0);
-	rx.open(rx_filename);
 	const auto tx_filename = dir + "/tx.fifo";
 	assert(mkfifo(tx_filename.c_str(), DEFFILEMODE) == 0);
+	std::cout << "created tx fifo" << std::endl;
+	const auto rx_filename = dir + "/rx.fifo";
+	assert(mkfifo(rx_filename.c_str(), DEFFILEMODE) == 0);
+	std::cout << "created rx fifo" << std::endl;
+	// open pipes
 	tx.open(tx_filename);
+	std::cout << "opened tx fifo" << std::endl;
+	rx.open(rx_filename);
+	std::cout << "opened rx fifo" << std::endl;
 }
 NamedPipe::~NamedPipe() {
 	// remove pipes
-	rx.close();
-	const auto rx_filename = dir + "/rx.fifo";
-	assert(unlink(rx_filename.c_str()) == 0);
 	tx.close();
 	const auto tx_filename = dir + "/tx.fifo";
 	assert(unlink(tx_filename.c_str()) == 0);
+	rx.close();
+	const auto rx_filename = dir + "/rx.fifo";
+	assert(unlink(rx_filename.c_str()) == 0);
 	// remove instance directory
 	assert(rmdir(dir.c_str()) == 0);
 }
 uint32_t NamedPipe::pop_blocking() {
 	uint32_t value;
 	rx.read(reinterpret_cast<char*>(&value), sizeof(uint32_t));
+	// when the pipe is closed prematurely, we will read 0 instead of 4 bytes
+	// in this case it is best to crash here instead of later in the code
+	const auto successfull_read_from_rx_pipe = rx.gcount() == sizeof(uint32_t);
+	assert(successfull_read_from_rx_pipe);
 	return value;
 }
 void NamedPipe::push(uint32_t value) {
