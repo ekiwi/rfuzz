@@ -6,10 +6,21 @@ mod mutation;
 mod analysis;
 
 use std::env;
+use std::fs;
+
+const FPGA_DIR: &'static str = "/tmp/fpga";
+const MAGIC_HEADER: u32 = 0x19933991;
 
 #[cfg(not(FUZZ_AFL))]
 fn main() {
 	println!("{}", env::args().nth(0).unwrap());
+
+	// try to connect to fpga interface
+	let paths = fs::read_dir(FPGA_DIR).expect("failed to open fpga directory!");
+	for fpga_path in paths.filter_map(|path| path.ok().and_then(|p| p.path().file_name().and_then(|name| name.to_os_string().into_string().ok()))) {
+		println!("found fpga: {}", fpga_path);
+	}
+
 }
 
 
