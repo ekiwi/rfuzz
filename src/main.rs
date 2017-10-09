@@ -11,8 +11,32 @@ use std::path;
 use std::io;
 use std::io::prelude::*;
 
+#[cfg(not(FUZZ_AFL))]
 const FPGA_DIR: &'static str = "/tmp/fpga";
+#[cfg(not(FUZZ_AFL))]
 const MAGIC_HEADER: u32 = 0x19933991;
+
+#[cfg(not(FUZZ_AFL))]
+use run::shmem::SharedMemory;
+
+
+#[cfg(not(FUZZ_AFL))]
+struct Buffer {	// TODO: find better name for this
+	data: SharedMemory
+}
+
+impl Buffer {
+	fn create(size: usize) -> Self {
+		let test_count = 0u32;
+		let data = SharedMemory::create(size);
+		data.as_slice_u32_mut()[0] = MAGIC_HEADER;
+		data.as_slice_u32_mut()[1] = test_count;
+		Buffer { data }
+	}
+
+	fn shm_id(&self) -> i32 { self.data.id() }
+}
+
 
 #[cfg(not(FUZZ_AFL))]
 fn communicate_with_fpga(dir: &path::Path) {
@@ -32,7 +56,20 @@ fn communicate_with_fpga(dir: &path::Path) {
 	println!("Sucessfully opened {} to communicate with FPGA{}",
 	         tx_path.display(), name);
 
+	// allocate a shared memory buffer that we will then push to the fuzz server
+	let mut buf = Buffer::create(4 * 1024);
+	let id = buf.shm_id();
+	// send id to the fuzz server
+	rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
+	           ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]);
+	println!("sent buffer({})", id);
 
+	// wait for fuzz server to return the bffer to us
+	let mut rb = [0;4];
+	assert_eq!(tx.read(&mut rb).expect("failed to read from tx pipe"), 4);
+	let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
+	                   ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
+	println!("received buffer({})", returned_id);
 
 	// for now wait for user input to exit
 	println!("press ENTER-key to exit...");
@@ -53,7 +90,6 @@ fn main() {
 	}
 
 }
-
 
 
 
