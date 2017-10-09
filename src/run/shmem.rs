@@ -3,9 +3,10 @@ extern crate libc;
 use std;
 
 pub struct SharedMemory {
-	data: *mut libc::c_void,
+	data: *mut u8,
 	size: usize,
-	id: i32
+	id: i32,
+	write_offset: usize,
 }
 
 impl SharedMemory {
@@ -20,15 +21,57 @@ impl SharedMemory {
 			panic!("failed to allocate shared memory: {:?}", std::io::Error::last_os_error());
 		}
 		// println!("SharedMemory.create: id={}, data={:?}", shm_id, data);
-		SharedMemory { id: shm_id, size: size, data: data }
+		let ptr = data as *mut u8;
+		SharedMemory { id: shm_id, size: size, data: ptr, write_offset: 0 }
 	}
 
-	pub fn reset(&self) {
-		unsafe { libc::memset(self.data, 0, self.size) };
+	pub fn reset(&mut self) {
+		self.write_offset = 0;
+		unsafe { libc::memset(self.data as *mut libc::c_void, 0, self.size) };
 	}
 
-	pub fn as_slice_u32_mut(&self) -> &mut [u32] {
+	pub fn as_slice_u32_mut(&mut self) -> &mut [u32] {
 		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
+	}
+
+	pub fn bytes_left(&self) -> usize {
+		self.size - self.write_offset
+	}
+
+	pub fn write_all(&mut self, buf: &[u8]) -> Result<(), ()> {
+		if buf.len() > self.bytes_left() { Err(()) }
+		else {
+			let len = buf.len();
+			let dst = unsafe{ self.data.offset(self.write_offset as isize) } as *mut libc::c_void;
+			let src = buf.as_ptr() as *const libc::c_void;
+			unsafe { libc::memcpy(dst, src, len) };
+			self.write_offset += len;
+			Ok(())
+		}
+	}
+
+	pub fn write_zeros(&mut self, len: usize) -> Result<(), ()> {
+		if len > self.bytes_left() { Err(()) }
+		else {
+			let dst = unsafe{ self.data.offset(self.write_offset as isize) } as *mut libc::c_void;
+			unsafe { libc::memset(dst, 0, len) };
+			self.write_offset += len;
+			Ok(())
+		}
+	}
+
+	pub fn write_u32(&mut self, val: u32) -> Result<(), ()> {
+		let data = [(val >>  0) as u8, (val >>  8) as u8,
+		            (val >> 16) as u8, (val >> 24) as u8];
+		self.write_all(&data)
+	}
+
+	pub fn write_u64(&mut self, val: u64) -> Result<(), ()> {
+		let data = [(val >>  0) as u8, (val >>  8) as u8,
+		            (val >> 16) as u8, (val >> 24) as u8,
+		            (val >> 32) as u8, (val >> 40) as u8,
+		            (val >> 48) as u8, (val >> 56) as u8];
+		self.write_all(&data)
 	}
 
 	pub fn id(&self) -> i32 { self.id }
