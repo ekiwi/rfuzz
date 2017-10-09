@@ -3,6 +3,7 @@ extern crate libc;
 use std;
 use std::ffi::{CString};
 
+use super::shmem::SharedMemory;
 use super::{CoverageMap, Fault};
 
 // from `afl/config.h`
@@ -50,49 +51,12 @@ fn duplicate_fd(oldfd: i32, newfd: i32) -> Option<i32> {
 	if fd < 0 { None } else { Some(fd) }
 }
 
-struct SharedMemory {
-	data: *mut libc::c_void,
-	size: usize,
-	id: i32
-}
-
-impl SharedMemory {
-	fn create(size: usize) -> SharedMemory {
-		let shm_id = unsafe {
-			libc::shmget(libc::IPC_PRIVATE, size,
-						 libc::IPC_CREAT | libc::IPC_EXCL | 0o600)
-			};
-		assert!(shm_id >= 0);
-		let data = unsafe { libc::shmat(shm_id, std::ptr::null_mut(), 0) };
-		if data as i64 == -1 {
-			panic!("failed to allocate shared memory: {:?}", std::io::Error::last_os_error());
-		}
-		// println!("SharedMemory.create: id={}, data={:?}", shm_id, data);
-		SharedMemory { id: shm_id, size: size, data: data }
-	}
-
-	fn reset(&self) {
-		unsafe { libc::memset(self.data, 0, self.size) };
-	}
-
-	fn as_slice_u32_mut(&self) -> &mut [u32] {
-		unsafe { std::slice::from_raw_parts_mut(self.data as *mut u32, self.size / 4) }
-	}
-}
-
 impl super::CoverageMap for SharedMemory {
 	fn as_slice_u8(&self) -> &[u8] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u8, self.size) }
 	}
 	fn as_slice_u16(&self) -> &[u16] {
 		unsafe { std::slice::from_raw_parts(self.data as *mut u16, self.size / 2) }
-	}
-}
-
-impl Drop for SharedMemory {
-	fn drop(&mut self) {
-		// println!("SharedMemory.drop: {}", self.id);
-		unsafe { libc::shmctl(self.id, libc::IPC_RMID, std::ptr::null_mut()) };
 	}
 }
 

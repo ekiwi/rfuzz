@@ -1,4 +1,6 @@
+#[cfg(FUZZ_AFL)]
 pub mod afl;
+pub mod shmem;
 
 // TODO: implement Hang, Error, NoInst, NoBits
 // TODO: make more generic
