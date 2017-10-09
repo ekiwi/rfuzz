@@ -50,8 +50,6 @@ impl Buffer {
 		Buffer { size, data, test_count }
 	}
 
-	fn bytes_left(&self) -> usize { 0 } // TODO: implement
-
 	fn add_test(&mut self, id: u64, inputs: &[u8]) -> Result<(), ()> {
 		if inputs.len() % self.size.input != 0 { return Err(()); }
 		self.data.write_u64(id)?;
@@ -67,28 +65,71 @@ impl Buffer {
 		self.data.as_slice_u32_mut()[1] = self.test_count;
 		self.data.id()
 	}
+
+	fn reactivate(self, id: i32) -> Option<Self> {
+		if id == self.data.id() { Some(self) }
+		else { None }
+	}
 }
 
 const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
 
+#[cfg(not(FUZZ_AFL))]
+struct FuzzServer {
+	tx: fs::File,
+	rx: fs::File,
+	// this is a work around because I suck at rust....
+	// this vector will only ever contain 0 or 1  buffer
+	buffer: Vec<Buffer>,
+}
+
+#[cfg(not(FUZZ_AFL))]
+impl FuzzServer {
+	fn connect(dir: &path::Path) -> Option<Self> {
+		let name = dir.file_name().unwrap().to_os_string().into_string().unwrap();
+		println!("found fpga: {}", name);
+
+		// open pipes in the same order as the fpga mockup interface server does
+		// (see hardware-afl:src/fpga_queue.cpp
+		let tx_path = dir.join("tx.fifo");
+		let mut tx = fs::File::open(&tx_path).expect("failed to open tx fifo!");
+		println!("Sucessfully opened {} to communicate with FPGA{}",
+			     tx_path.display(), name);
+		// the receive pipe of the fuzz server needs to be opened write only
+		// in order to fullfill the fifo interface
+		let rx_path = dir.join("rx.fifo");
+		let mut rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
+		println!("Sucessfully opened {} to communicate with FPGA{}",
+			     tx_path.display(), name);
+		Some(FuzzServer { tx, rx, buffer: Vec::new() })
+	}
+
+	fn push_buffer(&mut self, mut buf: Buffer) {
+		let id = buf.finalize();
+		// send id to the fuzz server
+		self.rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
+		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]);
+		println!("sent buffer({})", id);
+		self.buffer.push(buf);
+	}
+
+	fn pop_buffer(&mut self) -> Option<Buffer> {
+		if self.buffer.len() < 1 { return None; }
+		// wait for fuzz server to return the bffer to us
+		let mut rb = [0;4];
+		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 4);
+		let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
+			               ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
+		println!("received buffer({})", returned_id);
+		if let Some(buf) = self.buffer.pop() {
+			buf.reactivate(returned_id)
+		} else { None }
+	}
+}
 
 #[cfg(not(FUZZ_AFL))]
 fn communicate_with_fpga(dir: &path::Path) {
-	let name = dir.file_name().unwrap().to_os_string().into_string().unwrap();
-	println!("found fpga: {}", name);
-
-	// open pipes in the same order as the fpga mockup interface server does
-	// (see hardware-afl:src/fpga_queue.cpp
-	let tx_path = dir.join("tx.fifo");
-	let mut tx = fs::File::open(&tx_path).expect("failed to open tx fifo!");
-	println!("Sucessfully opened {} to communicate with FPGA{}",
-	         tx_path.display(), name);
-	// the receive pipe of the fuzz server needs to be opened write only
-	// in order to fullfill the fifo interface
-	let rx_path = dir.join("rx.fifo");
-	let mut rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
-	println!("Sucessfully opened {} to communicate with FPGA{}",
-	         tx_path.display(), name);
+	let mut server = FuzzServer::connect(dir).unwrap();
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
 	let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
@@ -96,20 +137,10 @@ fn communicate_with_fpga(dir: &path::Path) {
 	// push test to buffer
 	let test_id = 3u64;
 	let test_inputs = [0; 24];
-	buf.add_test(test_id, &test_inputs);
+	buf.add_test(test_id, &test_inputs).unwrap();
+	server.push_buffer(buf);
 
-	let id = buf.finalize();
-	// send id to the fuzz server
-	rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
-	           ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]);
-	println!("sent buffer({})", id);
-
-	// wait for fuzz server to return the bffer to us
-	let mut rb = [0;4];
-	assert_eq!(tx.read(&mut rb).expect("failed to read from tx pipe"), 4);
-	let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
-	                   ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
-	println!("received buffer({})", returned_id);
+	let mut buf_with_coverage = server.pop_buffer();
 }
 
 
