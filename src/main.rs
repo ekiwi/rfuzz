@@ -249,30 +249,6 @@ fn main() {
 }
 
 
-	// list_potential_fuzz_servers(FPGA_DIR);
-
-	// take the first fuzz server and open a connection to it
-	// let mut server  = find_one_fuzz_server(FPGA_DIR).expect("failed to find a fuzz server");
-
-	// allocate a shared memory buffer that we will then push to the fuzz server
-	// let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
-	// push test to buffer
-	// let test_id = 3u64;
-	// let test_inputs = [0; 24];
-	// buf.add_test(test_id, &test_inputs).unwrap();
-	// server.push_buffer(buf);
-
-	// let mut buf_with_coverage = server.pop_buffer().expect("failed to get buffer back");
-	// buf_with_coverage.reset();
-	// buf_with_coverage.add_test(test_id, &test_inputs).unwrap();
-	// server.push_buffer(buf_with_coverage);
-
-	// let mut buf_with_coverage_2 = server.pop_buffer();
-
-
-
-
-
 #[cfg(FUZZ_AFL)]
 use std::fs::File;
 #[cfg(FUZZ_AFL)]
