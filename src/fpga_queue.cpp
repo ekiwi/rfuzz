@@ -81,15 +81,18 @@ void FPGAQueueFuzzer::release_buffer() {
 	// reset buffer state
 	shm_id = -1;
 	shm_start_ptr = nullptr;
+	buffer_io_ptr = nullptr;
 }
 void FPGAQueueFuzzer::parse_header() {
 	const auto magic_header = read_from_buffer<uint32_t>();
 	assert(magic_header == MagicHeader);
 	tests_left = read_from_buffer<uint32_t>();
+	//std::cout << "received " << tests_left << " new tests" << std::endl;
 }
 void FPGAQueueFuzzer::parse_test() {
 	test_id = read_from_buffer<uint64_t>();
 	inputs_left = read_from_buffer<uint32_t>();
+	//std::cout << "test(" << test_id << "): " << inputs_left << " inputs" << std::endl;
 }
 
 void FPGAQueueFuzzer::init() {
@@ -105,6 +108,8 @@ bool FPGAQueueFuzzer::done() {
 		const bool done = !acquire_buffer();
 		if(!done) {
 			parse_header();
+			parse_test();
+			tests_left -= 1;
 		}
 		return done;
 	}
