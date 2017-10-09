@@ -80,6 +80,8 @@ impl Buffer {
 		if id == self.data.id() { Some(self) }
 		else { None }
 	}
+
+	fn is_empty(&self) -> bool { self.test_count == 0 }
 }
 
 const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
@@ -196,9 +198,13 @@ fn main() {
 			input = orig_input.clone();
 		}
 	}
+	if !buf.is_empty() {
+		server.push_buffer(buf);
+		buf = server.pop_buffer().expect("failed to get buffer back");
+	}
 	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
-	println!("{:.1} runs/s", runs_per_second);
+	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
 	println!("Discovered {} new paths.", analysis.path_count());
 	println!("Discovered {} new inputs.", analysis.new_inputs_count());
 }
