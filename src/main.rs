@@ -169,7 +169,7 @@ fn main() {
 	let mut server  = find_one_fuzz_server(FPGA_DIR).expect("failed to find a fuzz server");
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
-	let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
+	let mut buf = Buffer::create(TEST_SIZE, 64 * 1024);
 
 	let orig_input = vec![0u8; 12 * 3]; // 3 cycles
 	let mut runs : usize = 0;
