@@ -20,22 +20,56 @@ const MAGIC_HEADER: u32 = 0x19933991;
 use run::shmem::SharedMemory;
 
 
+#[derive(Copy, Clone)]
+struct TestSize {
+	coverage: usize,
+	input: usize,
+}
+
+impl TestSize {
+	fn new(coverage_size: usize, input_size: usize) -> Self {
+		assert_eq!(coverage_size % 4, 0);
+		assert_eq!(input_size % 4, 0);
+		TestSize { coverage: coverage_size, input: input_size }
+	}
+}
+
 #[cfg(not(FUZZ_AFL))]
 struct Buffer {	// TODO: find better name for this
-	data: SharedMemory
+	size: TestSize,
+	data: SharedMemory,
+	test_count: u32,
 }
-
+#[cfg(not(FUZZ_AFL))]
 impl Buffer {
-	fn create(size: usize) -> Self {
+	fn create(size: TestSize, buffer_size: usize) -> Self {
 		let test_count = 0u32;
-		let data = SharedMemory::create(size);
-		data.as_slice_u32_mut()[0] = MAGIC_HEADER;
-		data.as_slice_u32_mut()[1] = test_count;
-		Buffer { data }
+		let mut data = SharedMemory::create(buffer_size);
+		data.write_u32(MAGIC_HEADER).unwrap();
+		data.write_u32(test_count).unwrap();
+		Buffer { size, data, test_count }
 	}
 
-	fn shm_id(&self) -> i32 { self.data.id() }
+	fn bytes_left(&self) -> usize { 0 } // TODO: implement
+
+	fn add_test(&mut self, id: u64, inputs: &[u8]) -> Result<(), ()> {
+		if inputs.len() % self.size.input != 0 { return Err(()); }
+		self.data.write_u64(id)?;
+		let input_count = (inputs.len() / self.size.input) as u32;
+		self.data.write_u32(input_count)?;
+		self.data.write_all(inputs)?;
+		self.data.write_zeros(self.size.coverage)?;
+		self.test_count += 1;
+		Ok(())
+	}
+
+	fn finalize(&mut self) -> i32 {
+		self.data.as_slice_u32_mut()[1] = self.test_count;
+		self.data.id()
+	}
 }
+
+const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
 
 
 #[cfg(not(FUZZ_AFL))]
@@ -57,8 +91,14 @@ fn communicate_with_fpga(dir: &path::Path) {
 	         tx_path.display(), name);
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
-	let mut buf = Buffer::create(4 * 1024);
-	let id = buf.shm_id();
+	let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
+
+	// push test to buffer
+	let test_id = 3u64;
+	let test_inputs = [0; 24];
+	buf.add_test(test_id, &test_inputs);
+
+	let id = buf.finalize();
 	// send id to the fuzz server
 	rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
 	           ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]);
@@ -70,10 +110,6 @@ fn communicate_with_fpga(dir: &path::Path) {
 	let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
 	                   ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
 	println!("received buffer({})", returned_id);
-
-	// for now wait for user input to exit
-	println!("press ENTER-key to exit...");
-	let _ = io::stdin().read(&mut [0u8]).unwrap();
 }
 
 
