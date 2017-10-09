@@ -25,6 +25,10 @@ impl SharedMemory {
 		SharedMemory { id: shm_id, size: size, data: ptr, write_offset: 0 }
 	}
 
+	pub fn reset_write_offset(&mut self) {
+		self.write_offset = 0;
+	}
+
 	pub fn reset(&mut self) {
 		self.write_offset = 0;
 		unsafe { libc::memset(self.data as *mut libc::c_void, 0, self.size) };

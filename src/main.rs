@@ -50,6 +50,13 @@ impl Buffer {
 		Buffer { size, data, test_count }
 	}
 
+	fn reset(&mut self) {
+		self.test_count = 0;
+		self.data.reset_write_offset();
+		self.data.write_u32(MAGIC_HEADER).unwrap();
+		self.data.write_u32(self.test_count).unwrap();
+	}
+
 	fn add_test(&mut self, id: u64, inputs: &[u8]) -> Result<(), ()> {
 		if inputs.len() % self.size.input != 0 { return Err(()); }
 		self.data.write_u64(id)?;
@@ -108,7 +115,7 @@ impl FuzzServer {
 		let id = buf.finalize();
 		// send id to the fuzz server
 		self.rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
-		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]);
+		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]).unwrap();
 		println!("sent buffer({})", id);
 		self.buffer.push(buf);
 	}
@@ -164,7 +171,12 @@ fn main() {
 	buf.add_test(test_id, &test_inputs).unwrap();
 	server.push_buffer(buf);
 
-	let mut buf_with_coverage = server.pop_buffer();
+	let mut buf_with_coverage = server.pop_buffer().expect("failed to get buffer back");
+	buf_with_coverage.reset();
+	buf_with_coverage.add_test(test_id, &test_inputs).unwrap();
+	server.push_buffer(buf_with_coverage);
+
+	let mut buf_with_coverage_2 = server.pop_buffer();
 
 }
 
