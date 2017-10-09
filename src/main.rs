@@ -76,6 +76,7 @@ const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
 
 #[cfg(not(FUZZ_AFL))]
 struct FuzzServer {
+	name: String,
 	tx: fs::File,
 	rx: fs::File,
 	// this is a work around because I suck at rust....
@@ -87,7 +88,6 @@ struct FuzzServer {
 impl FuzzServer {
 	fn connect(dir: &path::Path) -> Option<Self> {
 		let name = dir.file_name().unwrap().to_os_string().into_string().unwrap();
-		println!("found fpga: {}", name);
 
 		// open pipes in the same order as the fpga mockup interface server does
 		// (see hardware-afl:src/fpga_queue.cpp
@@ -101,7 +101,7 @@ impl FuzzServer {
 		let mut rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
 		println!("Sucessfully opened {} to communicate with FPGA{}",
 			     tx_path.display(), name);
-		Some(FuzzServer { tx, rx, buffer: Vec::new() })
+		Some(FuzzServer { name, tx, rx, buffer: Vec::new() })
 	}
 
 	fn push_buffer(&mut self, mut buf: Buffer) {
@@ -127,13 +127,37 @@ impl FuzzServer {
 	}
 }
 
+fn list_potential_fuzz_servers(server_dir: &str) {
+	let paths = fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
+	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
+		if entry.is_dir() {
+			let name = entry.file_name().unwrap().to_os_string().into_string().unwrap();
+			println!("found fuzz server: {}", name);
+		}
+	}
+}
+
+fn find_one_fuzz_server(server_dir: &str) -> Option<FuzzServer> {
+	let paths = fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
+	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
+		if entry.is_dir() {
+			if let Some(server) = FuzzServer::connect(&entry) {
+				return Some(server);
+			}
+		}
+	}
+	None
+}
+
 #[cfg(not(FUZZ_AFL))]
-fn communicate_with_fpga(dir: &path::Path) {
-	let mut server = FuzzServer::connect(dir).unwrap();
+fn main() {
+	list_potential_fuzz_servers(FPGA_DIR);
+
+	// take the first fuzz server and open a connection to it
+	let mut server  = find_one_fuzz_server(FPGA_DIR).expect("failed to find a fuzz server");
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
 	let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
-
 	// push test to buffer
 	let test_id = 3u64;
 	let test_inputs = [0; 24];
@@ -141,20 +165,6 @@ fn communicate_with_fpga(dir: &path::Path) {
 	server.push_buffer(buf);
 
 	let mut buf_with_coverage = server.pop_buffer();
-}
-
-
-#[cfg(not(FUZZ_AFL))]
-fn main() {
-	println!("{}", env::args().nth(0).unwrap());
-
-	// try to connect to fpga interface
-	let paths = fs::read_dir(FPGA_DIR).expect("failed to open fpga directory!");
-	for fpga_entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
-		if fpga_entry.is_dir() {
-			communicate_with_fpga(fpga_entry.as_path());
-		}
-	}
 
 }
 
