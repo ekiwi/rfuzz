@@ -40,14 +40,13 @@ NamedPipe::~NamedPipe() {
 	// remove instance directory
 	assert(rmdir(dir.c_str()) == 0);
 }
-uint32_t NamedPipe::pop_blocking() {
-	uint32_t value;
-	rx.read(reinterpret_cast<char*>(&value), sizeof(uint32_t));
+bool NamedPipe::pop_blocking(uint32_t* value) {
+	rx.read(reinterpret_cast<char*>(value), sizeof(uint32_t));
 	// when the pipe is closed prematurely, we will read 0 instead of 4 bytes
 	// in this case it is best to crash here instead of later in the code
 	const auto successfull_read_from_rx_pipe = rx.gcount() == sizeof(uint32_t);
-	assert(successfull_read_from_rx_pipe);
-	return value;
+	// assert(successfull_read_from_rx_pipe);
+	return successfull_read_from_rx_pipe;
 }
 void NamedPipe::push(uint32_t value) {
 	tx.write(reinterpret_cast<const char*>(&value), sizeof(uint32_t));
@@ -56,20 +55,25 @@ void NamedPipe::push(uint32_t value) {
 
 static constexpr uint32_t MagicHeader = 0x19933991;
 
-void FPGAQueueFuzzer::acquire_buffer() {
+bool FPGAQueueFuzzer::acquire_buffer() {
 	assert(shm_id == -1);
 	assert(shm_start_ptr == nullptr);
-	const auto id = command_pipe->pop_blocking();
+	uint32_t id;
+	const bool failed = !command_pipe->pop_blocking(&id);
+	if(failed) { return false; }
 	auto data = shmat(id, NULL, 0);
 	assert(data != nullptr);
 	// register new buffer
 	shm_id = id;
 	shm_start_ptr = data;
 	buffer_io_ptr = static_cast<char*>(data);
+	return true;
 }
 void FPGAQueueFuzzer::release_buffer() {
-	assert(shm_id > -1);
-	assert(shm_start_ptr != nullptr);
+	if(shm_id < 0 && shm_start_ptr == nullptr) {
+		// buffer was already released (or never aquired)
+		return;
+	}
 	// detach shared memory
 	assert(shmdt(shm_start_ptr) == 0);
 	// return control over buffer
@@ -89,13 +93,7 @@ void FPGAQueueFuzzer::parse_test() {
 }
 
 void FPGAQueueFuzzer::init() {
-	// plan:
-	// 1. open file or named pipe to communicate
 	command_pipe = std:: make_unique<NamedPipe>("0");
-	// 2. wait for fuzzer to send us one 32bit shared memory id
-	acquire_buffer();
-	// 3. open shared input memory + parse number of tests
-	parse_header();
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {
@@ -104,7 +102,11 @@ bool FPGAQueueFuzzer::done() {
 		return false;
 	} else {
 		release_buffer();
-		return true;
+		const bool done = !acquire_buffer();
+		if(!done) {
+			parse_header();
+		}
+		return done;
 	}
 }
 bool FPGAQueueFuzzer::pop(InputType* input) {

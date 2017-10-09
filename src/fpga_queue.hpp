@@ -46,7 +46,7 @@ private:
 public:
 	NamedPipe(const std::string& name);
 	~NamedPipe();
-	uint32_t pop_blocking();
+	bool pop_blocking(uint32_t* value);
 	void push(uint32_t value);
 };
 
@@ -74,7 +74,7 @@ private:
 	uint64_t test_id = 0;
 	uint32_t inputs_left = 0;
 
-	void acquire_buffer();
+	bool acquire_buffer();
 	void release_buffer();
 	void parse_header();
 	void parse_test();
