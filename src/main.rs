@@ -11,6 +11,7 @@ use std::path;
 use std::io;
 use std::io::prelude::*;
 
+
 #[cfg(not(FUZZ_AFL))]
 const FPGA_DIR: &'static str = "/tmp/fpga";
 #[cfg(not(FUZZ_AFL))]
@@ -18,6 +19,8 @@ const MAGIC_HEADER: u32 = 0x19933991;
 
 #[cfg(not(FUZZ_AFL))]
 use run::shmem::SharedMemory;
+use analysis::{Analysis};
+use mutation::{MUTATIONS};
 
 
 #[derive(Copy, Clone)]
@@ -106,7 +109,7 @@ impl FuzzServer {
 		// in order to fullfill the fifo interface
 		let rx_path = dir.join("rx.fifo");
 		let mut rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
-		println!("Sucessfully opened {} to communicate with FPGA{}",
+		println!("Sucessfully opened {} to communicate with FuzzServer {}",
 			     tx_path.display(), name);
 		Some(FuzzServer { name, tx, rx, buffer: Vec::new() })
 	}
@@ -116,7 +119,7 @@ impl FuzzServer {
 		// send id to the fuzz server
 		self.rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
 		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]).unwrap();
-		println!("sent buffer({})", id);
+		//println!("sent buffer({})", id);
 		self.buffer.push(buf);
 	}
 
@@ -127,7 +130,7 @@ impl FuzzServer {
 		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 4);
 		let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
 			               ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
-		println!("received buffer({})", returned_id);
+		//println!("received buffer({})", returned_id);
 		if let Some(buf) = self.buffer.pop() {
 			buf.reactivate(returned_id)
 		} else { None }
@@ -165,23 +168,61 @@ fn main() {
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
 	let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
-	// push test to buffer
-	let test_id = 3u64;
-	let test_inputs = [0; 24];
-	buf.add_test(test_id, &test_inputs).unwrap();
-	server.push_buffer(buf);
 
-	let mut buf_with_coverage = server.pop_buffer().expect("failed to get buffer back");
-	buf_with_coverage.reset();
-	buf_with_coverage.add_test(test_id, &test_inputs).unwrap();
-	server.push_buffer(buf_with_coverage);
+	let orig_input = vec![0u8; 12 * 3]; // 3 cycles
+	let mut runs : usize = 0;
+	let mut test_id : u64 = 10;
+	let start = time::PreciseTime::now();
+	let mut analysis = Analysis::new(TEST_SIZE.coverage);
+	let mut input = orig_input.clone();
 
-	let mut buf_with_coverage_2 = server.pop_buffer();
-
+	for mutation in MUTATIONS.iter() {
+		let iterator = mutation.iter(input.len());
+		runs += iterator.max;
+		println!("running circuit {} times with {} mutation", iterator.max, mutation.name);
+		for mutator in iterator {
+			mutator.run(&mut input);
+			// try to add test to buffer, handle full buffer
+			if buf.add_test(test_id, &input).is_err() {
+				server.push_buffer(buf);
+				// TODO: use second buffer
+				buf = server.pop_buffer().expect("failed to get buffer back");
+				// TODO: perform analysis on returned coverage
+				buf.reset();
+				buf.add_test(test_id, &input).expect("failed to place test in buffer");
+			}
+			test_id += 1;
+			// reset input
+			input = orig_input.clone();
+		}
+	}
+	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
+	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
+	println!("{:.1} runs/s", runs_per_second);
+	println!("Discovered {} new paths.", analysis.path_count());
+	println!("Discovered {} new inputs.", analysis.new_inputs_count());
 }
 
 
+	// list_potential_fuzz_servers(FPGA_DIR);
 
+	// take the first fuzz server and open a connection to it
+	// let mut server  = find_one_fuzz_server(FPGA_DIR).expect("failed to find a fuzz server");
+
+	// allocate a shared memory buffer that we will then push to the fuzz server
+	// let mut buf = Buffer::create(TEST_SIZE, 4 * 1024);
+	// push test to buffer
+	// let test_id = 3u64;
+	// let test_inputs = [0; 24];
+	// buf.add_test(test_id, &test_inputs).unwrap();
+	// server.push_buffer(buf);
+
+	// let mut buf_with_coverage = server.pop_buffer().expect("failed to get buffer back");
+	// buf_with_coverage.reset();
+	// buf_with_coverage.add_test(test_id, &test_inputs).unwrap();
+	// server.push_buffer(buf_with_coverage);
+
+	// let mut buf_with_coverage_2 = server.pop_buffer();
 
 
 
@@ -195,10 +236,6 @@ use std::io::prelude::*;
 use run::{TestRunner};
 #[cfg(FUZZ_AFL)]
 use run::afl::{AflConfig, AflRunner};
-#[cfg(FUZZ_AFL)]
-use mutation::{MUTATIONS};
-#[cfg(FUZZ_AFL)]
-use analysis::{Analysis};
 
 // from `afl/config.h`
 #[cfg(FUZZ_AFL)]
