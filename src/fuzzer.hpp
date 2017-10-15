@@ -15,6 +15,7 @@ struct Fuzzer {
 	/// returns false on last input of a single test
 	virtual bool pop(InputType* input) = 0;
 	virtual void push(const CoverageType& coverage) = 0;
+	virtual ~Fuzzer(){}
 };
 
 #endif // FUZZER_HPP

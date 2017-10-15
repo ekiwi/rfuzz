@@ -53,45 +53,82 @@ void NamedPipe::push(uint32_t value) {
 	tx.flush();
 }
 
-static constexpr uint32_t MagicHeader = 0x19933991;
+static constexpr uint32_t MagicTestInputHeader      = 0x19933991;
+static constexpr uint32_t MagicCoverageOutputHeader = 0x73537353;
+
+char* FPGAQueueFuzzer::map_shm(const int id) {
+	if(shms.find(id) == shms.end()) {
+		if(shms.size() >= MaxMappedShms) {
+			std::cout << "WARN: unmapping buffered shared memories." << std::endl;
+			unmap_shms();
+		}
+		auto data = shmat(id, nullptr, 0);
+		assert(data != (void*)-1);
+		shms[id] = static_cast<char*>(data);
+	}
+	return shms.at(id);
+}
+
+void FPGAQueueFuzzer::unmap_shms() {
+	for(auto mapping : shms) {
+		auto ptr = static_cast<void*>(mapping.second);
+		assert(shmdt(ptr) == 0);
+	}
+}
+
+size_t FPGAQueueFuzzer::get_size_of_shm(const int id) const {
+	struct shmid_ds sb;
+	if (shmctl(id, IPC_STAT, &sb) == -1) {
+		std::cerr << "Failed to determine size of shared memory " << id << std::endl;
+		return 0;
+	}
+	return sb.shm_segsz;
+}
 
 bool FPGAQueueFuzzer::acquire_buffer() {
-	assert(shm_id == -1);
-	assert(shm_start_ptr == nullptr);
-	uint32_t id;
-	const bool failed = !command_pipe->pop_blocking(&id);
+	assert(test_in_id == -1);
+	assert(coverage_out_id == -1);
+	uint32_t in = 0, out = 0;
+	const bool failed = !command_pipe->pop_blocking(&in) or
+	                    !command_pipe->pop_blocking(&out);
 	if(failed) { return false; }
-	auto data = shmat(id, NULL, 0);
-	assert(data != nullptr);
-	// register new buffer
-	shm_id = id;
-	shm_start_ptr = data;
-	buffer_io_ptr = static_cast<char*>(data);
+	test_in_id = in;
+	test_in_ptr = map_shm(test_in_id);
+	coverage_out_id = out;
+	coverage_out_ptr = map_shm(coverage_out_id);
 	return true;
 }
 void FPGAQueueFuzzer::release_buffer() {
-	if(shm_id < 0 && shm_start_ptr == nullptr) {
-		// buffer was already released (or never aquired)
-		return;
+	if(test_in_id > 0) {
+		// return control over buffer
+		command_pipe->push(test_in_id);
+		// reset buffer state
+		test_in_id = -1;
+		test_in_ptr = nullptr;
 	}
-	// detach shared memory
-	assert(shmdt(shm_start_ptr) == 0);
-	// return control over buffer
-	command_pipe->push(shm_id);
-	// reset buffer state
-	shm_id = -1;
-	shm_start_ptr = nullptr;
-	buffer_io_ptr = nullptr;
+	if(coverage_out_id > 0) {
+		command_pipe->push(coverage_out_id);
+		// reset buffer state
+		coverage_out_id = -1;
+		coverage_out_ptr = nullptr;
+	}
 }
 void FPGAQueueFuzzer::parse_header() {
-	const auto magic_header = read_from_buffer<uint32_t>();
-	assert(magic_header == MagicHeader);
-	tests_left = read_from_buffer<uint32_t>();
+	const auto magic_header = read_from_test<uint32_t>();
+	assert(magic_header == MagicTestInputHeader);
+	tests_left = read_from_test<uint32_t>();
 	//std::cout << "received " << tests_left << " new tests" << std::endl;
+	const auto CoverageSize = 4 + 4 + (8 + sizeof(CoverageType)) * tests_left;
+	const bool enough_space_for_coverage_provided =
+		get_size_of_shm(coverage_out_id) >= CoverageSize;
+	assert(enough_space_for_coverage_provided);
+	// write coverage header
+	write_to_coverage(MagicCoverageOutputHeader);
+	write_to_coverage(tests_left);
 }
 void FPGAQueueFuzzer::parse_test() {
-	test_id = read_from_buffer<uint64_t>();
-	inputs_left = read_from_buffer<uint32_t>();
+	test_id = read_from_test<uint64_t>();
+	inputs_left = read_from_test<uint32_t>();
 	//std::cout << "test(" << test_id << "): " << inputs_left << " inputs" << std::endl;
 }
 
@@ -110,13 +147,15 @@ bool FPGAQueueFuzzer::done() {
 			parse_header();
 			parse_test();
 			tests_left -= 1;
+		} else {
+			unmap_shms();
 		}
 		return done;
 	}
 }
 bool FPGAQueueFuzzer::pop(InputType* input) {
 	if(inputs_left > 0) {
-		*input = read_from_buffer<InputType>();
+		*input = read_from_test<InputType>();
 		inputs_left -= 1;
 		return true;
 	} else {
@@ -126,6 +165,10 @@ bool FPGAQueueFuzzer::pop(InputType* input) {
 }
 void FPGAQueueFuzzer::push(const CoverageType& coverage) {
 	assert(inputs_left == 0);
-	write_to_buffer(coverage);
+	write_to_coverage(test_id);
+	write_to_coverage(coverage);
 }
 
+FPGAQueueFuzzer::~FPGAQueueFuzzer() {
+	unmap_shms();
+}

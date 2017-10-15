@@ -10,7 +10,8 @@
 // Once all tests are done, the FPGA hands the buffer back to the fuzzer
 // and checks its queue for a new buffer to work on.
 
-// The basic data format is as follows:
+// Test Input Data Format (CPU -> FPGA)
+// ====================================
 // struct Buffer {
 //     uint32_t MagicHeader = 0x19933991;
 //     uint32_t test_count;
@@ -20,6 +21,17 @@
 //     uint64_t id;
 //     uint32_t input_count;
 //     Input inputs[input_count];
+//     Coverage coverage;
+// }
+//
+// Coverage Data Format (FPGA -> CPU)
+// ==================================
+// struct Buffer {
+//     uint32_t MagicHeader = 0x73537353;
+//     uint32_t test_count;
+// }
+// struct Test {
+//     uint64_t id;
 //     Coverage coverage;
 // }
 // Every data item is 32bit word aligned!
@@ -37,6 +49,7 @@
 #include <string>
 #include <fstream>
 #include <memory>
+#include <unordered_map>
 
 class NamedPipe {
 private:
@@ -55,24 +68,34 @@ private:
 	std::unique_ptr<NamedPipe> command_pipe;
 
 	// current buffer
-	int shm_id = -1;
 	uint32_t tests_left = 0;
-	void* shm_start_ptr = nullptr;
-	char* buffer_io_ptr = nullptr;
-	template<typename T> inline T read_from_buffer() {
+	/// keep up to N shared memory regions mapped at one time
+	static constexpr size_t MaxMappedShms = 10;
+	/// contains all shared memory regions that we have consumed
+	std::unordered_map<int, char*> shms;
+	int test_in_id = -1;
+	const char* test_in_ptr = nullptr;
+	int coverage_out_id = -1;
+	char* coverage_out_ptr = nullptr;
+	template<typename T> inline T read_from_test() {
 		T value;
-		std::memcpy(&value, buffer_io_ptr, sizeof(T));
-		buffer_io_ptr += sizeof(T);
+		std::memcpy(&value, test_in_ptr, sizeof(T));
+		test_in_ptr += sizeof(T);
 		return value;
 	}
-	template<typename T> inline void write_to_buffer(const T& value) {
-		std::memcpy(buffer_io_ptr, &value, sizeof(T));
-		buffer_io_ptr += sizeof(T);
+	template<typename T> inline void write_to_coverage(const T& value) {
+		std::memcpy(coverage_out_ptr, &value, sizeof(T));
+		coverage_out_ptr += sizeof(T);
 	}
 
 	// current test
 	uint64_t test_id = 0;
 	uint32_t inputs_left = 0;
+
+	// shard memory managemenet
+	char* map_shm(const int id);
+	void unmap_shms();
+	size_t get_size_of_shm(const int id) const;
 
 	bool acquire_buffer();
 	void release_buffer();
@@ -83,6 +106,7 @@ public:
 	bool done() override;
 	bool pop(InputType* input) override;
 	void push(const CoverageType& coverage) override;
+	~FPGAQueueFuzzer();
 };
 
 using ActiveFuzzer = FPGAQueueFuzzer;
