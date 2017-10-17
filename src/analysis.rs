@@ -2,7 +2,6 @@ extern crate twox_hash;
 use std::hash::Hasher;
 use std::collections::HashSet;
 use self::twox_hash::XxHash;
-use run::Fault;
 use std::cmp;
 
 
@@ -21,7 +20,7 @@ impl Analysis {
 		}
 	}
 
-	pub fn run(&mut self, fault: Fault, trace_bits: &[u8]) {
+	pub fn run(&mut self, trace_bits: &[u8]) {
 		// check coverage
 		let new_cov = analyze_coverage(self.bitmap.as_mut(), trace_bits);
 		match new_cov {

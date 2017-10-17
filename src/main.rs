@@ -160,7 +160,7 @@ impl FuzzServer {
 	}
 
 	fn send_id(&mut self, id: u32) {
-		println!("sending id: {}", id);
+		//println!("sending id: {}", id);
 		self.rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
 		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]).unwrap();
 	}
@@ -183,10 +183,9 @@ impl FuzzServer {
 		if self.test_buffer.len() < 1 || self.coverage_buffer.len() < 1 { return None; }
 		// wait for fuzz server to return the bffers to us
 		let cov_id = self.recv_id() as i32;
-		println!("received id: {}", cov_id);
+		//println!("received id: {}", cov_id);
 		let test_id = self.recv_id() as i32;
-		println!("received id: {}", test_id);
-		//println!("received test_buffer({})", returned_id);
+		//println!("received id: {}", test_id);
 		let test = self.test_buffer.pop().and_then(|b| b.reactivate(test_id));
 		let cov  = self.coverage_buffer.pop().and_then(|b| b.reactivate(cov_id));
 		if let (Some(t), Some(c)) = (test, cov) { Some((t,c)) } else { None }
@@ -225,6 +224,7 @@ fn main() {
 	// allocate a shared memory buffer that we will then push to the fuzz server
 	let mut test_buf = TestBuffer::create(TEST_SIZE, 64 * 1024);
 	let mut cov_buf  = CoverageBuffer::create(TEST_SIZE, 64 * 1024);
+	// TODO: make sure that coverage buffer is large enough
 
 	let orig_input = vec![0u8; 12 * 3]; // 3 cycles
 	let mut runs : usize = 0;
@@ -246,7 +246,11 @@ fn main() {
 				let (mut a, mut b) = server.pop_buffer().expect("failed to get buffer back");
 				test_buf = a;
 				cov_buf = b;
-				// TODO: perform analysis on returned coverage
+				// analyze coverage
+				cov_buf.read_header();
+				while let Some((id, cov)) = cov_buf.get_coverage() {
+					analysis.run(cov);
+				}
 				test_buf.reset();
 				test_buf.add_test(test_id, &input).expect("failed to place test in buffer");
 			}
