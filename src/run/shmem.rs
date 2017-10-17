@@ -141,7 +141,7 @@ impl<'a> ReadableSharedMemory {
 	}
 
 	pub fn read_u64(&mut self) -> Result<u64, ()> {
-		let data = self.read_bytes(4)?;
+		let data = self.read_bytes(8)?;
 		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
 		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
 		          (data[3] as u64) << 24 | (data[2] as u64) << 16 |
