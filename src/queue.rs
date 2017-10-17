@@ -5,10 +5,26 @@ pub struct Queue {
 }
 
 
+enum EntryId {
+	Id(u32),
+	None,
+}
+
+struct Lineage {
+	parent: EntryId,
+	mutator: u32,
+	stage: usize,
+	creation_time: i64,
+}
+
 struct Entry {
-	id: u32,
+	id: EntryId,
 	input: Vec<u8>,
-	fuzzing_stage: u8,
+	lineage: Lineage,
+	fuzzing_stage: u32,
+
+
+
 
 
 
