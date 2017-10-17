@@ -14,9 +14,11 @@ use std::io::prelude::*;
 const FPGA_DIR: &'static str = "/tmp/fpga";
 #[cfg(not(FUZZ_AFL))]
 const MAGIC_HEADER: u32 = 0x19933991;
+#[cfg(not(FUZZ_AFL))]
+const MAGIC_COV_HEADER: u32 = 0x73537353;
 
 #[cfg(not(FUZZ_AFL))]
-use run::shmem::SharedMemory;
+use run::shmem::{ SharedMemory, WriteableSharedMemory, ReadableSharedMemory };
 use analysis::{Analysis};
 use mutation::{MUTATIONS};
 
@@ -38,17 +40,16 @@ impl TestSize {
 #[cfg(not(FUZZ_AFL))]
 struct TestBuffer {	// TODO: find better name for this
 	size: TestSize,
-	data: SharedMemory,
+	data: WriteableSharedMemory,
 	test_count: u32,
 }
 #[cfg(not(FUZZ_AFL))]
 impl TestBuffer {
 	fn create(size: TestSize, buffer_size: usize) -> Self {
-		let test_count = 0u32;
-		let mut data = SharedMemory::create(buffer_size);
-		data.write_u32(MAGIC_HEADER).unwrap();
-		data.write_u32(test_count).unwrap();
-		TestBuffer { size, data, test_count }
+		let mut data = WriteableSharedMemory::create(buffer_size);
+		let mut buf = TestBuffer { size, data, test_count: 0 };
+		buf.reset();
+		buf
 	}
 
 	fn reset(&mut self) {
@@ -70,7 +71,9 @@ impl TestBuffer {
 	}
 
 	fn finalize(&mut self) -> i32 {
-		self.data.as_slice_u32_mut()[1] = self.test_count;
+		self.data.reset_write_offset();
+		self.data.write_u32(MAGIC_HEADER).unwrap();
+		self.data.write_u32(self.test_count).unwrap();
 		self.data.id()
 	}
 
@@ -85,33 +88,33 @@ impl TestBuffer {
 #[cfg(not(FUZZ_AFL))]
 struct CoverageBuffer {	// TODO: find better name for this
 	size: TestSize,
-	data: SharedMemory,
+	data: ReadableSharedMemory,
 	test_count: u32,
 }
 #[cfg(not(FUZZ_AFL))]
-impl CoverageBuffer {
+impl<'a> CoverageBuffer {
 	fn create(size: TestSize, buffer_size: usize) -> Self {
-		let data = SharedMemory::create(buffer_size);
+		let mut data = ReadableSharedMemory::create(buffer_size);
 		CoverageBuffer { size, data, test_count: 0 }
 	}
 
-	fn reset(&mut self) {
-		self.test_count = 0;
+	fn read_header(&mut self) {
+		self.data.reset_read_offset();
+		let magic = self.data.read_u32().unwrap();
+		assert_eq!(magic, MAGIC_COV_HEADER);
+		self.test_count = self.data.read_u32().unwrap();
 	}
 
-	fn get_coverage(&mut self) -> Option<(u64, > {
-		if inputs.len() % self.size.input != 0 { return Err(()); }
-		self.data.write_u64(id)?;
-		let input_count = (inputs.len() / self.size.input) as u32;
-		self.data.write_u32(input_count)?;
-		self.data.write_all(inputs)?;
-		//self.data.write_zeros(self.size.coverage)?;
-		self.test_count += 1;
-		Ok(())
+	fn get_coverage(&'a mut self) -> Option<(u64,&'a [u8])> {
+		if self.test_count > 0 {
+			let id = self.data.read_u64().unwrap();
+			let cov = self.data.read_bytes(self.size.coverage).unwrap();
+			self.test_count -= 1;
+			Some((id, cov))
+		} else { None }
 	}
 
 	fn finalize(&mut self) -> i32 {
-		self.data.as_slice_u32_mut()[1] = self.test_count;
 		self.data.id()
 	}
 
@@ -133,6 +136,7 @@ struct FuzzServer {
 	// this is a work around because I suck at rust....
 	// this vector will only ever contain 0 or 1 buffer
 	test_buffer: Vec<TestBuffer>,
+	coverage_buffer: Vec<CoverageBuffer>
 }
 
 #[cfg(not(FUZZ_AFL))]
@@ -152,29 +156,40 @@ impl FuzzServer {
 		let rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
 		println!("Sucessfully opened {} to communicate with FuzzServer {}",
 			     tx_path.display(), name);
-		Some(FuzzServer { name, tx, rx, test_buffer: Vec::new() })
+		Some(FuzzServer { name, tx, rx, test_buffer: Vec::new(), coverage_buffer: Vec::new() })
 	}
 
-	fn push_buffer(&mut self, mut buf: TestBuffer) {
-		let id = buf.finalize();
-		// send id to the fuzz server
+	fn send_id(&mut self, id: u32) {
+		println!("sending id: {}", id);
 		self.rx.write(&[((id as u32) >>  0) as u8, ((id as u32) >>  8) as u8,
 		                ((id as u32) >> 16) as u8, ((id as u32) >> 24) as u8]).unwrap();
-		//println!("sent buffer({})", id);
-		self.test_buffer.push(buf);
 	}
 
-	fn pop_buffer(&mut self) -> Option<TestBuffer> {
-		if self.test_buffer.len() < 1 { return None; }
-		// wait for fuzz server to return the bffer to us
+	fn push_buffer(&mut self, mut test: TestBuffer, mut cov: CoverageBuffer) {
+		self.send_id(test.finalize() as u32);
+		self.test_buffer.push(test);
+		self.send_id(cov.finalize() as u32);
+		self.coverage_buffer.push(cov);
+	}
+
+	fn recv_id(&mut self) -> u32 {
 		let mut rb = [0;4];
 		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 4);
-		let returned_id = (((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
-			               ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24)) as i32;
+		(((rb[0] as u32) <<  0) | ((rb[1] as u32) <<  8) |
+		 ((rb[2] as u32) << 16) | ((rb[3] as u32) << 24))
+	}
+
+	fn pop_buffer(&mut self) -> Option<(TestBuffer, CoverageBuffer)> {
+		if self.test_buffer.len() < 1 || self.coverage_buffer.len() < 1 { return None; }
+		// wait for fuzz server to return the bffers to us
+		let cov_id = self.recv_id() as i32;
+		println!("received id: {}", cov_id);
+		let test_id = self.recv_id() as i32;
+		println!("received id: {}", test_id);
 		//println!("received test_buffer({})", returned_id);
-		if let Some(buf) = self.test_buffer.pop() {
-			buf.reactivate(returned_id)
-		} else { None }
+		let test = self.test_buffer.pop().and_then(|b| b.reactivate(test_id));
+		let cov  = self.coverage_buffer.pop().and_then(|b| b.reactivate(cov_id));
+		if let (Some(t), Some(c)) = (test, cov) { Some((t,c)) } else { None }
 	}
 }
 
@@ -208,7 +223,8 @@ fn main() {
 	let mut server  = find_one_fuzz_server(FPGA_DIR).expect("failed to find a fuzz server");
 
 	// allocate a shared memory buffer that we will then push to the fuzz server
-	let mut buf = TestBuffer::create(TEST_SIZE, 64 * 1024);
+	let mut test_buf = TestBuffer::create(TEST_SIZE, 64 * 1024);
+	let mut cov_buf  = CoverageBuffer::create(TEST_SIZE, 64 * 1024);
 
 	let orig_input = vec![0u8; 12 * 3]; // 3 cycles
 	let mut runs : usize = 0;
@@ -224,22 +240,24 @@ fn main() {
 		for mutator in iterator {
 			mutator.run(&mut input);
 			// try to add test to buffer, handle full buffer
-			if buf.add_test(test_id, &input).is_err() {
-				server.push_buffer(buf);
+			if test_buf.add_test(test_id, &input).is_err() {
+				server.push_buffer(test_buf, cov_buf);
 				// TODO: use second buffer
-				buf = server.pop_buffer().expect("failed to get buffer back");
+				let (mut a, mut b) = server.pop_buffer().expect("failed to get buffer back");
+				test_buf = a;
+				cov_buf = b;
 				// TODO: perform analysis on returned coverage
-				buf.reset();
-				buf.add_test(test_id, &input).expect("failed to place test in buffer");
+				test_buf.reset();
+				test_buf.add_test(test_id, &input).expect("failed to place test in buffer");
 			}
 			test_id += 1;
 			// reset input
 			input = orig_input.clone();
 		}
 	}
-	if !buf.is_empty() {
-		server.push_buffer(buf);
-		let _ = server.pop_buffer().expect("failed to get buffer back");
+	if !test_buf.is_empty() {
+		server.push_buffer(test_buf, cov_buf);
+		let (_, _) = server.pop_buffer().expect("failed to get buffer back");
 	}
 	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
