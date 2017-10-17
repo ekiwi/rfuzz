@@ -1,5 +1,4 @@
-#[cfg(FUZZ_AFL)]
-pub mod afl;
+pub mod buffered;
 pub mod shmem;
 
 // TODO: implement Hang, Error, NoInst, NoBits
