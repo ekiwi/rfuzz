@@ -102,3 +102,52 @@ impl WriteableSharedMemory {
 
 	pub fn reset_write_offset(&mut self) { self.offset = 0 }
 }
+
+pub struct ReadableSharedMemory {
+	mem: SharedMemoryPosix,
+	offset: usize,
+}
+
+impl SharedMemory for ReadableSharedMemory {
+	fn create(size: usize) -> ReadableSharedMemory {
+		let mem = SharedMemoryPosix::create(size);
+		let offset = 0;
+		ReadableSharedMemory { mem, offset }
+	}
+	fn reset(&mut self) { self.mem.reset() }
+	fn id(&self) -> i32 { self.mem.id() }
+}
+
+impl<'a> ReadableSharedMemory {
+	pub fn bytes_left(&self) -> usize {
+		self.mem.size - self.offset
+	}
+
+	pub fn read_bytes(&'a mut self, len: usize) -> Result<(&'a [u8]), ()> {
+		if len > self.bytes_left() { Err(()) }
+		else {
+			let bytes = unsafe { std::slice::from_raw_parts_mut(
+			                     self.mem.data.offset(self.offset as isize), len) };
+			self.offset += len;
+			Ok(bytes)
+		}
+	}
+
+	pub fn read_u32(&mut self) -> Result<u32, ()> {
+		let data = self.read_bytes(4)?;
+		let val = (data[3] as u32) << 24 | (data[2] as u32) << 16 |
+		          (data[1] as u32) <<  8 | (data[0] as u32) <<  0;
+		Ok(val)
+	}
+
+	pub fn read_u64(&mut self) -> Result<u64, ()> {
+		let data = self.read_bytes(4)?;
+		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
+		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
+		          (data[3] as u64) << 24 | (data[2] as u64) << 16 |
+		          (data[1] as u64) <<  8 | (data[0] as u64) <<  0;
+		Ok(val)
+	}
+
+	pub fn reset_read_offset(&mut self) { self.offset = 0 }
+}
