@@ -99,18 +99,19 @@ bool FPGAQueueFuzzer::acquire_buffer() {
 	return true;
 }
 void FPGAQueueFuzzer::release_buffer() {
+	// release in reverse order
+	if(coverage_out_id > 0) {
+		command_pipe->push(coverage_out_id);
+		// reset buffer state
+		coverage_out_id = -1;
+		coverage_out_ptr = nullptr;
+	}
 	if(test_in_id > 0) {
 		// return control over buffer
 		command_pipe->push(test_in_id);
 		// reset buffer state
 		test_in_id = -1;
 		test_in_ptr = nullptr;
-	}
-	if(coverage_out_id > 0) {
-		command_pipe->push(coverage_out_id);
-		// reset buffer state
-		coverage_out_id = -1;
-		coverage_out_ptr = nullptr;
 	}
 }
 void FPGAQueueFuzzer::parse_header() {
