@@ -74,6 +74,7 @@ void FPGAQueueFuzzer::unmap_shms() {
 		auto ptr = static_cast<void*>(mapping.second);
 		assert(shmdt(ptr) == 0);
 	}
+	shms.clear();
 }
 
 size_t FPGAQueueFuzzer::get_size_of_shm(const int id) const {
