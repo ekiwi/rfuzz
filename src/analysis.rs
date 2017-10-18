@@ -20,13 +20,14 @@ impl Analysis {
 		}
 	}
 
-	pub fn run(&mut self, trace_bits: &[u8]) {
+	pub fn run(&mut self, trace_bits: &[u8]) -> bool {
 		// check coverage
 		let new_cov = analyze_coverage(self.bitmap.as_mut(), trace_bits);
+		let is_interesting =
 		match new_cov {
-			NewCoverage::Branch => println!("New branch covered!"),
-			NewCoverage::BranchCount => println!("New branch count discovered!"),
-			_ => ()
+			NewCoverage::Branch => { println!("New branch covered!"); true },
+			NewCoverage::BranchCount => { println!("New branch count discovered!"); true},
+			_ => false
 		};
 		self.new_inputs += if new_cov != NewCoverage::None {1} else {0};
 		// check path
@@ -34,6 +35,7 @@ impl Analysis {
 		if !self.path_hashes.contains(&new_hash) {
 			self.path_hashes.insert(new_hash);
 		}
+		is_interesting
 	}
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
