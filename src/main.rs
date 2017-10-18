@@ -4,6 +4,7 @@ extern crate time;
 mod run;
 mod mutation;
 mod analysis;
+mod queue;
 
 use analysis::{Analysis};
 use mutation::{MUTATIONS};

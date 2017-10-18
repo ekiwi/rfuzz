@@ -7,3 +7,4 @@ authors = ["Kevin Laeufer <ekiwi@berkeley.edu>"]
 libc = "0.2.21"
 time = "0.1"
 twox-hash = "1.1.0"
+serde = "*"
