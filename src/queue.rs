@@ -2,7 +2,6 @@ extern crate time;
 
 use std::fs;
 use std::path;
-use std::io::prelude::*;
 
 #[derive(Debug)]
 pub struct Entry {
@@ -16,8 +15,8 @@ pub struct EntryId(u32);
 
 struct Lineage {
 	parent: EntryId,
-	mutator: u32,
-	stage: usize,
+	mutation_algo: u32,
+	mutation_id: u32,
 }
 
 struct InternalEntry {
@@ -90,11 +89,11 @@ impl Queue {
 		entry.is_being_fuzzed = false;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutator: u32, stage: usize) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation_algo: u32, mutation_id: u32) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
-			Some(Lineage { parent, mutator, stage }) } else { None };
+			Some(Lineage { parent, mutation_algo, mutation_id }) } else { None };
 		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage))
 	}
 
