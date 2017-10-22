@@ -6,25 +6,28 @@ mod mutation;
 mod analysis;
 mod queue;
 
-use analysis::{Analysis};
-use mutation::{MUTATIONS};
+use run::buffered::{ find_one_fuzz_server, TestSize, BufferedFuzzServerConfig };
 use run::FuzzServer;
-use run::buffered::{ find_one_fuzz_server, TestSize };
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
 
 fn main() {
 	// test runner
-	let mut server : FuzzServer =
-		find_one_fuzz_server(FPGA_DIR, TEST_SIZE).expect("failed to find a fuzz server");
+	let config = BufferedFuzzServerConfig {
+		test_size : TEST_SIZE,
+		test_buffer_size : 64 * 1024,
+		coverage_buffer_size : 64 * 1024,
+		buffer_count: 3,
+	};
+	let mut server = find_one_fuzz_server(FPGA_DIR, config).expect("failed to find a fuzz server");
 
 	// queue
 	let starting_seed = vec![0u8; 12 * 3];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
-	let mut analysis = Analysis::new(TEST_SIZE.coverage);
+	let mut analysis = analysis::Analysis::new(TEST_SIZE.coverage);
 
 	// statistics
 	let mut runs : usize = 0;
@@ -36,19 +39,19 @@ fn main() {
 	for entry_count in 0..max_entries {
 		let mut active_test = q.get_next_test();
 		println!("{}. queue entry: {:?}", entry_count + 1, active_test);
-		for mutation_stage in MUTATIONS.iter() {
+		for mutation_stage in mutation::MUTATIONS.iter() {
 			let iterator = mutation_stage.iter(active_test.inputs.len());
 			println!("running {} mutation", mutation_stage.name);
 			for mutator in iterator {
 				let mut input = active_test.inputs.clone();
 				mutator.run(&mut input);
-				server.push_test(&input, mutator.info());	// TODO: test info
+				server.push_test(mutator.info(), &input);
 				runs += 1;
 			}
 			while let Some(feedback) = server.pop_coverage() {
 				let is_interesting = analysis.run(feedback.data);
 				if is_interesting {
-					let (info, interesting_input) = server.get_test_info(feedback.id);
+					let (info, interesting_input) = server.get_info(feedback.id);
 					q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
 				}
 			}

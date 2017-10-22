@@ -2,15 +2,30 @@
 pub struct MutationAlgorithmId {
 	id: u32,
 	seed: Option<u64>,
-
 }
 
 #[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Default)]
 pub struct MutationId(u32);
 impl MutationId {
-	pub fn next(self) -> MutationId { MutationId(self.0 + 1) }
+	fn next(&self, max: MutationId) -> Option<MutationId> {
+		let next = MutationId(self.0 + 1);
+		if next.0 < max.0 { Some(next) } else { None }
+	}
 }
 
+#[derive(Debug, Clone)]
+pub struct MutationInfo {
+	pub mutation_algo: MutationAlgorithmId,
+	pub mutation_id: MutationId,
+}
+impl MutationInfo {
+	fn next(&self, max: MutationId) -> Option<MutationInfo> {
+		if let Some(mutation_id) = self.mutation_id.next(max) {
+			let mutation_algo = self.mutation_algo.clone();
+			Some(MutationInfo {mutation_algo, mutation_id })
+		} else { None }
+	}
+}
 
 pub struct MutationAlgorithm {
 	id: u32,
@@ -33,12 +48,15 @@ pub const MUTATIONS : [MutationAlgorithm; 9] = [
 
 impl MutationAlgorithm {
 	pub fn iter(&self, len: usize) -> MutationAlgorithmIterator {
-		MutationAlgorithmIterator { ii: MutationId(0), max: (self.max)(len as u32), apply: self.apply }
+		let mutation_algo = MutationAlgorithmId { id: self.id, seed: None };
+		let info = Some(MutationInfo { mutation_algo, mutation_id: MutationId(0)});
+		let max = (self.max)(len as u32);
+		MutationAlgorithmIterator { info, max, apply: self.apply }
 	}
 }
 
 pub struct MutationAlgorithmIterator {
-	ii: MutationId,
+	info: Option<MutationInfo>,
 	pub max: MutationId,
 	apply: fn(u32, &mut [u8])
 }
@@ -46,11 +64,9 @@ pub struct MutationAlgorithmIterator {
 impl Iterator for MutationAlgorithmIterator {
 	type Item = Mutation;
 	fn next(&mut self) -> Option<Mutation> {
-		if self.ii < self.max {
-			let ii = self.ii;
-			let apply = self.apply;
-			self.ii = self.ii.next();
-			Some(Mutation { ii, apply })
+		if let Some(mut info) = self.info {
+			self.info = info.next(self.max);
+			Some(Mutation { info, apply: self.apply })
 		} else {
 			None
 		}
@@ -58,14 +74,15 @@ impl Iterator for MutationAlgorithmIterator {
 }
 
 pub struct Mutation {
-	ii: MutationId,
+	info: MutationInfo,
 	apply: fn(u32, &mut [u8])
 }
 
 impl Mutation {
 	pub fn run(&self, input : &mut [u8]) {
-		(self.apply)(self.ii.0, input)
+		(self.apply)(self.info.mutation_id.0, input)
 	}
+	pub fn info(&self) -> &MutationInfo { &self.info }
 }
 
 fn bitflip_1_max(len: u32) -> MutationId { MutationId(len * 8) }
