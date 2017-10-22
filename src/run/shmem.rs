@@ -8,6 +8,50 @@ pub trait SharedMemory {
 	fn reset(&mut self);
 }
 
+/// similar to the `std::Read` trait, but with some additional functions
+pub trait Readable {
+	fn bytes_left(&self) -> usize;
+	fn reset_read_offset(&mut self);
+	fn read_bytes(& mut self, len: usize) -> Result<(&[u8]), ()>;
+
+	fn read_u32(&mut self) -> Result<u32, ()> {
+		let data = self.read_bytes(4)?;
+		let val = (data[3] as u32) << 24 | (data[2] as u32) << 16 |
+		          (data[1] as u32) <<  8 | (data[0] as u32) <<  0;
+		Ok(val)
+	}
+
+	fn read_u64(&mut self) -> Result<u64, ()> {
+		let data = self.read_bytes(8)?;
+		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
+		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
+		          (data[3] as u64) << 24 | (data[2] as u64) << 16 |
+		          (data[1] as u64) <<  8 | (data[0] as u64) <<  0;
+		Ok(val)
+	}
+}
+
+/// similar to the `std::Write` trait, but with some additional functions
+pub trait Writeable {
+	fn bytes_left(&self) -> usize;
+	fn reset_write_offset(&mut self);
+	fn write_all(&mut self, buf: &[u8]) -> Result<(), ()>;
+
+	fn write_u32(&mut self, val: u32) -> Result<(), ()> {
+		let data = [(val >>  0) as u8, (val >>  8) as u8,
+		            (val >> 16) as u8, (val >> 24) as u8];
+		self.write_all(&data)
+	}
+
+	fn write_u64(&mut self, val: u64) -> Result<(), ()> {
+		let data = [(val >>  0) as u8, (val >>  8) as u8,
+		            (val >> 16) as u8, (val >> 24) as u8,
+		            (val >> 32) as u8, (val >> 40) as u8,
+		            (val >> 48) as u8, (val >> 56) as u8];
+		self.write_all(&data)
+	}
+}
+
 struct SharedMemoryPosix {
 	data: *mut u8,
 	size: usize,
@@ -71,16 +115,6 @@ impl WriteableSharedMemory {
 			let dst = unsafe{ self.mem.data.offset(self.offset as isize) } as *mut libc::c_void;
 			let src = buf.as_ptr() as *const libc::c_void;
 			unsafe { libc::memcpy(dst, src, len) };
-			self.offset += len;
-			Ok(())
-		}
-	}
-
-	pub fn write_zeros(&mut self, len: usize) -> Result<(), ()> {
-		if len > self.bytes_left() { Err(()) }
-		else {
-			let dst = unsafe{ self.mem.data.offset(self.offset as isize) } as *mut libc::c_void;
-			unsafe { libc::memset(dst, 0, len) };
 			self.offset += len;
 			Ok(())
 		}
