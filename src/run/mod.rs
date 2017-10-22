@@ -1,27 +1,31 @@
 pub mod buffered;
 pub mod shmem;
 
-// TODO: implement Hang, Error, NoInst, NoBits
-// TODO: make more generic
-#[derive(Debug)]
-pub enum Fault { None, Crash{signal: i32}}
+use super::mutation::{MutationAlgorithmId, MutationId};
 
-pub trait CoverageMap {
-	fn as_slice_u8(&self) -> &[u8];
-	fn as_slice_u16(&self) -> &[u16];
+#[derive(Copy,Clone,Debug,PartialEq,PartialOrd)]
+pub struct TestId(u64);
+
+pub struct BasicFeedback<'a> { pub id: TestId, pub data: &'a[u8] }
+
+pub struct TestInfo {
+	mutation_algo: MutationAlgorithmId,
+	mutation_id: MutationId,
+}
+impl TestInfo {
+	fn next(self) -> TestInfo {
+		TestInfo {
+			mutation_algo: self.mutation_algo,
+			mutation_id: self.mutation_id.next() }
+	}
 }
 
-// TODO: implement better feedback interface!
-// pub trait FeedbackConsumer {
-// 	fn consume(&mut self, fault : Fault, coverage : &CoverageMap);
-// }
-
-// pub struct DummyConsumer {}
-// impl FeedbackConsumer for DummyConsumer {
-// 	fn consume(&mut self, fault: Fault, coverage: &CoverageMap) {}
-// }
-
-pub trait TestRunner {
-	fn run(&self, input : &[u8]) -> Fault;
-	fn coverage(&self) -> &CoverageMap;
+pub trait FuzzServer {
+	/// shedule test input for execution
+	fn push_test(&mut self, info: &TestInfo, input : &[u8]);
+	/// get a reference to the coverage information from a test
+	/// the TestId can be used to retrieve further info if needed
+	fn pop_coverage<'a>(&'a mut self) -> Option<BasicFeedback<'a>>;
+	/// must be called directly after `pop_coverage`
+	fn get_test_info(&mut self, test: TestId) -> &TestInfo;
 }

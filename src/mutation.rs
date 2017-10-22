@@ -8,7 +8,7 @@ pub struct MutationAlgorithmId {
 #[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Default)]
 pub struct MutationId(u32);
 impl MutationId {
-	fn next(self) -> MutationId { MutationId(self.0 + 1) }
+	pub fn next(self) -> MutationId { MutationId(self.0 + 1) }
 }
 
 
