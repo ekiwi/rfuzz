@@ -70,7 +70,7 @@ private:
 	// current buffer
 	uint32_t tests_left = 0;
 	/// keep up to N shared memory regions mapped at one time
-	static constexpr size_t MaxMappedShms = 10;
+	static constexpr size_t MaxMappedShms = 20;
 	/// contains all shared memory regions that we have consumed
 	std::unordered_map<int, char*> shms;
 	int test_in_id = -1;
