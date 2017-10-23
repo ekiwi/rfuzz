@@ -69,7 +69,7 @@ pub struct MutationAlgorithmIterator {
 impl Iterator for MutationAlgorithmIterator {
 	type Item = Mutation;
 	fn next(&mut self) -> Option<Mutation> {
-		if let Some(mut info) = self.info {
+		if let Some(info) = self.info.clone() {
 			self.info = info.next(self.max);
 			Some(Mutation { info, apply: self.apply })
 		} else {

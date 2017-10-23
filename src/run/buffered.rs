@@ -203,6 +203,7 @@ impl MetaChannel {
 	}
 }
 
+#[derive(Clone)]
 struct MutationInterval { start: TestId, stop: TestId, algo: MutationAlgorithmId }
 impl MutationInterval {
 	fn is_older_than(&self, test: TestId) -> bool { test > self.stop }
@@ -251,7 +252,8 @@ impl TestHistory {
 		self.test_id
 	}
 	fn get_info(&mut self, id: TestId) -> MutationInfo {
-		while let Some(oldest) = self.mutation_log.front() {
+		while self.mutation_log.len() > 0 {
+			let oldest = self.mutation_log.front().unwrap().clone();
 			if let Some(info) = oldest.get_mutation_info(id) {
 				return info;
 			} else {
@@ -265,6 +267,7 @@ impl TestHistory {
 	}
 }
 
+#[derive(Clone)]
 pub struct BufferedFuzzServerConfig {
 	pub test_size : TestSize,
 	pub test_buffer_size : usize,
@@ -278,11 +281,11 @@ struct Buffers {
 	coverage: CoverageBuffer,
 }
 impl Buffers {
-	fn finalize(mut self) -> (u32, u32) {
+	fn finalize(&mut self) -> (u32, u32) {
 		(self.test.finalize() as u32,
 		 self.coverage.finalize() as u32)
 	}
-	fn reactivate(mut self, test_id: i32, cov_id: i32) -> Self {
+	fn reactivate(self, test_id: i32, cov_id: i32) -> Self {
 		let test = self.test.reactivate(test_id).expect("test id did not match");
 		let coverage = self.coverage.reactivate(cov_id).expect("coverage id did not match");
 		Buffers { test, coverage }
@@ -305,7 +308,7 @@ pub struct BufferedFuzzServer {
 }
 
 impl BufferedFuzzServer {
-	pub fn connect(dir: &path::Path, conf: BufferedFuzzServerConfig) -> Option<Self> {
+	pub fn connect(dir: &path::Path, conf: &BufferedFuzzServerConfig) -> Option<Self> {
 		assert!(conf.buffer_count >= 1);
 		let name = dir.file_name().unwrap().to_os_string().into_string().unwrap();
 		if let Some(com) = MetaChannel::connect(dir) {
@@ -317,6 +320,7 @@ impl BufferedFuzzServer {
 			for _ in 1..conf.buffer_count {
 				free.push(BufferedFuzzServer::make_buffer(&conf));
 			}
+			let conf = (*conf).clone();
 			Some(BufferedFuzzServer { name, conf, com, history, active_in, active_out, free, used })
 		} else { None }
 	}
@@ -347,7 +351,7 @@ impl BufferedFuzzServer {
 	/// removes the received buffer from the `used` list and appends it to
 	/// the `active_out` queue
 	fn handle_received_buffers(&mut self, cov_id: i32, test_id: i32) {
-		let pos = self.used.iter().position(|&bufs| bufs.is_id(test_id, cov_id)
+		let pos = self.used.iter().position(|ref bufs| bufs.is_id(test_id, cov_id)
 			).expect("failed to find buffer ids received from fuzz server");
 		let buf = self.used.swap_remove(pos).reactivate(test_id, cov_id);
 		self.active_out.push_back(buf);
@@ -405,11 +409,13 @@ impl FuzzServer for BufferedFuzzServer {
 	}
 
 	fn pop_coverage<'a>(&'a mut self) -> Option<BasicFeedback<'a>> {
-		let feedback = self.pop_available_coverage();
-		if feedback.is_some() { feedback} else {
-			if self.wait_for_buffers() { self.receive_buffers(); }
-			while self.try_receive_buffers().is_ok() {}
-			self.pop_available_coverage()
+		match self.pop_available_coverage() {
+			Some(feedback) => Some(feedback),
+			None => {
+				if self.wait_for_buffers() { self.receive_buffers(); }
+				while self.try_receive_buffers().is_ok() {}
+				self.pop_available_coverage()
+			}
 		}
 	}
 
@@ -435,7 +441,7 @@ pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) ->
 	let paths = fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
 	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
 		if entry.is_dir() {
-			if let Some(server) = BufferedFuzzServer::connect(&entry, conf) {
+			if let Some(server) = BufferedFuzzServer::connect(&entry, &conf) {
 				return Some(server);
 			}
 		}
