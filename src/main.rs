@@ -61,6 +61,15 @@ fn main() {
 		q.return_test(active_test.id, 9);
 	}
 
+	server.sync();
+	while let Some(feedback) = server.pop_coverage() {
+		let is_interesting = analysis.run(&feedback.data);
+		if is_interesting {
+			let (info, interesting_input) = server.get_info(feedback.id);
+			q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
+		}
+	}
+
 	// print statistics
 	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;

@@ -425,6 +425,11 @@ impl FuzzServer for BufferedFuzzServer {
 		let input = oldest.test.find_test(test).expect("test must be available in oldest coverage buffer");
 		(info, input)
 	}
+
+	fn sync(&mut self) {
+		self.send_active_buffers();
+		while self.used.len() > 0 { self.receive_buffers(); }
+	}
 }
 
 pub fn list_potential_fuzz_servers(server_dir: &str) {

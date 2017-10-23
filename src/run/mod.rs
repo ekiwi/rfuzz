@@ -20,4 +20,7 @@ pub trait FuzzServer {
 	fn pop_coverage(&mut self) -> Option<BasicFeedback>;
 	/// must be called directly after `pop_coverage`
 	fn get_info(&mut self, test: TestId) -> (MutationInfo, &[u8]);
+	/// send all waiting tests to the fuzz server and wait
+	/// until the fuzz server returns all coverage
+	fn sync(&mut self);
 }
