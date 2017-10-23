@@ -14,12 +14,14 @@ pub struct Entry {
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct EntryId(u32);
 
+#[derive(Debug)]
 struct Lineage {
 	parent: EntryId,
 	mutation_algo: MutationAlgorithmId,
 	mutation_id: MutationId,
 }
 
+#[derive(Debug)]
 struct InternalEntry {
 	// const
 	id: EntryId,	// always equivalent to position in vector!
@@ -97,6 +99,11 @@ impl Queue {
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation_algo, mutation_id }) } else { None };
 		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage))
+	}
+	pub fn debug_print_entry(&self, id: EntryId) {
+		if let Some(ee) = self.entries.get(id.0 as usize) {
+			println!("{:?}", ee);
+		}
 	}
 
 	/// checks wheather the parent of the working dir exists

@@ -40,6 +40,9 @@ impl Analysis {
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
 	pub fn new_inputs_count(&self) -> usize { self.new_inputs }
+	pub fn get_bitmap(&self) -> Vec<u8> {
+		self.bitmap.clone()
+	}
 }
 
 fn hash_xx(input: &[u8]) -> u64 {

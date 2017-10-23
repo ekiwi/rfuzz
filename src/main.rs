@@ -38,7 +38,8 @@ fn main() {
 
 	for entry_count in 0..max_entries {
 		let mut active_test = q.get_next_test();
-		println!("{}. queue entry: {:?}", entry_count + 1, active_test);
+		println!("{}. queue entry:", entry_count + 1);
+		q.debug_print_entry(active_test.id);
 		for mutation_stage in mutation::MUTATIONS.iter() {
 			let iterator = mutation_stage.iter(active_test.inputs.len());
 			println!("running {} mutation", mutation_stage.name);
@@ -76,4 +77,6 @@ fn main() {
 	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
 	println!("Discovered {} new paths.", analysis.path_count());
 	println!("Discovered {} new inputs.", analysis.new_inputs_count());
+	let bitmap = analysis.get_bitmap();
+	println!("Bitmap: {:?}", bitmap);
 }
