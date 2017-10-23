@@ -406,13 +406,16 @@ impl FuzzServer for BufferedFuzzServer {
 	}
 
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {
-		match self.pop_available_coverage() {
-			Some(feedback) => Some(feedback),
-			None => {
-				if self.wait_for_buffers() { self.receive_buffers(); }
-				while self.try_receive_buffers().is_ok() {}
-				self.pop_available_coverage()
+		let feedback = self.pop_available_coverage();
+		if feedback.is_some() { feedback} else {
+			if self.wait_for_buffers() {
+				// wait for all but one buffer (TODO: is there a better policy?)
+				while self.used.len() > 1 {
+					self.receive_buffers();
+				}
 			}
+			while self.try_receive_buffers().is_ok() {}
+			self.pop_available_coverage()
 		}
 	}
 
