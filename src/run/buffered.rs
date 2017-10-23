@@ -92,7 +92,6 @@ impl TestBuffer {
 		} else { None }
 	}
 
-	fn is_empty(&self) -> bool { self.test_count == 0 }
 	fn is_id(&self, id: i32) -> bool { self.data.id() == id }
 }
 
@@ -131,7 +130,6 @@ impl<'a> CoverageBuffer {
 		if self.is_id(id) { self.read_header(); Some(self) } else { None }
 	}
 
-	fn is_empty(&self) -> bool { self.test_count == 0 }
 	fn is_id(&self, id: i32) -> bool { self.data.id() == id }
 }
 
@@ -297,7 +295,7 @@ impl Buffers {
 }
 
 pub struct BufferedFuzzServer {
-	name: String,
+	pub name: String,
 	conf: BufferedFuzzServerConfig,
 	com: MetaChannel,
 	history: TestHistory,
