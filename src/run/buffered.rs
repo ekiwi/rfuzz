@@ -7,7 +7,7 @@ use std::io::prelude::*;
 use std::os::unix::io::AsRawFd;
 use super::shmem::{ SharedMemory, WriteableSharedMemory, ReadableSharedMemory };
 use super::{ TestId, BasicFeedback, FuzzServer };
-use super::super::mutation::MutationInfo;
+use super::super::mutation::{ MutationInfo, MutationAlgorithmId, MutationId };
 use std::collections::VecDeque;
 
 const MAGIC_HEADER: u32 = 0x19933991;
@@ -186,18 +186,65 @@ impl MetaChannel {
 	}
 }
 
+struct MutationInterval { start: TestId, stop: TestId, algo: MutationAlgorithmId }
+impl MutationInterval {
+	fn is_older_than(&self, test: TestId) -> bool { test > self.stop }
+	fn contains(&self, test: TestId) -> bool { test >= self.start && test <= self.stop }
+	fn get_mutation_info(&self, test: TestId) -> Option<MutationInfo> {
+		if self.contains(test) {
+			let mutation_id = MutationId::from_integer_interval(self.start.0, test.0);
+			Some(MutationInfo{ mutation_id, mutation_algo: self.algo })
+		} else { None }
+	}
+}
+
 struct TestHistory {
-	mutation_log: VecDeque<u8>
+	mutation_log: VecDeque<MutationInterval>,
+	active_algo: Option<MutationAlgorithmId>,
+	last_mutation: MutationId,
+	mutation_algo_start: TestId,
+	test_id: TestId,
 }
 impl TestHistory {
-	fn new() -> Self { TestHistory { mutation_log: VecDeque::new() } }
+	fn new() -> Self {
+		TestHistory { mutation_log: VecDeque::new(), active_algo: None,
+		              last_mutation: MutationId::default(),
+		              mutation_algo_start: TestId::default(),
+		              test_id: TestId::default() }
+	}
 	fn new_test(&mut self, info: &MutationInfo) -> TestId {
-		assert!(false, "TODO: implement!");
-		TestId(0)
+		if self.active_algo == Some(info.mutation_algo) {
+			assert!(self.last_mutation.is_predecessor(&info.mutation_id),
+				"tests must be consecutive mutations");
+		} else {
+			// remember previous mutation if it existed
+			if let Some(algo) = self.active_algo {
+				let start = self.mutation_algo_start;
+				let stop = self.test_id;
+				self.mutation_log.push_back(MutationInterval { start, stop, algo });
+			}
+			// store new algo and reset mutation count
+			self.active_algo = Some(info.mutation_algo);
+			assert_eq!(info.mutation_id, MutationId::default(),
+			"we expect new algorithms to start at the default id!");
+			self.mutation_algo_start = self.test_id.next();
+		}
+		self.last_mutation = info.mutation_id;
+		self.test_id = self.test_id.next();
+		self.test_id
 	}
 	fn get_info(&mut self, id: TestId) -> MutationInfo {
-		assert!(false, "TODO: implement!");
-		MutationInfo::default()
+		while let Some(oldest) = self.mutation_log.front() {
+			if let Some(info) = oldest.get_mutation_info(id) {
+				return info;
+			} else {
+				assert!(oldest.is_older_than(id), "we lost information, probably out of order test!");
+				self.mutation_log.pop_front();
+			}
+		}
+		assert!(id <= self.test_id, "cannot handle tests from the future!");
+		let mutation_id = MutationId::from_integer_interval(self.mutation_algo_start.0, id.0);
+		MutationInfo{ mutation_id, mutation_algo: self.active_algo.unwrap() }
 	}
 }
 
@@ -238,7 +285,6 @@ pub struct BufferedFuzzServer {
 	active_out: VecDeque<Buffers>,
 	free: Vec<Buffers>,
 	used: Vec<Buffers>
-	// TODO: implement buffer management using the four members above!
 }
 
 impl BufferedFuzzServer {

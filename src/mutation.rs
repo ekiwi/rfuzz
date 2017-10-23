@@ -11,6 +11,11 @@ impl MutationId {
 		let next = MutationId(self.0 + 1);
 		if next.0 < max.0 { Some(next) } else { None }
 	}
+	pub fn is_predecessor(&self, other: &MutationId) -> bool { self.0 + 1 == other.0 }
+	pub fn from_integer_interval(start: u64, stop: u64) -> Self {
+		let delta = (stop - start) as u32;
+		MutationId(delta)
+	}
 }
 
 #[derive(Debug, Clone)]

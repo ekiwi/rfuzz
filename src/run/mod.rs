@@ -3,8 +3,11 @@ pub mod shmem;
 
 use super::mutation::{MutationInfo};
 
-#[derive(Copy,Clone,Debug,PartialEq,PartialOrd)]
+#[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Default)]
 pub struct TestId(u64);
+impl TestId {
+	fn next(&self) -> TestId { TestId(self.0 + 1) }
+}
 
 pub struct BasicFeedback<'a> { pub id: TestId, pub data: &'a[u8] }
 
