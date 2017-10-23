@@ -59,8 +59,8 @@ private:
 public:
 	NamedPipe(const std::string& name);
 	~NamedPipe();
-	bool pop_blocking(uint32_t* value);
-	void push(uint32_t value);
+	bool pop_blocking(uint32_t*, uint32_t*);
+	void push(uint32_t, uint32_t);
 };
 
 class FPGAQueueFuzzer : public Fuzzer {

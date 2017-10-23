@@ -40,16 +40,22 @@ NamedPipe::~NamedPipe() {
 	// remove instance directory
 	assert(rmdir(dir.c_str()) == 0);
 }
-bool NamedPipe::pop_blocking(uint32_t* value) {
-	rx.read(reinterpret_cast<char*>(value), sizeof(uint32_t));
+bool NamedPipe::pop_blocking(uint32_t* value0, uint32_t* value1) {
+	char buf[2 * sizeof(uint32_t)];
+	rx.read(buf, 2 * sizeof(uint32_t));
+	std::memcpy(value0, &buf[0], sizeof(uint32_t));
+	std::memcpy(value1, &buf[4], sizeof(uint32_t));
 	// when the pipe is closed prematurely, we will read 0 instead of 4 bytes
 	// in this case it is best to crash here instead of later in the code
-	const auto successfull_read_from_rx_pipe = rx.gcount() == sizeof(uint32_t);
+	const auto successfull_read_from_rx_pipe = rx.gcount() == 2 * sizeof(uint32_t);
 	// assert(successfull_read_from_rx_pipe);
 	return successfull_read_from_rx_pipe;
 }
-void NamedPipe::push(uint32_t value) {
-	tx.write(reinterpret_cast<const char*>(&value), sizeof(uint32_t));
+void NamedPipe::push(uint32_t value0, uint32_t value1) {
+	char buf[2 * sizeof(uint32_t)];
+	std::memcpy(&buf[0], &value0, sizeof(uint32_t));
+	std::memcpy(&buf[4], &value1, sizeof(uint32_t));
+	tx.write(buf, 2 * sizeof(uint32_t));
 	tx.flush();
 }
 
@@ -90,8 +96,7 @@ bool FPGAQueueFuzzer::acquire_buffer() {
 	assert(test_in_id == -1);
 	assert(coverage_out_id == -1);
 	uint32_t in = 0, out = 0;
-	const bool failed = !command_pipe->pop_blocking(&in) or
-	                    !command_pipe->pop_blocking(&out);
+	const bool failed = !command_pipe->pop_blocking(&in, &out);
 	if(failed) { return false; }
 	test_in_id = in;
 	test_in_ptr = map_shm(test_in_id);
@@ -101,15 +106,11 @@ bool FPGAQueueFuzzer::acquire_buffer() {
 }
 void FPGAQueueFuzzer::release_buffer() {
 	// release in reverse order
-	if(coverage_out_id > 0) {
-		command_pipe->push(coverage_out_id);
+	if(coverage_out_id > 0 && test_in_id > 0) {
+		command_pipe->push(coverage_out_id, test_in_id);
 		// reset buffer state
 		coverage_out_id = -1;
 		coverage_out_ptr = nullptr;
-	}
-	if(test_in_id > 0) {
-		// return control over buffer
-		command_pipe->push(test_in_id);
 		// reset buffer state
 		test_in_id = -1;
 		test_in_ptr = nullptr;
