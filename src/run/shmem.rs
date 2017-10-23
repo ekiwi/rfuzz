@@ -10,9 +10,14 @@ pub trait SharedMemory {
 
 /// similar to the `std::Read` trait, but with some additional functions
 pub trait Readable {
-	fn bytes_left(&self) -> usize;
+	fn bytes_left_to_read(&self) -> usize;
 	fn reset_read_offset(&mut self);
-	fn read_bytes(& mut self, len: usize) -> Result<(&[u8]), ()>;
+	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()>;
+
+	fn read_skip_bytes(&mut self, len: usize) -> Result<(),()> {
+		self.read_bytes(len)?;
+		Ok(())
+	}
 
 	fn read_u32(&mut self) -> Result<u32, ()> {
 		let data = self.read_bytes(4)?;
@@ -33,7 +38,7 @@ pub trait Readable {
 
 /// similar to the `std::Write` trait, but with some additional functions
 pub trait Writeable {
-	fn bytes_left(&self) -> usize;
+	fn bytes_left_to_write(&self) -> usize;
 	fn reset_write_offset(&mut self);
 	fn write_all(&mut self, buf: &[u8]) -> Result<(), ()>;
 
@@ -103,13 +108,13 @@ impl SharedMemory for WriteableSharedMemory {
 	fn id(&self) -> i32 { self.mem.id() }
 }
 
-impl WriteableSharedMemory {
-	pub fn bytes_left(&self) -> usize {
+impl Writeable for WriteableSharedMemory {
+	fn bytes_left_to_write(&self) -> usize {
 		self.mem.size - self.offset
 	}
 
-	pub fn write_all(&mut self, buf: &[u8]) -> Result<(), ()> {
-		if buf.len() > self.bytes_left() { Err(()) }
+	fn write_all(&mut self, buf: &[u8]) -> Result<(), ()> {
+		if buf.len() > self.bytes_left_to_write() { Err(()) }
 		else {
 			let len = buf.len();
 			let dst = unsafe{ self.mem.data.offset(self.offset as isize) } as *mut libc::c_void;
@@ -120,21 +125,25 @@ impl WriteableSharedMemory {
 		}
 	}
 
-	pub fn write_u32(&mut self, val: u32) -> Result<(), ()> {
-		let data = [(val >>  0) as u8, (val >>  8) as u8,
-		            (val >> 16) as u8, (val >> 24) as u8];
-		self.write_all(&data)
+	fn reset_write_offset(&mut self) { self.offset = 0 }
+}
+
+impl Readable for WriteableSharedMemory {
+	fn bytes_left_to_read(&self) -> usize {
+		self.mem.size - self.offset
 	}
 
-	pub fn write_u64(&mut self, val: u64) -> Result<(), ()> {
-		let data = [(val >>  0) as u8, (val >>  8) as u8,
-		            (val >> 16) as u8, (val >> 24) as u8,
-		            (val >> 32) as u8, (val >> 40) as u8,
-		            (val >> 48) as u8, (val >> 56) as u8];
-		self.write_all(&data)
+	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()> {
+		if len > self.bytes_left_to_read() { Err(()) }
+		else {
+			let bytes = unsafe { std::slice::from_raw_parts_mut(
+			                     self.mem.data.offset(self.offset as isize), len) };
+			self.offset += len;
+			Ok(bytes)
+		}
 	}
 
-	pub fn reset_write_offset(&mut self) { self.offset = 0 }
+	fn reset_read_offset(&mut self) { self.offset = 0 }
 }
 
 pub struct ReadableSharedMemory {
@@ -152,13 +161,13 @@ impl SharedMemory for ReadableSharedMemory {
 	fn id(&self) -> i32 { self.mem.id() }
 }
 
-impl<'a> ReadableSharedMemory {
-	pub fn bytes_left(&self) -> usize {
+impl Readable for ReadableSharedMemory {
+	fn bytes_left_to_read(&self) -> usize {
 		self.mem.size - self.offset
 	}
 
-	pub fn read_bytes(&'a mut self, len: usize) -> Result<(&'a [u8]), ()> {
-		if len > self.bytes_left() { Err(()) }
+	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()> {
+		if len > self.bytes_left_to_read() { Err(()) }
 		else {
 			let bytes = unsafe { std::slice::from_raw_parts_mut(
 			                     self.mem.data.offset(self.offset as isize), len) };
@@ -167,21 +176,5 @@ impl<'a> ReadableSharedMemory {
 		}
 	}
 
-	pub fn read_u32(&mut self) -> Result<u32, ()> {
-		let data = self.read_bytes(4)?;
-		let val = (data[3] as u32) << 24 | (data[2] as u32) << 16 |
-		          (data[1] as u32) <<  8 | (data[0] as u32) <<  0;
-		Ok(val)
-	}
-
-	pub fn read_u64(&mut self) -> Result<u64, ()> {
-		let data = self.read_bytes(8)?;
-		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
-		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
-		          (data[3] as u64) << 24 | (data[2] as u64) << 16 |
-		          (data[1] as u64) <<  8 | (data[0] as u64) <<  0;
-		Ok(val)
-	}
-
-	pub fn reset_read_offset(&mut self) { self.offset = 0 }
+	fn reset_read_offset(&mut self) { self.offset = 0 }
 }

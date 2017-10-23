@@ -5,7 +5,7 @@ use std::fs;
 use std::path;
 use std::io::prelude::*;
 use std::os::unix::io::AsRawFd;
-use super::shmem::{ SharedMemory, WriteableSharedMemory, ReadableSharedMemory };
+use super::shmem::{ SharedMemory, Writeable, Readable, WriteableSharedMemory, ReadableSharedMemory };
 use super::{ TestId, BasicFeedback, FuzzServer };
 use super::super::mutation::{ MutationInfo, MutationAlgorithmId, MutationId };
 use std::collections::VecDeque;
@@ -36,7 +36,7 @@ struct TestBuffer {
 }
 impl TestBuffer {
 	fn create(size: TestSize, buffer_size: usize) -> Self {
-		let mut data = WriteableSharedMemory::create(buffer_size);
+		let data = WriteableSharedMemory::create(buffer_size);
 		let mut buf = TestBuffer { size, data, test_count: 0 };
 		buf.reset();
 		buf
@@ -60,8 +60,20 @@ impl TestBuffer {
 		Ok(())
 	}
 
-	pub fn find_test(&mut self, id: TestId) -> Option<&[u8]> {
-		// TODO: implement
+	fn find_test(&mut self, id: TestId) -> Option<&[u8]> {
+		while self.test_count > 0 {
+			let cur_test_id = self.data.read_u64().unwrap();
+			let input_count = self.data.read_u32().unwrap();
+			let len = input_count as usize * self.size.input;
+			self.test_count -= 1;
+			if TestId(cur_test_id) == id {
+				let inputs = self.data.read_bytes(len).unwrap();
+				return Some(inputs);
+			} else {
+				self.data.read_skip_bytes(len).unwrap();
+			}
+		}
+		None
 	}
 
 	fn finalize(&mut self) -> i32 {
@@ -72,7 +84,12 @@ impl TestBuffer {
 	}
 
 	fn reactivate(mut self, id: i32) -> Option<Self> {
-		if self.is_id(id) { Some(self) } else { None }
+		if self.is_id(id) {
+			self.data.reset_read_offset();
+			assert_eq!(self.data.read_u32().unwrap(), MAGIC_HEADER);
+			assert_eq!(self.data.read_u32().unwrap(), self.test_count);
+			Some(self)
+		} else { None }
 	}
 
 	fn is_empty(&self) -> bool { self.test_count == 0 }
@@ -86,7 +103,7 @@ struct CoverageBuffer {
 }
 impl<'a> CoverageBuffer {
 	pub fn create(size: TestSize, buffer_size: usize) -> Self {
-		let mut data = ReadableSharedMemory::create(buffer_size);
+		let data = ReadableSharedMemory::create(buffer_size);
 		CoverageBuffer { size, data, test_count: 0 }
 	}
 
