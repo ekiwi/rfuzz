@@ -389,10 +389,9 @@ impl BufferedFuzzServer {
 			if let Some(oldest) = self.active_out.front_mut() {
 				if let Some((id, data)) = oldest.coverage.get_coverage() {
 					return Some(BasicFeedback { id, data: data.to_vec() } );
-				} else {
-					self.free_oldest_out();
 				}
 			}
+			self.free_oldest_out();
 		}
 		None
 	}
