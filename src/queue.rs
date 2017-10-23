@@ -78,6 +78,7 @@ impl Queue {
 	}
 
 	pub fn get_next_test(&mut self) -> Entry {
+		assert!(self.active_entry.is_none());
 		let id = self.choose_next_test();
 		let entry = self.entries.get(id.0 as usize).expect("invalid entry id");
 		self.active_entry = Some(id);

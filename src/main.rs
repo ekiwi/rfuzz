@@ -56,6 +56,9 @@ fn main() {
 				}
 			}
 		}
+		// TODO: remember last fuzzing stage here (this will be easier,
+		//       once we have a MutationSchedule classe)
+		q.return_test(active_test.id, 9);
 	}
 
 	// print statistics
