@@ -384,11 +384,11 @@ impl BufferedFuzzServer {
 
 	/// tries to pop coverage without receiving new buffers from the
 	/// fuzz server
-	fn pop_available_coverage<'a>(&'a mut self) -> Option<BasicFeedback<'a>> {
+	fn pop_available_coverage(&mut self) -> Option<BasicFeedback> {
 		while self.active_out.len() > 0 {
 			if let Some(oldest) = self.active_out.front_mut() {
 				if let Some((id, data)) = oldest.coverage.get_coverage() {
-					return Some(BasicFeedback { id, data } );
+					return Some(BasicFeedback { id, data: data.to_vec() } );
 				} else {
 					self.free_oldest_out();
 				}
@@ -408,7 +408,7 @@ impl FuzzServer for BufferedFuzzServer {
 		}
 	}
 
-	fn pop_coverage<'a>(&'a mut self) -> Option<BasicFeedback<'a>> {
+	fn pop_coverage(&mut self) -> Option<BasicFeedback> {
 		match self.pop_available_coverage() {
 			Some(feedback) => Some(feedback),
 			None => {

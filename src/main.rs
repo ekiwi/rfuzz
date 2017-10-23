@@ -49,7 +49,7 @@ fn main() {
 				runs += 1;
 			}
 			while let Some(feedback) = server.pop_coverage() {
-				let is_interesting = analysis.run(feedback.data);
+				let is_interesting = analysis.run(&feedback.data);
 				if is_interesting {
 					let (info, interesting_input) = server.get_info(feedback.id);
 					q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
