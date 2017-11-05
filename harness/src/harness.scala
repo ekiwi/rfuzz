@@ -3,10 +3,22 @@ package pynq
 import chisel3._
 import chisel3.util._
 
+import scala.collection.immutable.ListMap
+
+object ListBundle {
+	def apply(el: ListMap[String, Data]): Record = {
+		new Record {
+			val elements: ListMap[String, Data] = el
+			override def cloneType : this.type = {
+				throw new Exception(s"Cloning not supported until someone explains to me what it's for!")
+				this
+			}
+		}
+	}
+}
+
 class DUT extends BlackBox {
-	val io = IO(new Bundle {
-		val io_in_ready = Input(Bool())
-	})
+	val io = IO(ListBundle(ListMap("io_in_ready" -> Input(Bool()))))
 }
 
 class Harness() extends Module {
