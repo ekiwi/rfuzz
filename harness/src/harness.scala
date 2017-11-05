@@ -3,38 +3,36 @@ package pynq
 import chisel3._
 import chisel3.util._
 
-class Queue(val depth: Int, val width: Int) extends Module {
+class Harness() extends Module {
+	val width = 64
+	val bit_count = (width + 7) / 8
+
 	val io = IO(new Bundle {
-		val in   = Input(UInt(width.W))
-		val out  = Output(UInt(width.W))
-		val push_back = Input(Bool())
-		val pop_front = Input(Bool())
-		val full = Output(Bool())
-		val empty = Output(Bool())
-		val len = Output(UInt(log2Ceil(depth+1).W))
+		// TODO: split up into separate producer / consumer boundles
+		val s_axis_tvalid = Input(Bool())
+		val s_axis_tready = Output(Bool())
+		val s_axis_tdata = Input(UInt(width.W))
+		val s_axis_tkeep = Input(UInt(bit_count.W))
+		val s_axis_tlast = Input(Bool())
+		val m_axis_tvalid = Output(Bool())
+		val m_axis_tready = Input(Bool())
+		val m_axis_tdata = Output(UInt(width.W))
+		val m_axis_tkeep = Output(UInt(bit_count.W))
+		val m_axis_tlast = Output(Bool())
 	})
 
-	io.full := io.len === depth.U
-	io.empty := io.len === 0.U
+	// do NOT accept any data from producer
+	io.s_axis_tready := false.B
 
-	val do_push = io.push_back && !io.full
-	val do_pop  = io.pop_front && !io.empty
-
-	val len = RegInit(0.U(log2Ceil(depth+1).W))
-	io.len := len
-	len := MuxCase(len, Seq(
-		(do_push && !do_pop ) -> (len + 1.U),
-		(do_pop  && !do_push) -> (len - 1.U)))
-
-	val mem = Mem(depth, UInt(width.W))
-	val max_address = (depth - 1).U
-	def next_address(a: UInt): UInt = Mux(a === max_address, 0.U, a + 1.U)
-
-	val read_address = RegInit(0.U(log2Ceil(depth).W))
-	io.out := mem(read_address)
-	read_address := Mux(do_pop, next_address(read_address), read_address)
-
-	val write_address = RegInit(0.U(log2Ceil(depth).W))
-	when(do_push) { mem(write_address) := io.in }
-	write_address := Mux(do_push, next_address(write_address), write_address)
+	// produce constant value
+	io.m_axis_tvalid := true.B
+	io.m_axis_tdata := "h19931993".U
+	io.m_axis_tkeep := ((1 << bit_count) - 1).U
+	// TODO: tlast @ true means that DMA will only copy one value ....
+	io.m_axis_tlast := true.B
 }
+
+object HarnessGenerator extends App {
+	chisel3.Driver.execute(args, () => new Harness())
+}
+
