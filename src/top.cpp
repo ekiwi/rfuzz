@@ -52,9 +52,9 @@ static inline void dummy_run(Simulation& sim, uint64_t cycles) {
 
 static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
 	// reset circuit for two cycles
-	sim.top->reset = 0;
-	dummy_run(sim, 2);
 	sim.top->reset = 1;
+	dummy_run(sim, 2);
+	sim.top->reset = 0;
 	// run for as many cycles as we get data
 	Test::Input input;
 	Test::Coverage coverage;
