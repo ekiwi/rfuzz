@@ -3,11 +3,17 @@ package pynq
 import chisel3._
 import chisel3.util._
 
+class DUT extends BlackBox {
+	val io = IO(new Bundle {
+		val io_in_ready = Input(Bool())
+	})
+}
+
 class Harness() extends Module {
 	val width = 64
 	val bit_count = (width + 7) / 8
 
-	val io = IO(new Bundle {
+	val io = this.IO(new Bundle {
 		// TODO: split up into separate producer / consumer boundles
 		val s_axis_tvalid = Input(Bool())
 		val s_axis_tready = Output(Bool())
@@ -20,6 +26,8 @@ class Harness() extends Module {
 		val m_axis_tkeep = Output(UInt(bit_count.W))
 		val m_axis_tlast = Output(Bool())
 	})
+
+	val dut = Module (new DUT)
 
 	// do NOT accept any data from producer
 	io.s_axis_tready := false.B
