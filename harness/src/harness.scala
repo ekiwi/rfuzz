@@ -16,6 +16,7 @@ class Inputs(input_width: Int) extends Module {
 	val max_cycles = 64
 	val test_id_width = 64
 	val in_width = 64
+	val data_per_cycle = div2Ceil(input_width, in_width)
 
 	val io = this.IO(new Bundle {
 		// to DUT
@@ -32,14 +33,33 @@ class Inputs(input_width: Int) extends Module {
 		val data = Input(UInt(in_width.W))
 		val ready = Output(Bool())
 	})
+	val sLoadTestId :: sLoadTest :: sRunTest :: Nil = Enum(3)
+	val state = RegInit(sLoadTestId)
+	val data_in_cycle_count = RegInit(0.U(log2Ceil(data_per_cycle).W))
+	val cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
 
-	// TODO: implement!
-	io.input_signals := 0.U
-	io.test_id := 0.U
-	io.test_id_valid := false.B
+	val q = Module(new Queue(UInt(input_width.W), max_cycles))
+	assert(q.io.enq.ready || !q.io.enq.valid, "Never push when queue is full")
+	assert(q.io.deq.valid || !q.io.deq.ready, "Never pop when queue is empty")
+	io.input_signals := q.io.deq.bits
+
+	// receive test data
+	io.ready := (state === sLoadTestId || state === sLoadTest)
+	q.io.enq.bits := Cat((0 until data_per_cycle - 1).map{ case(cycle) => {
+		val reg = RegInit(0.U(in_width.W))
+		when(cycle_count === cycle.U) { reg := io.data }
+		reg
+	}} ++ Seq(io.data))
+	q.io.enq.valid := (state === sLoadTest) && io.valid
+
+	// test id for coverage module
+	val test_id = RegInit(0.U(test_id_width.W))
+	io.test_id := test_id
+	io.test_id_valid := true.B
+
+	// status
 	io.last_load := false.B
 	io.last_cycle := false.B
-	io.ready := false.B
 
 }
 
