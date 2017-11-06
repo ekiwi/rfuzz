@@ -42,6 +42,7 @@ class DUTConfig(cov: CoverageConfig) {
 		"io_in_bits_a" -> 32,
 		"io_in_bits_b" -> 32)
 	val coverage_counters = cov.counters.map{case(k,_) => k}
+	val input_bits = input.map{case(_,w) => w}.reduce(_+_)
 }
 
 class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
@@ -57,17 +58,16 @@ class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 }
 
 class DUT(conf: DUTConfig) extends Module {
-	val input_bits = conf.input.map{case(_,w) => w}.reduce(_+_)
 	val coverage_bits = conf.coverage_counters.size
 	val io = this.IO(new Bundle {
-		val inputs = Input(UInt(input_bits.W))
+		val inputs = Input(UInt(conf.input_bits.W))
 		val coverage = Output(UInt(coverage_bits.W))
 	})
 	val bb = Module(new DUTBlackBox(conf))
 
 	// extract inputs
 	val pins = bb.io.elements
-	var left = input_bits - 1
+	var left = conf.input_bits - 1
 	conf.input.map{ case(n,w) =>
 		pins(n) := io.inputs(left, left - w + 1)
 		left = left - w
