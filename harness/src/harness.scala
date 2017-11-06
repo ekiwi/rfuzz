@@ -32,6 +32,14 @@ class Inputs(input_width: Int) extends Module {
 		val ready = Output(Bool())
 	})
 
+	// TODO: implement!
+	io.input_signals := 0.U
+	io.test_id := 0.U
+	io.test_id_valid := false.B
+	io.last_load := false.B
+	io.last_cycle := false.B
+	io.ready := false.B
+
 }
 
 
@@ -51,13 +59,10 @@ class Harness() extends Module {
 		val m_axis_tdata = Output(UInt(axis_width.W))
 		val m_axis_tkeep = Output(UInt(axis_bit_count.W))
 		val m_axis_tlast = Output(Bool())
-
-		// debug signals
-		val dbg_do_collect = Input(Bool())
 	})
 
 	// control states
-	val sIdle :: sLoadTest :: sRunTest :: sCollectCoverage :: Nil = Enum(3)
+	val sIdle :: sLoadTest :: sRunTest :: sCollectCoverage :: Nil = Enum(4)
 	val state = RegInit(sIdle)
 
 	// modules
@@ -65,22 +70,26 @@ class Harness() extends Module {
 	reset_dut_and_cov := false.B
 	val cov_conf = new CoverageConfig
 	val dut_conf = new DUTConfig(cov_conf)
-
 	val (dut, cov) = withReset(this.reset.toBool || reset_dut_and_cov) {
 		(Module (new DUT(dut_conf) ), Module (new Coverage(cov_conf))) }
+	val inp = Module (new Inputs(dut_conf.input_bits))
+
+	// connect inputs
+	inp.io.data  := io.s_axis_tdata
+	inp.io.valid := Mux(state === sLoadTest, io.s_axis_tvalid, false.B)
+	io.s_axis_tready := MuxLookup(state, false.B, Array(
+		sIdle -> true.B, sLoadTest -> inp.io.ready))
+
+	// connect coverage
 	cov.io.coverage_signals := dut.io.coverage
+	cov.io.test_id := inp.io.test_id
+	cov.io.test_id_valid := inp.io.test_id_valid
 	cov.io.do_collect := (state === sCollectCoverage)
 	io.m_axis_tvalid := cov.io.valid
 	io.m_axis_tdata  := cov.io.data
 	io.m_axis_tkeep  := ((1 << axis_bit_count) - 1).U
 	io.m_axis_tlast  := cov.io.last
 	cov.io.ready     := io.m_axis_tready
-
-	val inp = Module (new Inputs(dut_conf.input_bits))
-	inp.io.data  := io.s_axis_tdata
-	inp.io.valid := Mux(state === sCollectCoverage, io.s_axis_tvalid, false.B)
-	io.s_axis_tready := MuxLookup(state, false.B, Array(
-		sIdle -> true.B, sLoadTest -> inp.io.ready))
 
 	// control
 	val test_count = RegInit(0.U(16.W))

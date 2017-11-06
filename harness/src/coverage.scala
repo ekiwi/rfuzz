@@ -23,11 +23,16 @@ class Coverage(conf: CoverageConfig) extends Module {
 	val out_width = 64
 	// all counter output values concatenated
 	val coverage_width = conf.counters.map{ case(n,w) => w }.reduce(_+_)
-	val output_count = div2Ceil(coverage_width, out_width)
+	// output(0) is the test id!
+	val output_count = div2Ceil(coverage_width, out_width) + 1
+	val test_id_width = 64
 
 	val io = this.IO(new Bundle {
 		// from DUT
 		val coverage_signals = Input(UInt(conf.counters.size.W))
+		// from input module
+		val test_id = Input(UInt(test_id_width.W))
+		val test_id_valid = Input(Bool())
 		// internal control
 		val do_collect = Input(Bool())
 		val collect_done = Output(Bool())
@@ -50,6 +55,9 @@ class Coverage(conf: CoverageConfig) extends Module {
 		}}.toSeq)
 	}
 
+	val test_id = RegInit(0.U(test_id_width.W))
+	when(io.test_id_valid) { test_id := io.test_id }
+
 	val output_ii = RegInit(0.U(log2Ceil(output_count).W))
 	val output_next = io.valid && io.ready
 	output_ii := Mux(output_next, output_ii + 1.U, output_ii)
@@ -58,9 +66,9 @@ class Coverage(conf: CoverageConfig) extends Module {
 	when(io.last && output_next) { done := true.B }
 	io.collect_done := done
 	io.valid := collecting && !done
-	io.data := MuxLookup(output_ii, 0.U, {
+	io.data := MuxLookup(output_ii, 0.U, Seq( 0.U -> test_id ) ++ {
 		var left = coverage_width - 1
-		(0 until output_count).map{ case(ii) => ii.U -> {
+		(1 until output_count).map{ case(ii) => ii.U -> {
 			val right = left - out_width + 1
 			val out = if(right >= 0) { coverage(left, right) } else {
 				Cat(coverage(left, 0), 0.U((-right).W)) }

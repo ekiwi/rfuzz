@@ -64,9 +64,14 @@ class DUT(conf: DUTConfig) extends Module {
 		val coverage = Output(UInt(coverage_bits.W))
 	})
 	val bb = Module(new DUTBlackBox(conf))
+	val pins = bb.io.elements
+
+	// connect clock and reset
+	// TODO: how?
+	// pins("clock") := this.clock.toBool
+	// pins("reset") := this.reset.toBool
 
 	// extract inputs
-	val pins = bb.io.elements
 	var left = conf.input_bits - 1
 	conf.input.map{ case(n,w) =>
 		pins(n) := io.inputs(left, left - w + 1)
