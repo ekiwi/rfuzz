@@ -35,7 +35,7 @@ class Coverage(conf: CoverageConfig) extends Module {
 		val test_id_valid = Input(Bool())
 		// internal control
 		val do_collect = Input(Bool())
-		val collect_done = Output(Bool())
+		val last_send = Output(Bool())
 		// simple axi stream producer
 		val ready = Input(Bool())
 		val valid = Output(Bool())
@@ -62,9 +62,9 @@ class Coverage(conf: CoverageConfig) extends Module {
 	val output_next = io.valid && io.ready
 	output_ii := Mux(output_next, output_ii + 1.U, output_ii)
 	io.last := output_ii === (output_count - 1).U
+	io.last_send := io.last && output_next
 	val done = RegInit(false.B)
-	when(io.last && output_next) { done := true.B }
-	io.collect_done := done
+	when(io.last_send) { done := true.B }
 	io.valid := collecting && !done
 	io.data := MuxLookup(output_ii, 0.U, Seq( 0.U -> test_id ) ++ {
 		var left = coverage_width - 1

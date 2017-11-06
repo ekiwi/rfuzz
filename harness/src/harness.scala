@@ -115,16 +115,13 @@ class Harness() extends Module {
 		when(inp.io.last_cycle) { state := sCollectCoverage }
 	}
 	is(sCollectCoverage) {
-		when(cov.io.collect_done) {
+		when(cov.io.last_send) {
 			test_count := test_count - 1.U
 			val tests_left = (test_count > 1.U)
 			state := Mux(tests_left, sLoadTest, sIdle)
 		}
 	}
 	}
-
-
-
 }
 
 object HarnessGenerator extends App {
