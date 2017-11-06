@@ -36,7 +36,8 @@ class Inputs(input_width: Int) extends Module {
 	val sLoadTestId :: sLoadTest :: sRunTest :: Nil = Enum(3)
 	val state = RegInit(sLoadTestId)
 	val data_in_cycle_count = RegInit(0.U(log2Ceil(data_per_cycle).W))
-	val cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
+	val load_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
+	val run_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
 
 	val q = Module(new Queue(UInt(input_width.W), max_cycles))
 	assert(q.io.enq.ready || !q.io.enq.valid, "Never push when queue is full")
@@ -47,19 +48,47 @@ class Inputs(input_width: Int) extends Module {
 	io.ready := (state === sLoadTestId || state === sLoadTest)
 	q.io.enq.bits := Cat((0 until data_per_cycle - 1).map{ case(cycle) => {
 		val reg = RegInit(0.U(in_width.W))
-		when(cycle_count === cycle.U) { reg := io.data }
+		when(data_in_cycle_count === cycle.U) { reg := io.data }
 		reg
 	}} ++ Seq(io.data))
 	q.io.enq.valid := (state === sLoadTest) && io.valid
 
 	// test id for coverage module
 	val test_id = RegInit(0.U(test_id_width.W))
+	when(state === sLoadTestId && io.valid) { test_id := io.data }
 	io.test_id := test_id
 	io.test_id_valid := true.B
 
-	// status
+	// control
 	io.last_load := false.B
 	io.last_cycle := false.B
+	val last_data_in_cycle = data_in_cycle_count === (data_per_cycle - 1).U
+	data_in_cycle_count := Mux(state =/= sLoadTest, 0.U,
+		Mux(!io.valid, data_in_cycle_count,
+			Mux(last_data_in_cycle, 0.U, data_in_cycle_count + 1.U)))
+	load_cycle_count := Mux(state =/= sLoadTest, 0.U,
+		Mux(io.valid && data_in_cycle_count === 0.U, load_cycle_count + 1.U, load_cycle_count))
+	val last_data_in_test = load_cycle_count === io.test_cycles - 1.U && last_data_in_cycle
+	run_cycle_count := Mux(state =/= sRunTest, 0.U, run_cycle_count + 1.U)
+	val last_run_cycle = run_cycle_count === io.test_cycles - 1.U
+	switch(state) {
+	is(sLoadTestId) {
+		when(io.valid) { state := sLoadTest }
+	}
+	is(sLoadTest) {
+		when(io.valid && last_data_in_test) {
+			io.last_load := true.B
+			state := sRunTest
+		}
+	}
+	is(sRunTest) {
+		when(last_run_cycle) {
+			io.last_cycle := true.B
+			state := sLoadTest
+		}
+	}
+	}
+
 
 }
 
