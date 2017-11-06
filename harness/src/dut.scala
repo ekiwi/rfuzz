@@ -48,7 +48,7 @@ class DUTConfig(cov: CoverageConfig) {
 class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 	override def desiredName = conf.name
 	val io = this.IO(ListBundle( {
-		ListMap("clock" -> Input(Bool()), "reset" -> Input(Bool())) ++
+		ListMap("clock" -> Input(Clock()), "reset" -> Input(Bool())) ++
 		conf.input.map{ case(n,w) => n -> Input(UInt(w.W)) } ++
 		conf.coverage_counters.map{ case n => n -> Output(Bool()) }
 		// TODO: is it ok to just ignore the output?
@@ -67,9 +67,8 @@ class DUT(conf: DUTConfig) extends Module {
 	val pins = bb.io.elements
 
 	// connect clock and reset
-	// TODO: how?
-	// pins("clock") := this.clock.toBool
-	// pins("reset") := this.reset.toBool
+	pins("clock") := this.clock
+	pins("reset") := this.reset.toBool
 
 	// extract inputs
 	var left = conf.input_bits - 1
