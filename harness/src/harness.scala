@@ -43,6 +43,7 @@ class Inputs(input_width: Int) extends Module {
 	assert(q.io.enq.ready || !q.io.enq.valid, "Never push when queue is full")
 	assert(q.io.deq.valid || !q.io.deq.ready, "Never pop when queue is empty")
 	io.input_signals := q.io.deq.bits
+	q.io.deq.ready := state === sRunTest
 
 	// receive test data
 	io.ready := (state === sLoadTestId || state === sLoadTest)
