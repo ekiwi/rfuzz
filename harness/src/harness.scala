@@ -24,6 +24,7 @@ class Inputs(input_width: Int) extends Module {
 		val test_id = Output(UInt(test_id_width.W))
 		val test_id_valid = Output(Bool())
 		// internal control signals
+		val test_cycles = Input(UInt(16.W))
 		val last_load  = Output(Bool())
 		val last_cycle = Output(Bool())
 		// axis consumer
@@ -64,6 +65,7 @@ class Harness() extends Module {
 	// control states
 	val sIdle :: sLoadTest :: sRunTest :: sCollectCoverage :: Nil = Enum(4)
 	val state = RegInit(sIdle)
+	val test_cycles = RegInit(0.U(16.W))
 
 	// modules
 	val reset_dut_and_cov = Wire(Bool())
@@ -77,6 +79,7 @@ class Harness() extends Module {
 	// connect inputs
 	inp.io.data  := io.s_axis_tdata
 	inp.io.valid := Mux(state === sLoadTest, io.s_axis_tvalid, false.B)
+	inp.io.test_cycles := test_cycles
 	io.s_axis_tready := MuxLookup(state, false.B, Array(
 		sIdle -> true.B, sLoadTest -> inp.io.ready))
 
@@ -93,7 +96,6 @@ class Harness() extends Module {
 
 	// control
 	val test_count = RegInit(0.U(16.W))
-	val test_cycles = RegInit(0.U(16.W))
 	switch (state) {
 	is (sIdle) {
 		// wait for start of test buffer
