@@ -90,6 +90,8 @@ class Inputs(input_width: Int) extends Module {
 		when(last_run_cycle) {
 			io.last_cycle := true.B
 			state := sLoadTestId
+			assert(q.io.count === 1.U && q.io.deq.valid && q.io.deq.ready,
+			       "Queue needs to be empty at the end of a test run!")
 		}
 	}
 	}
