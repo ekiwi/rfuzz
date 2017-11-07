@@ -122,6 +122,7 @@ class Harness() extends Module {
 	val sIdle :: sLoadTest :: sRunTest :: sCollectCoverage :: Nil = Enum(4)
 	val state = RegInit(sIdle)
 	val test_cycles = RegInit(0.U(16.W))
+	val test_count = RegInit(0.U(16.W))
 
 	// modules
 	val reset_dut_and_cov = Wire(Bool())
@@ -148,11 +149,10 @@ class Harness() extends Module {
 	io.m_axis_tvalid := cov.io.valid
 	io.m_axis_tdata  := cov.io.data
 	io.m_axis_tkeep  := ((1 << axis_bit_count) - 1).U
-	io.m_axis_tlast  := cov.io.last
+	io.m_axis_tlast  := cov.io.last && test_count === 1.U
 	cov.io.ready     := io.m_axis_tready
 
 	// control
-	val test_count = RegInit(0.U(16.W))
 	switch (state) {
 	is (sIdle) {
 		// wait for start of test buffer
