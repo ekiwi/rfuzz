@@ -35,9 +35,22 @@ class Inputs(input_width: Int) extends Module {
 	})
 	val sLoadTestId :: sLoadTest :: sRunTest :: Nil = Enum(3)
 	val state = RegInit(sLoadTestId)
+
+	// receive counters
 	val data_in_cycle_count = RegInit(0.U(log2Ceil(data_per_cycle).W))
 	val load_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
+	val last_data_in_cycle = data_in_cycle_count === (data_per_cycle - 1).U
+	data_in_cycle_count := Mux(state =/= sLoadTest, 0.U,
+		Mux(!io.valid, data_in_cycle_count,
+			Mux(last_data_in_cycle, 0.U, data_in_cycle_count + 1.U)))
+	load_cycle_count := Mux(state =/= sLoadTest, 0.U,
+		Mux(io.valid && last_data_in_cycle, load_cycle_count + 1.U, load_cycle_count))
+	val last_data_in_test = load_cycle_count === io.test_cycles - 1.U && last_data_in_cycle
+
+	// run counters
 	val run_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
+	run_cycle_count := Mux(state =/= sRunTest, 0.U, run_cycle_count + 1.U)
+	val last_run_cycle = run_cycle_count === io.test_cycles - 1.U
 
 	val q = Module(new Queue(UInt(input_width.W), max_cycles))
 	assert(q.io.enq.ready || !q.io.enq.valid, "Never push when queue is full")
@@ -63,15 +76,6 @@ class Inputs(input_width: Int) extends Module {
 	// control
 	io.last_load := false.B
 	io.last_cycle := false.B
-	val last_data_in_cycle = data_in_cycle_count === (data_per_cycle - 1).U
-	data_in_cycle_count := Mux(state =/= sLoadTest, 0.U,
-		Mux(!io.valid, data_in_cycle_count,
-			Mux(last_data_in_cycle, 0.U, data_in_cycle_count + 1.U)))
-	load_cycle_count := Mux(state =/= sLoadTest, 0.U,
-		Mux(io.valid && data_in_cycle_count === 0.U, load_cycle_count + 1.U, load_cycle_count))
-	val last_data_in_test = load_cycle_count === io.test_cycles - 1.U && last_data_in_cycle
-	run_cycle_count := Mux(state =/= sRunTest, 0.U, run_cycle_count + 1.U)
-	val last_run_cycle = run_cycle_count === io.test_cycles - 1.U
 	switch(state) {
 	is(sLoadTestId) {
 		when(io.valid) { state := sLoadTest }
