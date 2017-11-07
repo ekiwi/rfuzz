@@ -89,7 +89,7 @@ class Inputs(input_width: Int) extends Module {
 	is(sRunTest) {
 		when(last_run_cycle) {
 			io.last_cycle := true.B
-			state := sLoadTest
+			state := sLoadTestId
 		}
 	}
 	}
