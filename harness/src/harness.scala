@@ -65,7 +65,7 @@ class Inputs(input_width: Int) extends Module {
 		when(data_in_cycle_count === cycle.U) { reg := io.data }
 		reg
 	}} ++ Seq(io.data))
-	q.io.enq.valid := (state === sLoadTest) && io.valid
+	q.io.enq.valid := (state === sLoadTest) && io.valid && last_data_in_cycle
 
 	// test id for coverage module
 	val test_id = RegInit(0.U(test_id_width.W))
