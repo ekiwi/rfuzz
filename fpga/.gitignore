@@ -1,0 +1,15 @@
+# vivado project directory
+ekiwi/
+
+# bitstream
+*.bit
+
+# vivado
+*.jou
+*.log
+.Xil
+
+# verilog generation artifacts
+chisel/AxisQueue.anno
+chisel/AxisQueue.fir
+chisel/AxisQueue.v
