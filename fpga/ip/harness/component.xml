@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ekiwi</spirit:vendor>
-  <spirit:library>pynq</spirit:library>
-  <spirit:name>AxisQueue</spirit:name>
-  <spirit:version>1.0</spirit:version>
+  <spirit:library>kfuzz</spirit:library>
+  <spirit:name>FuzzHarness</spirit:name>
+  <spirit:version>0.1</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>io_m_axis</spirit:name>
@@ -157,14 +157,14 @@
         <spirit:displayName>Synthesis</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>
         <spirit:language>Verilog</spirit:language>
-        <spirit:modelName>AxisQueue</spirit:modelName>
+        <spirit:modelName>Harness</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_anylanguagesynthesis_view_fileset</spirit:localName>
         </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>2e7469cf</spirit:value>
+            <spirit:value>e1135cf3</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -173,10 +173,7 @@
         <spirit:displayName>Simulation</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>
         <spirit:language>Verilog</spirit:language>
-        <spirit:modelName>AxisQueue</spirit:modelName>
-        <spirit:fileSetRef>
-          <spirit:localName>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:localName>
-        </spirit:fileSetRef>
+        <spirit:modelName>Harness</spirit:modelName>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
@@ -188,9 +185,6 @@
         <spirit:name>xilinx_xpgui</spirit:name>
         <spirit:displayName>UI Layout</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:xgui.ui</spirit:envIdentifier>
-        <spirit:fileSetRef>
-          <spirit:localName>xilinx_xpgui_view_fileset</spirit:localName>
-        </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
@@ -202,7 +196,7 @@
         <spirit:name>xilinx_testbench</spirit:name>
         <spirit:displayName>Test Bench</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:simulation.testbench</spirit:envIdentifier>
-        <spirit:modelName>AxisQueue</spirit:modelName>
+        <spirit:modelName>gcdcov</spirit:modelName>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
@@ -390,29 +384,16 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>AxisQueue.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_2e7469cf</spirit:userFileType>
-      </spirit:file>
-    </spirit:fileSet>
-    <spirit:fileSet>
-      <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
-      <spirit:file>
-        <spirit:name>AxisQueue.v</spirit:name>
+        <spirit:name>/home/kevin/hfuzz/hardware-afl/harness/gcdcov.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
-    </spirit:fileSet>
-    <spirit:fileSet>
-      <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/AxisQueue_v1_0.tcl</spirit:name>
-        <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_f92e9879</spirit:userFileType>
-        <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
+        <spirit:name>/home/kevin/hfuzz/hardware-afl/harness/Harness.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>AxisQueue_v1_0</spirit:description>
+  <spirit:description>FuzzHarness</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
@@ -435,24 +416,28 @@
       <xilinx:taxonomies>
         <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
       </xilinx:taxonomies>
-      <xilinx:displayName>AxisQueue_v1_0</xilinx:displayName>
+      <xilinx:displayName>FuzzHarness</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>4</xilinx:coreRevision>
+      <xilinx:coreRevision>2</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:AxisQueue:1.0</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>ekiwi:pynq:AxisQueue:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2017-11-05T06:42:29Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2017-11-07T03:57:24Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="nopcore"/>
         <xilinx:tag xilinx:name="user.org:user:AxisQueue:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/pynq/chisel</xilinx:tag>
         <xilinx:tag xilinx:name="ekiwi:user:AxisQueue:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/pynq/chisel</xilinx:tag>
-        <xilinx:tag xilinx:name="ekiwi:pynq:AxisQueue:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/pynq/chisel</xilinx:tag>
+        <xilinx:tag xilinx:name="ekiwi:pynq:AxisQueue:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/hardware-afl/fpga/ip/harness</xilinx:tag>
+        <xilinx:tag xilinx:name="ekiwi:kfuzz:AxisQueue:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/hardware-afl/fpga/ip/harness</xilinx:tag>
+        <xilinx:tag xilinx:name="ekiwi:kfuzz:FuzzHarness:1.0_ARCHIVE_LOCATION">/home/kevin/hfuzz/hardware-afl/fpga/ip/harness</xilinx:tag>
+        <xilinx:tag xilinx:name="ekiwi:kfuzz:FuzzHarness:0.1_ARCHIVE_LOCATION">/home/kevin/hfuzz/hardware-afl/fpga/ip/harness</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2017.2</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="c365382a"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="96e96ef8"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="8564bd3d"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="dda87216"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="1abc1236"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="2f147992"/>
     </xilinx:packagingInfo>

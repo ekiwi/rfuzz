@@ -47,7 +47,7 @@ if { $list_projs eq "" } {
    set_property BOARD_PART digilentinc.com:arty-z7-20:part0:1.0 [current_project]
 }
 
-set_property  ip_repo_paths  . [current_project]
+set_property  ip_repo_paths ip [current_project]
 update_ip_catalog
 
 # CHANGE DESIGN NAME HERE
@@ -166,7 +166,7 @@ proc create_root_design { parentCell } {
   # Create ports
 
   # Create instance: AxisQueue_0, and set properties
-  set AxisQueue_0 [ create_bd_cell -type ip -vlnv ekiwi:pynq:AxisQueue:1.0 AxisQueue_0 ]
+  set AxisQueue_0 [ create_bd_cell -type ip -vlnv ekiwi:kfuzz:FuzzHarness:0.1 AxisQueue_0 ]
 
   # Create instance: axi_dma_0, and set properties
   set axi_dma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 axi_dma_0 ]
@@ -1171,10 +1171,3 @@ create_root_design ""
 add_files -norecurse [make_wrapper -files [get_files *.bd] -top]
 update_compile_order -fileset sources_1
 set_property top system_wrapper [current_fileset]
-
-# call implement
-launch_runs impl_1 -to_step write_bitstream -jobs 8
-wait_on_run impl_1
-
-# move and rename bitstream to final location
-file copy -force ./ekiwi/ekiwi.runs/impl_1/system_wrapper.bit system.bit
