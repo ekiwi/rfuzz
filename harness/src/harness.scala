@@ -138,6 +138,7 @@ class Harness() extends Module {
 	inp.io.test_cycles := test_cycles
 	io.s_axis_tready := MuxLookup(state, false.B, Array(
 		sIdle -> true.B, sLoadTest -> inp.io.ready))
+	dut.io.inputs := inp.io.input_signals
 
 	// connect coverage
 	cov.io.coverage_signals := dut.io.coverage
