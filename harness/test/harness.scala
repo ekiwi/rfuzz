@@ -22,6 +22,7 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 		poke(h.io.s_axis_tlast, last)
 		step(1)
 		poke(h.io.s_axis_tvalid, false)
+		poke(h.io.s_axis_tlast, false)
 	}
 
 	def recv(data : BigInt, last : Boolean = false) = {
@@ -41,7 +42,7 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 
 	// test settings
 	val magic = BigInt(0x19931993)
-	val test_count = BigInt(1)
+	val test_count = BigInt(3)
 	val test_cycles = BigInt(3)
 	val test_id_0 = BigInt(0x17f2a8ed)
 	val test_0_a = BigInt(400)
@@ -53,23 +54,25 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	val cycle_data_0 = (test_0_a << 32) | test_0_b
 	val cycle_data_1 = (test_0_valid << 63) | (test_0_ready << 62)
 	send(header)
-	send(test_id_0)
-	send(cycle_data_0)
-	send(cycle_data_1)
-	send(cycle_data_0)
-	send(cycle_data_1)
-	send(cycle_data_0)
-	send(cycle_data_1, true)
+	for( ii <- 1 to 3) {
+		send(test_id_0)
+		send(cycle_data_0)
+		send(cycle_data_1)
+		send(cycle_data_0)
+		send(cycle_data_1)
+		send(cycle_data_0)
+		send(cycle_data_1, ii == 3)
+		// wait a bit
+		step(4)
+		// show that we are ready (TODO: acutally check return data)
+		recv(test_id_0)
+		step(2)
+		recv(BigInt("0300030003000303", 16)) // the first 8 counters (8 * 8 = 64)
+		step(1)
+		recv(BigInt("0000030000000000", 16), ii == 3)
+	}
 
-	// wait a bit
-	step(4)
-
-	// show that we are ready (TODO: acutally check return data)
-	recv(test_id_0)
-	step(2)
-	recv(BigInt("0300030003000303", 16)) // the first 8 counters (8 * 8 = 64)
-	step(1)
-	recv(BigInt("0000030000000000", 16), true)
+	step(10)
 }
 
 class GCDTester extends ChiselFlatSpec {
