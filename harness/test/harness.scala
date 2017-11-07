@@ -59,22 +59,17 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	send(cycle_data_0)
 	send(cycle_data_1)
 	send(cycle_data_0)
-	send(cycle_data_1)
+	send(cycle_data_1, true)
 
 	// wait a bit
-	step(10)
+	step(4)
 
 	// show that we are ready (TODO: acutally check return data)
-	maybe_recv()
+	recv(test_id_0)
 	step(2)
-	maybe_recv()
-	maybe_recv()
+	recv(BigInt("0300030003000303", 16)) // the first 8 counters (8 * 8 = 64)
 	step(1)
-	maybe_recv()
-	maybe_recv()
-	maybe_recv()
-	maybe_recv()
-
+	recv(BigInt("0000030000000000", 16), true)
 }
 
 class GCDTester extends ChiselFlatSpec {
