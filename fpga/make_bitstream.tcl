@@ -1,4 +1,4 @@
-source block_design.tcl
+source system.tcl
 
 # call implement
 launch_runs impl_1 -to_step write_bitstream -jobs 8
