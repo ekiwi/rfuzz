@@ -42,6 +42,7 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 
 	// test settings
 	val magic  = BigInt("19931993", 16)
+	val coverage_magic = BigInt("73537353", 16)
 	val buf_id = BigInt("0abcdef0", 16)
 	val test_count = BigInt(3)
 	val test_cycles = BigInt(3)
@@ -56,6 +57,7 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	val cycle_data_1 = (test_0_valid << 63) | (test_0_ready << 62)
 	send(header)
 	send(conf)
+	recv(coverage_magic << 32 | buf_id)
 	for( ii <- 1 to 3) {
 		send(cycle_data_0)
 		send(cycle_data_1)
@@ -96,14 +98,25 @@ extends PeekPokeTester(harness) {
 		poke(h.io.s_axis_tlast, false)
 	}
 
+	def recv(data : BigInt, last : Boolean = false) = {
+		expect(h.io.m_axis_tvalid, true)
+		expect(h.io.m_axis_tdata, data)
+		expect(h.io.m_axis_tlast, last)
+		poke(h.io.m_axis_tready, true)
+		step(1)
+		poke(h.io.m_axis_tready, false)
+	}
+
 	// test settings
 	val magic  = BigInt("19931993", 16)
+	val coverage_magic = BigInt("73537353", 16)
 	val buf_id = BigInt("0abcdef0", 16)
 	// test bytes
 	val header = (magic << 32) | (buf_id)
 	val conf   = (BigInt(test_count) << 48) | (BigInt(test_cycles) << 32)
 	send(header)
 	send(conf)
+	recv(coverage_magic << 32 | buf_id)
 
 	// send (dummy data) and receive as quickly as possible
 	// we expect:

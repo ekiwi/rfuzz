@@ -145,7 +145,7 @@ class Harness() extends Module {
 	val m_axis_fire = io.m_axis_tready && io.m_axis_tvalid
 
 	// control states
-	val sReceiveHeader :: sReceiveControl :: sRunTests :: sSendStatus :: Nil = Enum(4)
+	val sReceiveHeader :: sReceiveControl :: sSendHeader :: sRunTests :: sSendStatus :: Nil = Enum(5)
 	val state = RegInit(sReceiveHeader)
 
 	// state
@@ -180,9 +180,12 @@ class Harness() extends Module {
 	dut.io.coverage <> cov.io.coverage_signals
 
 	// connect axis output
+	val coverage_header = Cat("h73537353".U, buffer_id)
 	cov.io.axis_ready := io.m_axis_tready
-	io.m_axis_tdata  := Mux(state === sSendStatus, status, cov.io.axis_data)
-	io.m_axis_tvalid := Mux(state === sSendStatus, true.B, cov.io.axis_valid)
+	io.m_axis_tdata  := Mux(state === sSendHeader, coverage_header,
+	                    Mux(state === sSendStatus, status, cov.io.axis_data))
+	io.m_axis_tvalid := Mux((state === sSendHeader) || (state === sSendStatus),
+	                        true.B, cov.io.axis_valid)
 	io.m_axis_tkeep  := ((1 << axis_bit_count) - 1).U
 	io.m_axis_tlast  := state === sSendStatus
 
@@ -205,8 +208,11 @@ class Harness() extends Module {
 	is (sReceiveControl) {
 		when (io.s_axis_tvalid) {
 			control := io.s_axis_tdata
-			state := sRunTests
+			state := sSendHeader
 		}
+	}
+	is (sSendHeader) {
+		when(m_axis_fire) { state := sRunTests }
 	}
 	is(sRunTests) {
 		when(test_ii.io.last && cov.io.control.done_next) { state := sSendStatus }
