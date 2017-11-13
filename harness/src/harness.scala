@@ -154,8 +154,8 @@ class Harness() extends Module {
 	val status = Wire(UInt(64.W))
 	status := 0.U // TODO: connect to interesting internal state
 	val control_src = Wire(Flipped(new TestExecControl))
-	control_src.run_cycles := control(63, 48)
-	control_src.test_count := control(47, 32)
+	control_src.test_count := control(63, 48)
+	control_src.run_cycles := control(47, 32)
 
 	// modules
 	val inp = Module(new InputsReceiver(dut_conf.input_bits))
