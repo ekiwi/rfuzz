@@ -1168,6 +1168,6 @@ create_root_design ""
 # Additional steps to get to bitstream
 # from https://github.com/Xilinx/PYNQ and https://github.com/PeterOgden/overlay_tutorial
 # generate toplevel
-add_files -norecurse [make_wrapper -files [get_files *system.bd] -top]
+add_files -norecurse [make_wrapper -files [get_files "[current_bd_design].bd"] -top]
 update_compile_order -fileset sources_1
 set_property top system_wrapper [current_fileset]
