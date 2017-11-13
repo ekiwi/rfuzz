@@ -14,27 +14,25 @@
 // ====================================
 // struct Buffer {
 //     uint32_t MagicHeader = 0x19933991;
-//     uint32_t test_count;
+//     uint32_t buffer_id;
+//     uint16_t test_count;
+//     uint16_t test_cycles;
+//     uint32_t reserved_control;
 //     Test tests[test_count];
 // }
 // struct Test {
-//     uint64_t id;
-//     uint32_t input_count;
 //     Input inputs[input_count];
-//     Coverage coverage;
 // }
 //
 // Coverage Data Format (FPGA -> CPU)
 // ==================================
 // struct Buffer {
 //     uint32_t MagicHeader = 0x73537353;
-//     uint32_t test_count;
+//     uint32_t buffer_id;
+//     Coverage coverage[test_count];
+//     uint64_t reserved_status;
 // }
-// struct Test {
-//     uint64_t id;
-//     Coverage coverage;
-// }
-// Every data item is 32bit word aligned!
+// Every data item is 64bit word aligned!
 // TODO: deal with endianess issues.
 
 
@@ -68,7 +66,8 @@ private:
 	std::unique_ptr<NamedPipe> command_pipe;
 
 	// current buffer
-	uint32_t tests_left = 0;
+	uint16_t tests_left = 0;
+	uint16_t input_cycle_count = 0;
 	/// keep up to N shared memory regions mapped at one time
 	static constexpr size_t MaxMappedShms = 20;
 	/// contains all shared memory regions that we have consumed
@@ -89,8 +88,7 @@ private:
 	}
 
 	// current test
-	uint64_t test_id = 0;
-	uint32_t inputs_left = 0;
+	uint16_t inputs_left = 0;
 
 	// shard memory managemenet
 	char* map_shm(const int id);
@@ -100,7 +98,6 @@ private:
 	bool acquire_buffer();
 	void release_buffer();
 	void parse_header();
-	void parse_test();
 public:
 	void init() override;
 	bool done() override;

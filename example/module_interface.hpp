@@ -20,7 +20,7 @@ protected:
 	unsigned int io_in_valid : 1;
 	unsigned int io_out_ready : 1;
 private:
-	unsigned int _padding : 29;
+	uint64_t _padding : 61;
 public:
 	void apply(Top& top) const {
 		top.reset = reset;
@@ -30,13 +30,13 @@ public:
 		top.io_in_bits_b = io_in_bits_b;
 	}
 } __attribute__((packed));
-static_assert(sizeof(Input) == 3 * 4, "");
+static_assert(sizeof(Input) == 2 * 8, "");
 
 struct Coverage {
 protected:
 	uint8_t count[11] = {};
 private:
-	uint8_t _padding[1];
+	uint8_t _padding[5];
 public:
 	void update(const Top& top) {
 		if (top.io_in_ready) count[0]++;
@@ -52,7 +52,7 @@ public:
 		if (top.cov_bits_start_false) count[10]++;
 	}
 } __attribute__((packed));
-static_assert(sizeof(Coverage) == 3 * 4, "");
+static_assert(sizeof(Coverage) == 2 * 8, "");
 
 } // namespace Test
 
