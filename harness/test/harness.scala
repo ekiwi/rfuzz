@@ -77,6 +77,54 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	step(10)
 }
 
+class HarnessLatencyTester(harness: Harness, test_count : Int, test_cycles : Int)
+extends PeekPokeTester(harness) {
+	private val h = harness
+
+	// we are not ready to send or receive by default
+	poke(h.io.s_axis_tvalid, false)
+	poke(h.io.m_axis_tready, false)
+
+	def send(data : BigInt, last : Boolean = false) = {
+		expect(h.io.s_axis_tready, true)
+		poke(h.io.s_axis_tvalid, true)
+		poke(h.io.s_axis_tdata, data)
+		poke(h.io.s_axis_tkeep, 0xff)
+		poke(h.io.s_axis_tlast, last)
+		step(1)
+		poke(h.io.s_axis_tvalid, false)
+		poke(h.io.s_axis_tlast, false)
+	}
+
+	// test settings
+	val magic  = BigInt("19931993", 16)
+	val buf_id = BigInt("0abcdef0", 16)
+	// test bytes
+	val header = (magic << 32) | (buf_id)
+	val conf   = (BigInt(test_count) << 48) | (BigInt(test_cycles) << 32)
+	send(header)
+	send(conf)
+
+	// send (dummy data) and receive as quickly as possible
+	// we expect:
+	val test_data_load_cycles = 2 * test_cycles
+	val run_test_and_collect_cov_cycles = test_cycles + 2 + 1
+	val latency = test_data_load_cycles + run_test_and_collect_cov_cycles
+	val avg_cycles_per_test = math.max(test_data_load_cycles, run_test_and_collect_cov_cycles)
+	poke(h.io.s_axis_tvalid, true)
+	poke(h.io.s_axis_tdata, 0)
+	poke(h.io.m_axis_tready, true)
+	step(latency + (test_count - 1) * avg_cycles_per_test - 1)
+
+	// make sure the data stream is over
+	expect(h.io.m_axis_tlast, true)
+	step(1)
+
+	// TODO: this test is sending more data than expected and this should
+	//       be handled correctly in the Harness
+	//       Especially the input receiver should not accept any more test data!
+}
+
 class GCDTester extends ChiselFlatSpec {
 	private val backendNames =
 		if(firrtl.FileUtils.isCommandAvailable("verilator")) {
@@ -88,5 +136,12 @@ class GCDTester extends ChiselFlatSpec {
 				harness => new HarnessUnitTester(harness)
 			} should be (true)
 		}
+	}
+
+	// TODO: improve latency/throughput prediction
+	"Harness" should "be quick!" in {
+		Driver(() => new Harness(), "verilator") {
+			harness => new HarnessLatencyTester(harness, 3, 3)
+		} should be (true)
 	}
 }
