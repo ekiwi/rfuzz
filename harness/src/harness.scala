@@ -12,97 +12,122 @@ object div2Ceil {
 	def apply(dividend: Int, divisor: Int): Int = (dividend + divisor - 1) / divisor
 }
 
-class Inputs(input_width: Int) extends Module {
+class WrappingCounter(width : Int) extends Module {
+	val io = this.IO(new Bundle {
+		val enable = Input(Bool())
+		val max = Input(UInt(width.W))
+		val value = Output(UInt(width.W))
+		val last = Output(Bool())
+	})
+	val count = RegInit(0.U(width.W))
+	io.value := count
+	io.last := count === io.max
+	count := Mux(!io.enable, count, Mux(io.last, 0.U, count + 1.U))
+}
+
+class TestExecControl extends Bundle {
+	val run_cycles = Input(UInt(16.W))
+	val test_count = Input(UInt(16.W))
+}
+
+class DUTDriverInterface(input_width: Int) extends Bundle {
+	// TODO: why does this fail when wrapped in Input(...)?
+	val data = DeqIO(UInt(input_width.W))
+	val start_next = Input(Bool())
+	val ready_next = Output(Bool())
+	override def cloneType: this.type = new DUTDriverInterface(input_width).asInstanceOf[this.type]
+}
+
+class InputsReceiver(input_width: Int) extends Module {
 	val max_cycles = 64
-	val test_id_width = 64
 	val in_width = 64
 	val data_per_cycle = div2Ceil(input_width, in_width)
 
 	val io = this.IO(new Bundle {
-		// to DUT
-		val input_signals = Output(UInt(input_width.W))
-		// connect to coverage module
-		val test_id = Output(UInt(test_id_width.W))
-		val test_id_valid = Output(Bool())
-		// internal control signals
-		val test_cycles = Input(UInt(16.W))
-		val last_load  = Output(Bool())
-		val last_cycle = Output(Bool())
+		val control = new TestExecControl
+		// test run control
+		val driver = Flipped(new DUTDriverInterface(input_width))
 		// axis consumer
-		val valid = Input(Bool())
-		val data = Input(UInt(in_width.W))
-		val ready = Output(Bool())
+		val axis_valid = Input(Bool())
+		val axis_data = Input(UInt(in_width.W))
+		val axis_ready = Output(Bool())
 	})
-	val sLoadTestId :: sLoadTest :: sRunTest :: Nil = Enum(3)
-	val state = RegInit(sLoadTestId)
+
+	val axis_fire = io.axis_valid && io.axis_ready
 
 	// receive counters
-	val data_in_cycle_count = RegInit(0.U(log2Ceil(data_per_cycle).W))
-	val load_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
-	val last_data_in_cycle = data_in_cycle_count === (data_per_cycle - 1).U
-	data_in_cycle_count := Mux(state =/= sLoadTest, 0.U,
-		Mux(!io.valid, data_in_cycle_count,
-			Mux(last_data_in_cycle, 0.U, data_in_cycle_count + 1.U)))
-	load_cycle_count := Mux(state =/= sLoadTest, 0.U,
-		Mux(io.valid && last_data_in_cycle, load_cycle_count + 1.U, load_cycle_count))
-	val last_data_in_test = load_cycle_count === io.test_cycles - 1.U && last_data_in_cycle
+	val data_count = Module(new WrappingCounter(log2Ceil(data_per_cycle)))
+	data_count.io.max := (data_per_cycle -1).U
+	data_count.io.enable := axis_fire
+	val cycle_count = Module(new WrappingCounter(log2Ceil(max_cycles)))
+	cycle_count.io.max := io.control.run_cycles - 1.U
+	cycle_count.io.enable := data_count.io.enable && data_count.io.last
+	val last_data_last_cycle = data_count.io.last && cycle_count.io.last
 
-	// run counters
-	val run_cycle_count = RegInit(0.U(log2Ceil(max_cycles).W))
-	run_cycle_count := Mux(state =/= sRunTest, 0.U, run_cycle_count + 1.U)
-	val last_run_cycle = run_cycle_count === io.test_cycles - 1.U
-
+	// queue
 	val q = Module(new Queue(UInt(input_width.W), max_cycles))
 	assert(q.io.enq.ready || !q.io.enq.valid, "Never push when queue is full")
 	assert(q.io.deq.valid || !q.io.deq.ready, "Never pop when queue is empty")
-	io.input_signals := q.io.deq.bits
-	q.io.deq.ready := state === sRunTest
 
 	// receive test data
-	io.ready := (state === sLoadTestId || state === sLoadTest)
 	q.io.enq.bits := Cat((0 until data_per_cycle - 1).map{ case(cycle) => {
 		val reg = RegInit(0.U(in_width.W))
-		when(data_in_cycle_count === cycle.U) { reg := io.data }
+		when(axis_fire && data_count.io.value === cycle.U) { reg := io.axis_data }
 		reg
-	}} ++ Seq(io.data))
-	q.io.enq.valid := (state === sLoadTest) && io.valid && last_data_in_cycle
+	}} ++ Seq(io.axis_data))
+	q.io.enq.valid := axis_fire && data_count.io.last
 
-	// test id for coverage module
-	val test_id = RegInit(0.U(test_id_width.W))
-	when(state === sLoadTestId && io.valid) { test_id := io.data }
-	io.test_id := test_id
-	io.test_id_valid := true.B
-
-	// control
-	io.last_load := false.B
-	io.last_cycle := false.B
+	// dut driver interaction (wait state in case test execution takes longer)
+	val sReady :: sWaiting :: Nil = Enum(2)
+	val state = RegInit(sReady)
+	io.axis_ready := state === sReady
+	io.driver.start_next := last_data_last_cycle || state === sWaiting
+	io.driver.data <> q.io.deq
 	switch(state) {
-	is(sLoadTestId) {
-		when(io.valid) { state := sLoadTest }
+		is(sReady) { when(last_data_last_cycle && !io.driver.ready_next) { state := sWaiting } }
+		is(sWaiting) { when(io.driver.ready_next) { state := sReady } }
 	}
-	is(sLoadTest) {
-		when(io.valid && last_data_in_test) {
-			io.last_load := true.B
-			state := sRunTest
-		}
-	}
-	is(sRunTest) {
-		when(last_run_cycle) {
-			io.last_cycle := true.B
-			state := sLoadTestId
-			assert(q.io.count === 1.U && q.io.deq.valid && q.io.deq.ready,
-			       "Queue needs to be empty at the end of a test run!")
-		}
-	}
-	}
-
-
 }
 
+class DUTDriver(input_width: Int) extends Module {
+	val max_cycles = 64
+
+	val io = this.IO(new Bundle {
+		val control = new TestExecControl
+		// to DUT
+		val dut_inputs = Output(UInt(input_width.W))
+		val dut_reset = Output(Bool())
+		// test run control
+		val test_input = new DUTDriverInterface(input_width)
+		val coverage = Flipped(new CoverageControl)
+	})
+	val sReset :: sRunTest :: sCollectCoverage :: Nil = Enum(3)
+	val state = RegInit(sReset)
+
+	val cycle_count = Module(new WrappingCounter(log2Ceil(max_cycles)))
+	cycle_count.io.max := io.control.run_cycles - 1.U
+	cycle_count.io.enable := state === sRunTest
+
+	io.dut_inputs := io.test_input.data.bits
+	io.dut_reset := state === sReset
+	io.test_input.data.ready := state === sRunTest
+	io.test_input.ready_next := state === sReset
+	io.coverage.start_next := cycle_count.io.last
+
+	// control
+	switch(state) {
+	is(sReset) { when(io.test_input.start_next) { state := sRunTest } }
+	is(sRunTest) { when(cycle_count.io.last) { state := sCollectCoverage } }
+	is(sCollectCoverage) { when(io.coverage.done_next) { state := sReset } }
+	}
+
+}
 
 class Harness() extends Module {
 	val axis_width = 64
 	val axis_bit_count = div2Ceil(axis_width, 8)
+	val cov_conf = new CoverageConfig
+	val dut_conf = new DUTConfig(cov_conf)
 
 	val io = this.IO(new Bundle {
 		// TODO: split up into separate producer / consumer boundles
@@ -117,68 +142,77 @@ class Harness() extends Module {
 		val m_axis_tkeep = Output(UInt(axis_bit_count.W))
 		val m_axis_tlast = Output(Bool())
 	})
+	val m_axis_fire = io.m_axis_tready && io.m_axis_tvalid
 
 	// control states
-	val sIdle :: sLoadTest :: sRunTest :: sCollectCoverage :: Nil = Enum(4)
-	val state = RegInit(sIdle)
-	val test_cycles = RegInit(0.U(16.W))
-	val test_count = RegInit(0.U(16.W))
+	val sReceiveHeader :: sReceiveControl :: sRunTests :: sSendStatus :: Nil = Enum(4)
+	val state = RegInit(sReceiveHeader)
+
+	// state
+	val buffer_id = RegInit(0.U(32.W))
+	val control = RegInit(0.U(64.W))
+	val status = Wire(UInt(64.W))
+	status := 0.U // TODO: connect to interesting internal state
+	val control_src = Wire(Flipped(new TestExecControl))
+	control_src.run_cycles := control(63, 48)
+	control_src.test_count := control(47, 32)
 
 	// modules
+	val inp = Module(new InputsReceiver(dut_conf.input_bits))
+	val driver = Module(new DUTDriver(dut_conf.input_bits))
 	val reset_dut_and_cov = Wire(Bool())
-	reset_dut_and_cov := false.B
-	val cov_conf = new CoverageConfig
-	val dut_conf = new DUTConfig(cov_conf)
 	val (dut, cov) = withReset(this.reset.toBool || reset_dut_and_cov) {
 		(Module (new DUT(dut_conf) ), Module (new Coverage(cov_conf))) }
-	val inp = Module (new Inputs(dut_conf.input_bits))
 
-	// connect inputs
-	inp.io.data  := io.s_axis_tdata
-	inp.io.valid := Mux(state === sLoadTest, io.s_axis_tvalid, false.B)
-	inp.io.test_cycles := test_cycles
+	// connect axis inputs
+	inp.io.axis_data  := io.s_axis_tdata
+	inp.io.axis_valid := Mux(state === sRunTests, io.s_axis_tvalid, false.B)
 	io.s_axis_tready := MuxLookup(state, false.B, Array(
-		sIdle -> true.B, sLoadTest -> inp.io.ready))
-	dut.io.inputs := inp.io.input_signals
+	sReceiveHeader -> true.B, sReceiveControl -> true.B, sRunTests -> inp.io.axis_ready))
 
-	// connect coverage
-	cov.io.coverage_signals := dut.io.coverage
-	cov.io.test_id := inp.io.test_id
-	cov.io.test_id_valid := inp.io.test_id_valid
-	cov.io.do_collect := (state === sCollectCoverage)
-	io.m_axis_tvalid := cov.io.valid
-	io.m_axis_tdata  := cov.io.data
+	// connect submodule chain
+	inp.io.control <> control_src
+	inp.io.driver <> driver.io.test_input
+	driver.io.control <> control_src
+	driver.io.dut_inputs <> dut.io.inputs
+	driver.io.dut_reset <> reset_dut_and_cov
+	driver.io.coverage <> cov.io.control
+	dut.io.coverage <> cov.io.coverage_signals
+
+	// connect axis output
+	cov.io.axis_ready := io.m_axis_tready
+	io.m_axis_tdata  := Mux(state === sSendStatus, status, cov.io.axis_data)
+	io.m_axis_tvalid := Mux(state === sSendStatus, true.B, cov.io.axis_valid)
 	io.m_axis_tkeep  := ((1 << axis_bit_count) - 1).U
-	io.m_axis_tlast  := cov.io.last && test_count === 1.U
-	cov.io.ready     := io.m_axis_tready
+	io.m_axis_tlast  := state === sSendStatus
+
+	// count the tests that were executed from the active buffer
+	val test_ii = Module(new WrappingCounter(16))
+	test_ii.io.enable := cov.io.control.done_next
+	test_ii.io.max := control_src.test_count - 1.U
 
 	// control
 	switch (state) {
-	is (sIdle) {
+	is (sReceiveHeader) {
 		// wait for start of test buffer
 		val magic_header = io.s_axis_tdata(63,32)
-		val new_test_count = io.s_axis_tdata(31,16)
-		val new_test_cycles = io.s_axis_tdata(15,0)
-		val valid_header = (magic_header === "h19931993".U) && (new_test_count > 0.U)
+		val valid_header = magic_header === "h19931993".U
 		when (io.s_axis_tvalid && valid_header) {
-			test_count := new_test_count
-			test_cycles := new_test_cycles
-			state := sLoadTest
+			buffer_id := io.s_axis_tdata(31,0)
+			state := sReceiveControl
 		}
 	}
-	is(sLoadTest) {
-		reset_dut_and_cov := true.B
-		when(inp.io.last_load) { state := sRunTest }
-	}
-	is(sRunTest) {
-		when(inp.io.last_cycle) { state := sCollectCoverage }
-	}
-	is(sCollectCoverage) {
-		when(cov.io.last_send) {
-			test_count := test_count - 1.U
-			val tests_left = (test_count > 1.U)
-			state := Mux(tests_left, sLoadTest, sIdle)
+	is (sReceiveControl) {
+		when (io.s_axis_tvalid) {
+			control := io.s_axis_tdata
+			state := sRunTests
 		}
+	}
+	is(sRunTests) {
+		when(test_ii.io.last && cov.io.control.done_next) { state := sSendStatus }
+	}
+	is(sSendStatus) {
+		when(m_axis_fire) { state := sReceiveHeader }
 	}
 	}
 }

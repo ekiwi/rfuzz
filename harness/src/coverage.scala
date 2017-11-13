@@ -14,6 +14,11 @@ class SaturatingCounter(width : Int) extends Module {
 	count := Mux(!io.enable || count === max, count, count + 1.U)
 }
 
+class CoverageControl extends Bundle {
+	val start_next = Input(Bool())
+	val done_next = Output(Bool())
+}
+
 
 // 1) reset with DUT
 // 2) assert `do_collect` in first cycle after test, keep asserted!
@@ -24,25 +29,23 @@ class Coverage(conf: CoverageConfig) extends Module {
 	// all counter output values concatenated
 	val coverage_width = conf.counters.map{ case(n,w) => w }.reduce(_+_)
 	// output(0) is the test id!
-	val output_count = div2Ceil(coverage_width, out_width) + 1
+	val output_count = div2Ceil(coverage_width, out_width)
 	val test_id_width = 64
 
 	val io = this.IO(new Bundle {
+		val control = new CoverageControl
 		// from DUT
 		val coverage_signals = Input(UInt(conf.counters.size.W))
-		// from input module
-		val test_id = Input(UInt(test_id_width.W))
-		val test_id_valid = Input(Bool())
-		// internal control
-		val do_collect = Input(Bool())
-		val last_send = Output(Bool())
 		// simple axi stream producer
-		val ready = Input(Bool())
-		val valid = Output(Bool())
-		val data  = Output(UInt(out_width.W))
-		val last  = Output(Bool())
+		val axis_ready = Input(Bool())
+		val axis_valid = Output(Bool())
+		val axis_data  = Output(UInt(out_width.W))
 	})
-	val collecting = io.do_collect
+	val axis_fire = io.axis_ready && io.axis_valid
+
+	val collecting = RegInit(false.B)
+	when(io.control.start_next) { collecting := true.B }
+	when(io.control.done_next) { collecting := false.B }
 
 	val connect_coverage = !collecting
 	val coverage = {
@@ -55,20 +58,16 @@ class Coverage(conf: CoverageConfig) extends Module {
 		}}.toSeq)
 	}
 
-	val test_id = RegInit(0.U(test_id_width.W))
-	when(io.test_id_valid) { test_id := io.test_id }
+	val output_ii = Module(new WrappingCounter(log2Ceil(output_count)))
+	output_ii.io.max := (output_count - 1).U
+	output_ii.io.enable := axis_fire
+	io.control.done_next := axis_fire && output_ii.io.last
 
-	val output_ii = RegInit(0.U(log2Ceil(output_count).W))
-	val output_next = io.valid && io.ready
-	output_ii := Mux(output_next, output_ii + 1.U, output_ii)
-	io.last := output_ii === (output_count - 1).U
-	io.last_send := io.last && output_next
-	val done = RegInit(false.B)
-	when(io.last_send) { done := true.B }
-	io.valid := collecting && !done
-	io.data := MuxLookup(output_ii, 0.U, Seq( 0.U -> test_id ) ++ {
+	// axis
+	io.axis_valid := collecting
+	io.axis_data := MuxLookup(output_ii.io.value, 0.U, {
 		var left = coverage_width - 1
-		(1 until output_count).map{ case(ii) => ii.U -> {
+		(0 until output_count).map{ case(ii) => ii.U -> {
 			val right = left - out_width + 1
 			val out = if(right >= 0) { coverage(left, right) } else {
 				Cat(coverage(left, 0), 0.U((-right).W)) }
