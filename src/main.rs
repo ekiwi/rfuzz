@@ -23,7 +23,7 @@ fn main() {
 	let mut server = find_one_fuzz_server(FPGA_DIR, config).expect("failed to find a fuzz server");
 
 	// queue
-	let starting_seed = vec![0u8; 16 * 3];
+	let starting_seed = vec![0u8; TEST_SIZE.input * 3];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
@@ -37,7 +37,7 @@ fn main() {
 	println!("fuzzing a maximum of {} queue entries", max_entries);
 
 	for entry_count in 0..max_entries {
-		let mut active_test = q.get_next_test();
+		let active_test = q.get_next_test();
 		println!("{}. queue entry:", entry_count + 1);
 		q.debug_print_entry(active_test.id);
 		for mutation_stage in mutation::MUTATIONS.iter() {
