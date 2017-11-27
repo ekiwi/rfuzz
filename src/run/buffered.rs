@@ -400,6 +400,7 @@ pub fn list_potential_fuzz_servers(server_dir: &str) {
 	}
 }
 
+#[cfg(not(target_arch = "arm"))]
 pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<SharedMemoryChannel>> {
 	let paths = std::fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
 	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
@@ -409,6 +410,12 @@ pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) ->
 			}
 		}
 	}
+	None
+}
+
+#[cfg(target_arch = "arm")]
+pub fn find_one_fuzz_server(_: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<SharedMemoryChannel>> {
+	// TODO
 	None
 }
 

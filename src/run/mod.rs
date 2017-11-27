@@ -1,6 +1,9 @@
 pub mod buffered;
 mod history;
-pub mod shmem;
+#[cfg(not(target_arch = "arm"))]
+mod shmem;
+#[cfg(target_arch = "arm")]
+mod pynq;
 
 use super::mutation::{MutationInfo};
 
