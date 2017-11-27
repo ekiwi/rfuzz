@@ -1,7 +1,7 @@
 extern crate libc;
 
 use std;
-use std::io::{Read, Write, Seek};
+use std::io::{Write, Seek};
 use std::mem;
 use super::shmem::{ SharedMemoryChannel };
 use super::{ TestId, BasicFeedback, FuzzServer, TestSize };
@@ -11,14 +11,14 @@ use super::history::TestHistory;
 
 pub trait ReadInts : std::io::Read {
 	fn read_u16(&mut self) -> std::io::Result<u16> {
-		let mut data: [u8; 2];
+		let mut data: [u8; 2] = [0; 2];
 		self.read_exact(&mut data)?;
 		let val = (data[1] as u16) <<  8 | (data[0] as u16) <<  0;
 		Ok(val)
 	}
 
 	fn read_u32(&mut self) -> std::io::Result<u32> {
-		let mut data: [u8; 4];
+		let mut data: [u8; 4] = [0; 4];
 		self.read_exact(&mut data)?;
 		let val = (data[3] as u32) << 24 | (data[2] as u32) << 16 |
 		          (data[1] as u32) <<  8 | (data[0] as u32) <<  0;
@@ -26,7 +26,7 @@ pub trait ReadInts : std::io::Read {
 	}
 
 	fn read_u64(&mut self) -> std::io::Result<u64> {
-		let mut data: [u8; 8];
+		let mut data: [u8; 8] = [0; 8];
 		self.read_exact(&mut data)?;
 		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
 		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
@@ -153,26 +153,26 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	}
 	fn check_headers(&mut self) {
 		// inputs
-		self.inputs.seek(std::io::SeekFrom::Start(0));
+		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
 		assert_eq!(self.inputs.read_u32().unwrap(), MAGIC_HEADER);
 		assert_eq!(self.inputs.read_u32().unwrap(), self.id);
 		assert_eq!(self.inputs.read_u16().unwrap(), self.test_count);
 		assert_eq!(self.inputs.read_u16().unwrap(), self.cycle_count);
 		assert_eq!(self.inputs.read_u32().unwrap(), 0);
 		// coverage
-		self.coverage.seek(std::io::SeekFrom::Start(0));
+		self.coverage.seek(std::io::SeekFrom::Start(0)).unwrap();
 		let magic = self.coverage.read_u32().unwrap();
 		assert_eq!(magic, MAGIC_COV_HEADER);
 		let buffer_id = self.coverage.read_u32().unwrap();
 		assert_eq!(buffer_id, self.id);
-		self.coverage.seek(std::io::SeekFrom::End(-8));
+		self.coverage.seek(std::io::SeekFrom::End(-8)).unwrap();
 		let _status = self.coverage.read_u64().unwrap();
 		// TODO: use status
 	}
 	fn get_coverage(&mut self, slot: BufferSlot) -> Option<&[u8]> {
 		if self.contains(slot) {
 			let pos = slot.offset as usize * self.size.coverage as usize + COVERAGE_HEADER_SIZE;
-			self.coverage.seek(std::io::SeekFrom::Start(pos as u64));
+			self.coverage.seek(std::io::SeekFrom::Start(pos as u64)).unwrap();
 			Some(self.coverage.get_ref(self.size.coverage).unwrap())
 		} else { None }
 	}
@@ -181,14 +181,14 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		assert!(self.max_test_count >= slot.offset);
 		let test_size = self.size.input as usize * self.cycle_count as usize;
 		let pos = slot.offset as usize * test_size + TEST_HEADER_SIZE;
-		self.inputs.seek(std::io::SeekFrom::Start(pos as u64));
+		self.inputs.seek(std::io::SeekFrom::Start(pos as u64)).unwrap();
 		self.inputs.get_ref(self.size.coverage).unwrap()
 	}
 	fn contains(&self, slot: BufferSlot) -> bool {
 		assert_eq!(self.id, slot.id, "contains called with slot for different buffer!");
 		self.id == slot.id && slot.offset <= self.max_test_count
 	}
-	fn first(&self) -> BufferSlot { BufferSlot { id: self.id, offset: 0 } }
+	fn first(&self) -> BufferSlot { BufferSlot::first(self.id) }
 }
 
 #[derive(Clone)]
@@ -212,7 +212,7 @@ pub struct BufferedFuzzServer <ChannelT : CommunicationChannel> {
 }
 
 impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
-	pub fn connect(com: ChannelT, conf: BufferedFuzzServerConfig) -> Self {
+	pub fn connect(mut com: ChannelT, conf: BufferedFuzzServerConfig) -> Self {
 		assert!(conf.buffer_count >= 1);
 		let history = TestHistory::new();
 		let active_in = BufferedFuzzServer::make_buffer(&mut com, &conf);
@@ -253,7 +253,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	}
 
 	fn try_send_buffers(&mut self) {
-		if let Some(buffers) = self.send.pop_front() {
+		if let Some(mut buffers) = self.send.pop_front() {
 			if buffers.try_run(&mut self.com).is_err() {
 				self.send.push_front(buffers);
 			}
@@ -265,7 +265,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	fn handle_received_buffers(&mut self, token: ChannelT::TokenT) {
 		let pos = self.used.iter().position(|ref bufs| bufs.is(token)
 			).expect("failed to find buffer ids received from fuzz server");
-		let buf = self.used.swap_remove(pos);
+		let mut buf = self.used.swap_remove(pos);
 		buf.check_headers();
 		if self.active_out.is_empty() {
 			self.next_coverage_slot = buf.first();

@@ -114,7 +114,7 @@ pub struct SharedMemoryChannel {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-struct SharedMemoryToken(u32, u32);
+pub struct SharedMemoryToken(u32, u32);
 
 impl CommunicationChannel for SharedMemoryChannel {
 	type BufferT = SharedMemory;

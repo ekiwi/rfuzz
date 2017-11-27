@@ -5,7 +5,7 @@ use super::buffered::BufferSlot;
 use super::super::mutation::{ MutationInfo, MutationAlgorithmId, MutationId };
 
 trait IntervalProperty {
-	type ChapterT : PartialEq + Debug;
+	type ChapterT : PartialEq + Debug + Copy + Clone;
 	type IndexT : Default + PartialEq + Debug;
 	fn is_direct_succession(old: &Self::IndexT, next: &Self::IndexT) -> bool;
 	fn from_interval(chapter: Self::ChapterT, start: u64, pos: u64) -> Self;
@@ -66,11 +66,10 @@ impl <T: IntervalProperty> History<T> {
 	}
 	fn get_info(&mut self, id: TestId, last_id: TestId) -> T {
 		while self.log.len() > 0 {
-			let oldest = self.log.front().unwrap().clone();
-			if let Some(info) = oldest.get_info(id) {
+			if let Some(info) = self.log.front().unwrap().get_info(id) {
 				return info;
 			} else {
-				assert!(oldest.is_older_than(id), "we lost information, probably out of order test!");
+				assert!(self.log.front().unwrap().is_older_than(id), "we lost information, probably out of order test!");
 				self.log.pop_front();
 			}
 		}
@@ -79,8 +78,7 @@ impl <T: IntervalProperty> History<T> {
 	}
 	fn get_test_id(&mut self, prop: &T, last_id: TestId) -> TestId {
 		while self.log.len() > 0 {
-			let oldest = self.log.front().unwrap().clone();
-			if let Some(id) = oldest.get_id(prop) {
+			if let Some(id) = self.log.front().unwrap().get_id(prop) {
 				return id
 			} else {
 				self.log.pop_front();
