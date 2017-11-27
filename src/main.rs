@@ -30,7 +30,7 @@ fn main() {
 	let mut analysis = analysis::Analysis::new(TEST_SIZE.coverage);
 
 	// statistics
-	let mut runs : usize = 0;
+	let mut runs : u64 = 0;
 	let start = time::PreciseTime::now();
 
 	let max_entries = 10;
