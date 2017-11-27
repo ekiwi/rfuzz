@@ -116,9 +116,9 @@ impl Drop for Xlnk {
 
 pub struct DmaBuffer { id : u32, physical_addr : u32, data: *mut u8, size: usize, offset: usize }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 /// esentially all identifying data of a DmaBuffer without the data so that it can be copied
-pub struct DmaBufferId { id: u32, physical_addr: u32, size: u32 }
+pub struct DmaBufferId { id: u32, physical_addr: u32 }
 
 impl DmaBuffer {
 	pub fn allocate(size : usize) -> Self {
@@ -132,10 +132,7 @@ impl DmaBuffer {
 		self.size - self.offset
 	}
 	pub fn id(&self) -> DmaBufferId {
-		DmaBufferId { id: self.id, physical_addr: self.physical_addr, size: self.size as u32 }
-	}
-	pub fn is(&self, id: DmaBufferId) -> bool {
-		id.id == self.id && id.physical_addr == self.physical_addr && id.size == self.size as u32
+		DmaBufferId { id: self.id, physical_addr: self.physical_addr }
 	}
 }
 impl Write for DmaBuffer {
@@ -225,10 +222,10 @@ impl Dma {
 	}
 	fn is_tx_idle(&mut self) -> bool { self.mem.read(   1) & 2 == 2 }
 	fn is_rx_idle(&mut self) -> bool { self.mem.read(12+1) & 2 == 2 }
-	pub fn start_send(&mut self, buf : DmaBufferId) {
+	pub fn start_send(&mut self, buf : DmaBufferId, bytes: u32) {
 		assert!(self.tx_buffer.is_none(), "Cannot send when transmission is in progress!");
 		self.mem.write( 6, buf.physical_addr);
-		self.mem.write(10, buf.size as u32);
+		self.mem.write(10, bytes);
 		self.tx_buffer = Some(buf);
 	}
 	pub fn is_send_done(&mut self) -> bool { self.is_tx_idle() }
@@ -239,10 +236,10 @@ impl Dma {
 		std::mem::swap(&mut buf, &mut self.tx_buffer);
 		buf.unwrap()
 	}
-	pub fn start_receive(&mut self, buf : DmaBufferId) {
+	pub fn start_receive(&mut self, buf : DmaBufferId, bytes: u32) {
 		assert!(self.rx_buffer.is_none(), "Cannot receive when transmission is in progress!");
 		self.mem.write(12+ 6, buf.physical_addr);
-		self.mem.write(12+10, buf.size as u32);
+		self.mem.write(12+10, bytes);
 		self.rx_buffer = Some(buf);
 	}
 	pub fn is_receive_done(&mut self) -> bool { self.is_rx_idle() }

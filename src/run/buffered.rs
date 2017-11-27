@@ -73,9 +73,7 @@ pub trait CommunicationChannel {
 	type TokenT: Clone + Copy + PartialEq;
 	fn get_token(tx: &Self::BufferT, rx: &Self::BufferT) -> Self::TokenT;
 	fn alloc(&mut self, size: usize) -> Self::BufferT;
-	fn try_send(&mut self, token: Self::TokenT) -> Result<(), ()>;
-	/// blocking send
-	fn send(&mut self, token: Self::TokenT);
+	fn try_send(&mut self, token: Self::TokenT, tx_bytes: usize, rx_bytes: usize) -> Result<(), ()>;
 	fn try_receive(&mut self) -> Option<Self::TokenT>;
 	/// blocking receive, will panic if nothing was sent
 	fn receive(&mut self) -> Self::TokenT;
@@ -161,7 +159,11 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		self.inputs.write_u16(self.test_count).unwrap();
 	}
 	fn try_run(&mut self, channel: &mut ChannelT) -> Result<(), ()> {
-		channel.try_send(self.token)
+		let test_count = self.test_count as usize;
+		let test_size = self.size.input * self.cycle_count as usize;
+		let tx_bytes = test_count * test_size + TEST_HEADER_SIZE;
+		let rx_bytes = test_count * self.size.coverage + COVERAGE_BUFFER_METADATA_SIZE;
+		channel.try_send(self.token, tx_bytes, rx_bytes)
 	}
 	fn is(&self, token: ChannelT::TokenT) -> bool{
 		self.token == token
