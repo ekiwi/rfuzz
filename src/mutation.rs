@@ -16,6 +16,7 @@ impl MutationId {
 		let delta = (stop - start) as u32;
 		MutationId(delta)
 	}
+	pub fn get_offset(&self) -> u64 { self.0 as u64 }
 }
 
 #[derive(Debug, Clone)]

@@ -1,70 +1,21 @@
 extern crate libc;
 
 use std;
+use std::io::{Read, Write, Seek, SeekFrom};
+use std::fs;
+use std::path;
+use std::os::unix::io::AsRawFd;
+use super::buffered::{ CommunicationBuffer, CommunicationChannel, WriteInts, ReadInts };
 
-pub trait SharedMemory {
-	fn create(size: usize) -> Self;
-	fn id(&self) -> i32;
-	fn reset(&mut self);
-}
-
-/// similar to the `std::Read` trait, but with some additional functions
-pub trait Readable {
-	fn bytes_left_to_read(&self) -> usize;
-	fn reset_read_offset(&mut self);
-	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()>;
-
-	fn read_skip_bytes(&mut self, len: usize) -> Result<(),()> {
-		self.read_bytes(len)?;
-		Ok(())
-	}
-
-	fn read_u32(&mut self) -> Result<u32, ()> {
-		let data = self.read_bytes(4)?;
-		let val = (data[3] as u32) << 24 | (data[2] as u32) << 16 |
-		          (data[1] as u32) <<  8 | (data[0] as u32) <<  0;
-		Ok(val)
-	}
-
-	fn read_u64(&mut self) -> Result<u64, ()> {
-		let data = self.read_bytes(8)?;
-		let val = (data[7] as u64) << 56 | (data[6] as u64) << 48 |
-		          (data[5] as u64) << 40 | (data[4] as u64) << 32 |
-		          (data[3] as u64) << 24 | (data[2] as u64) << 16 |
-		          (data[1] as u64) <<  8 | (data[0] as u64) <<  0;
-		Ok(val)
-	}
-}
-
-/// similar to the `std::Write` trait, but with some additional functions
-pub trait Writeable {
-	fn bytes_left_to_write(&self) -> usize;
-	fn reset_write_offset(&mut self);
-	fn write_all(&mut self, buf: &[u8]) -> Result<(), ()>;
-
-	fn write_u32(&mut self, val: u32) -> Result<(), ()> {
-		let data = [(val >>  0) as u8, (val >>  8) as u8,
-		            (val >> 16) as u8, (val >> 24) as u8];
-		self.write_all(&data)
-	}
-
-	fn write_u64(&mut self, val: u64) -> Result<(), ()> {
-		let data = [(val >>  0) as u8, (val >>  8) as u8,
-		            (val >> 16) as u8, (val >> 24) as u8,
-		            (val >> 32) as u8, (val >> 40) as u8,
-		            (val >> 48) as u8, (val >> 56) as u8];
-		self.write_all(&data)
-	}
-}
-
-struct SharedMemoryPosix {
+pub struct SharedMemory {
 	data: *mut u8,
 	size: usize,
 	id: i32,
+	offset: usize,
 }
 
-impl SharedMemory for SharedMemoryPosix {
-	fn create(size: usize) -> SharedMemoryPosix {
+impl SharedMemory {
+	pub fn create(size: usize) -> SharedMemory {
 		let shm_id = unsafe {
 			libc::shmget(libc::IPC_PRIVATE, size,
 						 libc::IPC_CREAT | libc::IPC_EXCL | 0o600)
@@ -76,105 +27,185 @@ impl SharedMemory for SharedMemoryPosix {
 		}
 		// println!("SharedMemory.create: id={}, data={:?}", shm_id, data);
 		let ptr = data as *mut u8;
-		SharedMemoryPosix { id: shm_id, size: size, data: ptr }
+		SharedMemory { id: shm_id, size: size, data: ptr, offset: 0 }
 	}
 
 	fn reset(&mut self) {
 		unsafe { libc::memset(self.data as *mut libc::c_void, 0, self.size) };
 	}
 
-	fn id(&self) -> i32 { self.id }
+	pub fn id(&self) -> i32 { self.id }
+
+	fn bytes_left(&self) -> usize {
+		self.size - self.offset
+	}
 }
 
-impl Drop for SharedMemoryPosix {
+impl Drop for SharedMemory {
 	fn drop(&mut self) {
 		// println!("SharedMemory.drop: {}", self.id);
 		unsafe { libc::shmctl(self.id, libc::IPC_RMID, std::ptr::null_mut()) };
 	}
 }
 
-pub struct WriteableSharedMemory {
-	mem: SharedMemoryPosix,
-	offset: usize,
+
+impl Write for SharedMemory {
+	fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+		let len = std::cmp::min(buf.len(), self.bytes_left());
+		let dst = unsafe{ self.data.offset(self.offset as isize) } as *mut libc::c_void;
+		let src = buf.as_ptr() as *const libc::c_void;
+		unsafe { libc::memcpy(dst, src, len) };
+		self.offset += len;
+		Ok(len)
+	}
+	fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
 }
 
-impl SharedMemory for WriteableSharedMemory {
-	fn create(size: usize) -> WriteableSharedMemory {
-		let mem = SharedMemoryPosix::create(size);
-		let offset = 0;
-		WriteableSharedMemory { mem, offset }
+impl Read for SharedMemory {
+	fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+		let len = std::cmp::min(buf.len(), self.bytes_left());
+		let src = unsafe{ self.data.offset(self.offset as isize) } as *const libc::c_void;
+		let dst = buf.as_ptr() as *mut libc::c_void;
+		unsafe { libc::memcpy(dst, src, len) };
+		self.offset += len;
+		Ok(len)
 	}
-	fn reset(&mut self) { self.mem.reset() }
-	fn id(&self) -> i32 { self.mem.id() }
 }
 
-impl Writeable for WriteableSharedMemory {
-	fn bytes_left_to_write(&self) -> usize {
-		self.mem.size - self.offset
-	}
-
-	fn write_all(&mut self, buf: &[u8]) -> Result<(), ()> {
-		if buf.len() > self.bytes_left_to_write() { Err(()) }
-		else {
-			let len = buf.len();
-			let dst = unsafe{ self.mem.data.offset(self.offset as isize) } as *mut libc::c_void;
-			let src = buf.as_ptr() as *const libc::c_void;
-			unsafe { libc::memcpy(dst, src, len) };
-			self.offset += len;
-			Ok(())
+impl Seek for SharedMemory {
+	fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+		let new_offset = match pos {
+			SeekFrom::Start(o) => o as i64,
+			SeekFrom::End(o) => self.size as i64 + o,
+			SeekFrom::Current(o) => self.offset as i64 + o,
+		};
+		if new_offset < 0 || new_offset >= self.size as i64 {
+			Err(std::io::Error::new(std::io::ErrorKind::Other, "out of bounds"))
+		} else {
+			self.offset = new_offset as usize;
+			Ok(new_offset as u64)
 		}
 	}
-
-	fn reset_write_offset(&mut self) { self.offset = 0 }
 }
 
-impl Readable for WriteableSharedMemory {
-	fn bytes_left_to_read(&self) -> usize {
-		self.mem.size - self.offset
-	}
+impl ReadInts for SharedMemory {}
+impl WriteInts for SharedMemory {}
 
-	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()> {
-		if len > self.bytes_left_to_read() { Err(()) }
-		else {
+impl CommunicationBuffer for SharedMemory {
+	fn len(&self) -> usize { self.size }
+	fn get_ref<'a, 'b: 'a>(&'b mut self, len: usize) -> std::io::Result<(&'a [u8])> {
+		if len > self.bytes_left() {
+			Err(std::io::Error::new(std::io::ErrorKind::Other, "not enough data"))
+		} else {
 			let bytes = unsafe { std::slice::from_raw_parts_mut(
-			                     self.mem.data.offset(self.offset as isize), len) };
+			self.data.offset(self.offset as isize), len) };
 			self.offset += len;
 			Ok(bytes)
 		}
 	}
-
-	fn reset_read_offset(&mut self) { self.offset = 0 }
 }
 
-pub struct ReadableSharedMemory {
-	mem: SharedMemoryPosix,
-	offset: usize,
+
+/// uses two Posix FIFOs to communicate buffer ids
+pub struct SharedMemoryChannel {
+	tx: fs::File,
+	rx: fs::File,
+	channel_size: usize,
 }
 
-impl SharedMemory for ReadableSharedMemory {
-	fn create(size: usize) -> ReadableSharedMemory {
-		let mem = SharedMemoryPosix::create(size);
-		let offset = 0;
-		ReadableSharedMemory { mem, offset }
+#[derive(Clone, Copy, PartialEq)]
+struct SharedMemoryToken(u32, u32);
+
+impl CommunicationChannel for SharedMemoryChannel {
+	type BufferT = SharedMemory;
+	type TokenT = SharedMemoryToken;
+	fn get_token(tx: &Self::BufferT, rx: &Self::BufferT) -> Self::TokenT {
+		SharedMemoryToken(tx.id() as u32, rx.id() as u32)
 	}
-	fn reset(&mut self) { self.mem.reset() }
-	fn id(&self) -> i32 { self.mem.id() }
+	fn alloc(&mut self, size: usize) -> Self::BufferT {
+		SharedMemory::create(size)
+	}
+	fn try_send(&mut self, token: Self::TokenT) -> Result<(), ()> {
+		self.send(token);
+		Ok(())
+	}
+	/// blocking send
+	fn send(&mut self, token: Self::TokenT) {
+		self.send_ids(token.0, token.1);
+		self.channel_size += 1;
+	}
+	fn try_receive(&mut self) -> Option<Self::TokenT> {
+		if let Some((id0, id1)) = self.try_recv_ids() {
+			Some(SharedMemoryToken(id0, id1))
+		} else { None }
+	}
+	/// blocking receive, will panic if nothing was sent
+	fn receive(&mut self) -> Self::TokenT {
+		assert!(self.channel_size > 0, "empty channel!");
+		let (id0, id1) = self.recv_ids();
+		SharedMemoryToken(id0, id1)
+	}
 }
 
-impl Readable for ReadableSharedMemory {
-	fn bytes_left_to_read(&self) -> usize {
-		self.mem.size - self.offset
+impl SharedMemoryChannel {
+	pub fn connect(dir: &path::Path) -> Option<Self> {
+		// open pipes in the same order as the fpga mockup interface server does
+		// (see hardware-afl:src/fpga_queue.cpp
+		let tx_path = dir.join("tx.fifo");
+		let tx = fs::File::open(&tx_path).expect("failed to open tx fifo!");
+		// the receive pipe of the fuzz server needs to be opened write only
+		// in order to fullfill the fifo interface
+		let rx_path = dir.join("rx.fifo");
+		let rx = fs::OpenOptions::new().write(true).open(&rx_path).expect("failed to open rx fifo!");
+		let channel_size = 0;
+		Some(SharedMemoryChannel { tx, rx, channel_size })
 	}
 
-	fn read_bytes<'a, 'b: 'a>(&'b mut self, len: usize) -> Result<(&'a [u8]), ()> {
-		if len > self.bytes_left_to_read() { Err(()) }
-		else {
-			let bytes = unsafe { std::slice::from_raw_parts_mut(
-			                     self.mem.data.offset(self.offset as isize), len) };
-			self.offset += len;
-			Ok(bytes)
-		}
+	fn u32_to_bytes(ii: u32) -> [u8; 4] {
+		[(ii >>  0) as u8, (ii >>  8) as u8,
+		 (ii >> 16) as u8, (ii >> 24) as u8]
 	}
 
-	fn reset_read_offset(&mut self) { self.offset = 0 }
+	fn u32_from_bytes(dd: &[u8]) -> u32 {
+		(((dd[0] as u32) <<  0) | ((dd[1] as u32) <<  8) |
+		 ((dd[2] as u32) << 16) | ((dd[3] as u32) << 24))
+	}
+
+	fn send_id(&mut self, id: u32) {
+		//println!("sending id: {}", id);
+		self.rx.write(&SharedMemoryChannel::u32_to_bytes(id)).unwrap();
+	}
+
+	fn send_ids(&mut self, id0: u32, id1: u32) {
+		self.send_id(id0); self.send_id(id1);
+	}
+
+	fn has_data(file: &fs::File, min_size: usize) -> bool {
+		let fd = file.as_raw_fd();
+		// TODO: we are currently not enforcing the `min_size`.
+		//       How could that be implemented?
+		let ret = unsafe {
+			let mut poll_fd = libc::pollfd { fd, events: libc::POLLIN, revents: 0 };
+			libc::poll(&mut poll_fd as *mut libc::pollfd, 1, 0)
+		};
+		ret == 1
+	}
+
+	fn try_recv_ids(&mut self) -> Option<(u32, u32)> {
+		// WARN: this code has a potential race condition since the `has_data`
+		//       check and the `read` call are not atomic.
+		//       If someone else was to read from the FIFO after our `has_data`
+		//       call, the `read` call might block!
+		if SharedMemoryChannel::has_data(&self.tx, 8) {
+			Some(self.recv_ids())
+		} else { None }
+	}
+
+	fn recv_ids(&mut self) -> (u32, u32) {
+		let mut rb = [0;8];
+		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 8);
+		let id0 = SharedMemoryChannel::u32_from_bytes(&rb[..4]);
+		let id1 = SharedMemoryChannel::u32_from_bytes(&rb[4..]);
+		(id0, id1)
+	}
 }

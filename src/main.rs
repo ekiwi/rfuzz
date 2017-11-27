@@ -6,11 +6,11 @@ mod mutation;
 mod analysis;
 mod queue;
 
-use run::buffered::{ find_one_fuzz_server, TestSize, BufferedFuzzServerConfig };
-use run::FuzzServer;
+use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
+use run::{FuzzServer, TestSize};
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
-const TEST_SIZE : TestSize = TestSize { coverage: 12, input: 12 };
+const TEST_SIZE : TestSize = TestSize { coverage: 16, input: 16 };
 
 fn main() {
 	// test runner
@@ -23,7 +23,7 @@ fn main() {
 	let mut server = find_one_fuzz_server(FPGA_DIR, config).expect("failed to find a fuzz server");
 
 	// queue
-	let starting_seed = vec![0u8; 12 * 3];
+	let starting_seed = vec![0u8; 16 * 3];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
