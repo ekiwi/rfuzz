@@ -226,7 +226,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	pub fn connect(mut com: ChannelT, conf: BufferedFuzzServerConfig) -> Self {
 		assert!(conf.buffer_count >= 1);
 		let history = TestHistory::new();
-		let active_in = BufferedFuzzServer::make_buffer(&mut com, &conf);
+		let mut active_in = BufferedFuzzServer::make_buffer(&mut com, &conf);
 		let next_coverage_slot = BufferSlot { id: 0, offset: 0 };
 		let active_out = VecDeque::with_capacity(conf.buffer_count);
 		let used = Vec::new();
@@ -235,7 +235,9 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		for _ in 1..conf.buffer_count {
 			free.push(BufferedFuzzServer::make_buffer(&mut com, &conf));
 		}
-		let next_buffer_id = 0;
+		// first buffer gets id 0
+		active_in.reset(0);
+		let next_buffer_id = 1;
 		BufferedFuzzServer { conf, com, history, active_in, next_coverage_slot,
 		                     active_out, free, used, send, next_buffer_id }
 	}
