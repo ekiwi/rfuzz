@@ -1,4 +1,4 @@
-use super::buffered::{ CommunicationBuffer, CommunicationChannel };
+use super::buffered::CommunicationChannel;
 use super::pynq;
 
 pub struct DmaChannel {

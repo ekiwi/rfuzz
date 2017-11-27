@@ -252,48 +252,6 @@ impl Dma {
 	}
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum Color {
-	Black = 0,
-	Blue = 1,
-	Green = 2,
-	Cyan = 3,
-	Red = 4,
-	Magenta = 5,
-	Yellow = 6,
-	White = 7,
-}
-
-pub struct RgbLeds {
-	mem : MemoryMappedIO,
-}
-
-impl RgbLeds {
-	pub fn get() -> Self {
-		let mut mem = MemoryMappedIO::map(0x41210000, 8);
-		// configure lowest 6 gpios as output
-		mem.write(1, !((7 << 3) | 7));
-		RgbLeds { mem }
-	}
-	pub fn set(&mut self, ld4_color : Color, ld5_color : Color) {
-		self.mem.write(0, (ld4_color as u32 & 7) | ((ld5_color as u32 & 7) << 3));
-	}
-	pub fn set_ld4(&mut self, color : Color) {
-		let old = self.mem.read(0);
-		self.mem.write(0, (old & !7) | ((color as u32) & 7));
-	}
-	pub fn set_ld5(&mut self, color : Color) {
-		let old = self.mem.read(0);
-		self.mem.write(0, (old & !(7 << 3)) | (((color as u32) & 7) << 3));
-	}
-}
-impl Drop for RgbLeds {
-	fn drop(&mut self) {
-		// reset to all inputs
-		self.mem.write(1, !0u32);
-	}
-}
-
 struct MemoryMappedIO {
 	mem : *mut u32,
 	words : usize,

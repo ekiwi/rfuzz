@@ -257,7 +257,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	/// list is empty
 	fn get_new_buffer(&mut self) -> TestBuffer<ChannelT> {
 		let mut buf =
-			if let Some(mut buf) = self.free.pop() { buf }
+			if let Some(buf) = self.free.pop() { buf }
 			else { BufferedFuzzServer::make_buffer(&mut self.com, &self.conf) };
 		buf.reset(self.next_buffer_id);
 		self.next_buffer_id += 1;
@@ -394,16 +394,6 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 		// TODO: deal with blocking send
 		self.send_active_buffers();
 		while self.used.len() > 0 { self.receive_buffers(); }
-	}
-}
-
-pub fn list_potential_fuzz_servers(server_dir: &str) {
-	let paths = std::fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
-	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
-		if entry.is_dir() {
-			let name = entry.file_name().unwrap().to_os_string().into_string().unwrap();
-			println!("found fuzz server: {}", name);
-		}
 	}
 }
 
