@@ -196,7 +196,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	}
 	fn contains(&self, slot: BufferSlot) -> bool {
 		assert_eq!(self.id, slot.id, "contains called with slot for different buffer!");
-		self.id == slot.id && slot.offset <= self.max_test_count
+		self.id == slot.id && slot.offset < self.test_count
 	}
 	fn first(&self) -> BufferSlot { BufferSlot::first(self.id) }
 }
@@ -347,7 +347,8 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 				self.send_active_buffers();
 				self.active_in.add_test(input).unwrap()
 			};
-		self.history.new_test(info, &slot);
+		let _id = self.history.new_test(info, &slot);
+		// println!("{:?} -> {:?}", slot, _id);
 	}
 
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {

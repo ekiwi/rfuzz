@@ -27,7 +27,7 @@ impl <T: IntervalProperty> TestInterval<T> {
 	fn get_id(&self, prop: &T) -> Option<TestId> {
 		if self.chapter != prop.chapter() { None } else {
 			let id = TestId(self.start.0 + T::get_offset(&prop.index()));
-			assert!(self.contains(id));
+			assert!(self.contains(id), "chapter matches, but offset points outside of the interval!");
 			Some(id)
 		}
 	}
