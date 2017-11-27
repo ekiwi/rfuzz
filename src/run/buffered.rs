@@ -153,12 +153,12 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	}
 	fn write_header(&mut self) {
 		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
-		self.inputs.write_u32(MAGIC_HEADER).unwrap();
 		self.inputs.write_u32(self.id).unwrap();
-		self.inputs.write_u16(self.test_count).unwrap();
-		self.inputs.write_u16(self.cycle_count).unwrap();
+		self.inputs.write_u32(MAGIC_HEADER).unwrap();
 		let reserved = 0u32;
 		self.inputs.write_u32(reserved).unwrap();
+		self.inputs.write_u16(self.cycle_count).unwrap();
+		self.inputs.write_u16(self.test_count).unwrap();
 	}
 	fn try_run(&mut self, channel: &mut ChannelT) -> Result<(), ()> {
 		channel.try_send(self.token)
@@ -169,17 +169,17 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	fn check_headers(&mut self) {
 		// inputs
 		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
-		assert_eq!(self.inputs.read_u32().unwrap(), MAGIC_HEADER);
 		assert_eq!(self.inputs.read_u32().unwrap(), self.id);
-		assert_eq!(self.inputs.read_u16().unwrap(), self.test_count);
-		assert_eq!(self.inputs.read_u16().unwrap(), self.cycle_count);
+		assert_eq!(self.inputs.read_u32().unwrap(), MAGIC_HEADER);
 		assert_eq!(self.inputs.read_u32().unwrap(), 0);
+		assert_eq!(self.inputs.read_u16().unwrap(), self.cycle_count);
+		assert_eq!(self.inputs.read_u16().unwrap(), self.test_count);
 		// coverage
 		self.coverage.seek(std::io::SeekFrom::Start(0)).unwrap();
-		let magic = self.coverage.read_u32().unwrap();
-		assert_eq!(magic, MAGIC_COV_HEADER);
 		let buffer_id = self.coverage.read_u32().unwrap();
 		assert_eq!(buffer_id, self.id);
+		let magic = self.coverage.read_u32().unwrap();
+		assert_eq!(magic, MAGIC_COV_HEADER);
 		self.coverage.seek(std::io::SeekFrom::End(-8)).unwrap();
 		let _status = self.coverage.read_u64().unwrap();
 		// TODO: use status
