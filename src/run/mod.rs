@@ -4,6 +4,8 @@ mod history;
 mod shmem;
 #[cfg(target_arch = "arm")]
 mod pynq;
+#[cfg(target_arch = "arm")]
+mod pynqchannel;
 
 use super::mutation::{MutationInfo};
 

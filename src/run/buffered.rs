@@ -3,11 +3,16 @@ extern crate libc;
 use std;
 use std::io::{Write, Seek};
 use std::mem;
-use super::shmem::{ SharedMemoryChannel };
 use super::{ TestId, BasicFeedback, FuzzServer, TestSize };
 use super::super::mutation::{ MutationInfo };
 use std::collections::VecDeque;
 use super::history::TestHistory;
+#[cfg(not(target_arch = "arm"))]
+use super::shmem::SharedMemoryChannel;
+#[cfg(target_arch = "arm")]
+use super::pynqchannel::DmaChannel;
+#[cfg(target_arch = "arm")]
+use super::pynq;
 
 pub trait ReadInts : std::io::Read {
 	fn read_u16(&mut self) -> std::io::Result<u16> {
@@ -414,8 +419,10 @@ pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) ->
 }
 
 #[cfg(target_arch = "arm")]
-pub fn find_one_fuzz_server(_: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<SharedMemoryChannel>> {
-	// TODO
-	None
+pub fn find_one_fuzz_server(_: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<DmaChannel>> {
+	// TODO: move somewhere else
+	pynq::load_bitstream("system.bit", &[pynq::Clock{ div0: 5, div1: 2 }]).unwrap();
+	let channel = DmaChannel::connect();
+	Some(BufferedFuzzServer::connect(channel, conf))
 }
 
