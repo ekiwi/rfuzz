@@ -267,6 +267,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		if self.send.is_empty() && buffers.try_run(&mut self.com).is_ok() {
 			self.used.push(buffers);
 		} else {
+			self.try_send_buffers();
 			self.send.push_back(buffers);
 		}
 	}
@@ -275,6 +276,8 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		if let Some(mut buffers) = self.send.pop_front() {
 			if buffers.try_run(&mut self.com).is_err() {
 				self.send.push_front(buffers);
+			} else {
+				self.used.push(buffers);
 			}
 		}
 	}
@@ -316,8 +319,18 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 
 	/// policy that determines when we should block the program to wait
 	/// for the fuzz server to return our buffers
-	fn wait_for_buffers(&self) -> bool {
-		self.used.len() >= self.conf.buffer_count
+	fn should_wait_for_buffers(&self) -> bool {
+		(self.used.len() + self.send.len()) >= self.conf.buffer_count
+	}
+
+	fn wait_for_buffers(&mut self) {
+		if self.should_wait_for_buffers() {
+			// wait for all but one buffer (TODO: is there a better policy?)
+			while self.used.len() > 1 || self.send.len() > 1 {
+				self.try_send_buffers();
+				self.receive_buffers();
+			}
+		}
 	}
 
 	/// tries to pop coverage without receiving new buffers from the
@@ -345,6 +358,8 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 			} else {
 				// send full buffer to fuzz server and replace it with an empty one
 				self.send_active_buffers();
+				// potentially block if we are running out of buffers
+				self.wait_for_buffers();
 				self.active_in.add_test(input).unwrap()
 			};
 		let _id = self.history.new_test(info, &slot);
@@ -354,14 +369,8 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {
 		let feedback = self.pop_available_coverage();
 		if feedback.is_some() { feedback } else {
-			if self.wait_for_buffers() {
-				// wait for all but one buffer (TODO: is there a better policy?)
-				while self.used.len() > 1 {
-					// TODO: send!
-					self.receive_buffers();
-				}
-			}
-			while self.try_receive_buffers().is_ok() {}
+			// potentially block if we are running out of buffers
+			self.wait_for_buffers();
 			self.pop_available_coverage()
 		}
 	}
