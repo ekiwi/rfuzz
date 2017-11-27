@@ -126,16 +126,20 @@ impl CommunicationChannel for SharedMemoryChannel {
 		SharedMemory::create(size)
 	}
 	fn try_send(&mut self, token: Self::TokenT) -> Result<(), ()> {
-		self.send(token);
-		Ok(())
+		if self.full() { Err(()) } else {
+			self.send(token);
+			Ok(())
+		}
 	}
 	/// blocking send
 	fn send(&mut self, token: Self::TokenT) {
+		assert!(!self.full(), "full channel!");
 		self.send_ids(token.0, token.1);
 		self.channel_size += 1;
 	}
 	fn try_receive(&mut self) -> Option<Self::TokenT> {
 		if let Some((id0, id1)) = self.try_recv_ids() {
+			self.channel_size -= 1;
 			Some(SharedMemoryToken(id0, id1))
 		} else { None }
 	}
@@ -143,6 +147,7 @@ impl CommunicationChannel for SharedMemoryChannel {
 	fn receive(&mut self) -> Self::TokenT {
 		assert!(self.channel_size > 0, "empty channel!");
 		let (id0, id1) = self.recv_ids();
+		self.channel_size -= 1;
 		SharedMemoryToken(id0, id1)
 	}
 }
@@ -208,4 +213,7 @@ impl SharedMemoryChannel {
 		let id_tx = SharedMemoryChannel::u32_from_bytes(&rb[4..]);
 		(id_tx, id_rx)
 	}
+
+	fn full(&self) -> bool { false }
+	// fn full(&self) -> bool { self.channel_size > 0 }
 }
