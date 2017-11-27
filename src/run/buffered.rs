@@ -199,7 +199,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		let test_size = self.size.input as usize * self.cycle_count as usize;
 		let pos = slot.offset as usize * test_size + TEST_HEADER_SIZE;
 		self.inputs.seek(std::io::SeekFrom::Start(pos as u64)).unwrap();
-		self.inputs.get_ref(self.size.coverage).unwrap()
+		self.inputs.get_ref(test_size).unwrap()
 	}
 	fn contains(&self, slot: BufferSlot) -> bool {
 		assert_eq!(self.id, slot.id, "contains called with slot for different buffer!");
