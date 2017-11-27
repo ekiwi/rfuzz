@@ -59,7 +59,7 @@ void NamedPipe::push(uint32_t value0, uint32_t value1) {
 	tx.flush();
 }
 
-static constexpr uint32_t MagicTestInputHeader      = 0x19933991;
+static constexpr uint32_t MagicTestInputHeader      = 0x19931993;
 static constexpr uint32_t MagicCoverageOutputHeader = 0x73537353;
 
 char* FPGAQueueFuzzer::map_shm(const int id) {
