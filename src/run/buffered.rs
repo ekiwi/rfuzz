@@ -113,7 +113,13 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		TestBuffer { size, inputs, coverage, token,
 		             test_count: 0, max_test_count: 0, cycle_count: 0, id: 0 }
 	}
-	fn reset(&mut self, cycle_count: u16, id: u32) -> u16 {
+	fn reset(&mut self, id: u32) {
+		self.max_test_count = 0;
+		self.cycle_count = 0;
+		self.test_count = 0;
+		self.id = id;
+	}
+	fn initialize(&mut self, cycle_count: u16) -> u16 {
 		let test_size = self.size.input as usize * cycle_count as usize;
 		let coverage_size = self.size.coverage as usize;
 		let input_buf_size = self.inputs.len() - TEST_HEADER_SIZE;
@@ -123,12 +129,16 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		self.max_test_count = std::cmp::min(max_inputs, max_outputs) as u16;
 		self.cycle_count = cycle_count;
 		self.test_count = 0;
-		self.id = id;
 		// skip input buffer header for now
-		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64));
+		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
 		self.max_test_count
 	}
 	fn add_test(&mut self, inputs: &[u8]) -> Option<BufferSlot> {
+		if self.cycle_count == 0 {
+			let cycle_count = inputs.len() / self.size.input as usize;
+			// TODO: move this code to the caller
+			self.initialize(cycle_count as u16);
+		}
 		if self.test_count + 1 > self.max_test_count { None } else {
 			self.inputs.write_all(inputs).unwrap();
 			let slot = BufferSlot { id: self.id, offset: self.test_count };
@@ -137,7 +147,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		}
 	}
 	fn write_header(&mut self) {
-		self.inputs.seek(std::io::SeekFrom::Start(0));
+		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
 		self.inputs.write_u32(MAGIC_HEADER).unwrap();
 		self.inputs.write_u32(self.id).unwrap();
 		self.inputs.write_u16(self.test_count).unwrap();
@@ -208,7 +218,8 @@ pub struct BufferedFuzzServer <ChannelT : CommunicationChannel> {
 	active_out: VecDeque<TestBuffer<ChannelT>>,
 	free: Vec<TestBuffer<ChannelT>>,
 	used: Vec<TestBuffer<ChannelT>>,
-	send: VecDeque<TestBuffer<ChannelT>>
+	send: VecDeque<TestBuffer<ChannelT>>,
+	next_buffer_id: u32
 }
 
 impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
@@ -224,7 +235,9 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		for _ in 1..conf.buffer_count {
 			free.push(BufferedFuzzServer::make_buffer(&mut com, &conf));
 		}
-		BufferedFuzzServer { conf, com, history, active_in, next_coverage_slot, active_out, free, used, send }
+		let next_buffer_id = 0;
+		BufferedFuzzServer { conf, com, history, active_in, next_coverage_slot,
+		                     active_out, free, used, send, next_buffer_id }
 	}
 
 	fn make_buffer(com: &mut ChannelT, conf: &BufferedFuzzServerConfig) -> TestBuffer<ChannelT> {
@@ -234,8 +247,12 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	/// returns a buffer from the `free` list or a new buffer if the `free`
 	/// list is empty
 	fn get_new_buffer(&mut self) -> TestBuffer<ChannelT> {
-		if let Some(buf) = self.free.pop() { buf }
-		else { BufferedFuzzServer::make_buffer(&mut self.com, &self.conf) }
+		let mut buf =
+			if let Some(mut buf) = self.free.pop() { buf }
+			else { BufferedFuzzServer::make_buffer(&mut self.com, &self.conf) };
+		buf.reset(self.next_buffer_id);
+		self.next_buffer_id += 1;
+		buf
 	}
 
 	/// moves the active buffer into the `used` list, sends the buffer ids,
