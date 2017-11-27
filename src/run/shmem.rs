@@ -176,8 +176,8 @@ impl SharedMemoryChannel {
 		self.rx.write(&SharedMemoryChannel::u32_to_bytes(id)).unwrap();
 	}
 
-	fn send_ids(&mut self, id0: u32, id1: u32) {
-		self.send_id(id0); self.send_id(id1);
+	fn send_ids(&mut self, id_tx: u32, id_rx: u32) {
+		self.send_id(id_tx); self.send_id(id_rx);
 	}
 
 	fn has_data(file: &fs::File, min_size: usize) -> bool {
@@ -203,9 +203,9 @@ impl SharedMemoryChannel {
 
 	fn recv_ids(&mut self) -> (u32, u32) {
 		let mut rb = [0;8];
-		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 8);
-		let id0 = SharedMemoryChannel::u32_from_bytes(&rb[..4]);
-		let id1 = SharedMemoryChannel::u32_from_bytes(&rb[4..]);
-		(id0, id1)
+		assert_eq!(self.tx.read(&mut rb).expect("failed to read from tx pipe"), 8, "tx pipe was closed unexpectedly!");
+		let id_rx = SharedMemoryChannel::u32_from_bytes(&rb[..4]);
+		let id_tx = SharedMemoryChannel::u32_from_bytes(&rb[4..]);
+		(id_tx, id_rx)
 	}
 }
