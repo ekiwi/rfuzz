@@ -9,15 +9,28 @@ import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	private val h = harness
 
+	val mask64 = (BigInt(1) << 64) - 1
+	val mask8  = (BigInt(1) <<  8) - 1
+	def change_endianess(value: BigInt) = {
+		val int64 = value & mask64
+		val bytes = for (ii <- 0 to 7) yield (int64 >> (ii * 8)) & mask8
+		bytes.zipWithIndex.map { case(bb, ii) => bb << ((7-ii) * 8) }.reduce(_|_)
+	}
+	assert(change_endianess(BigInt("0123456789abcdef", 16)) == BigInt("efcdab8967452301", 16))
+	assert(change_endianess(BigInt("01234567", 16)) == BigInt("6745230100000000", 16))
+
 	// we are not ready to send or receive by default
 	poke(h.io.s_axis_tvalid, false)
 	poke(h.io.m_axis_tready, false)
 	step(2)
 
 	def send(data : BigInt, last : Boolean = false) = {
+		// AXI automagically interprets data as a 64bit litle endian integer
+		// we assume that our input and output is big-endian
+		val data_little = change_endianess(data)
 		expect(h.io.s_axis_tready, true)
 		poke(h.io.s_axis_tvalid, true)
-		poke(h.io.s_axis_tdata, data)
+		poke(h.io.s_axis_tdata, data_little)
 		poke(h.io.s_axis_tkeep, 0xff)
 		poke(h.io.s_axis_tlast, last)
 		step(1)
@@ -26,8 +39,11 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	}
 
 	def recv(data : BigInt, last : Boolean = false) = {
+		// AXI automagically interprets data as a 64bit litle endian integer
+		// we assume that our input and output is big-endian
+		val data_little = change_endianess(data)
 		expect(h.io.m_axis_tvalid, true)
-		expect(h.io.m_axis_tdata, data)
+		expect(h.io.m_axis_tdata, data_little)
 		expect(h.io.m_axis_tlast, last)
 		poke(h.io.m_axis_tready, true)
 		step(1)
@@ -83,14 +99,27 @@ class HarnessLatencyTester(harness: Harness, test_count : Int, test_cycles : Int
 extends PeekPokeTester(harness) {
 	private val h = harness
 
+	val mask64 = (BigInt(1) << 64) - 1
+	val mask8  = (BigInt(1) <<  8) - 1
+	def change_endianess(value: BigInt) = {
+		val int64 = value & mask64
+		val bytes = for (ii <- 0 to 7) yield (int64 >> (ii * 8)) & mask8
+		bytes.zipWithIndex.map { case(bb, ii) => bb << ((7-ii) * 8) }.reduce(_|_)
+	}
+	assert(change_endianess(BigInt("0123456789abcdef", 16)) == BigInt("efcdab8967452301", 16))
+	assert(change_endianess(BigInt("01234567", 16)) == BigInt("6745230100000000", 16))
+
 	// we are not ready to send or receive by default
 	poke(h.io.s_axis_tvalid, false)
 	poke(h.io.m_axis_tready, false)
 
 	def send(data : BigInt, last : Boolean = false) = {
+		// AXI automagically interprets data as a 64bit litle endian integer
+		// we assume that our input and output is big-endian
+		val data_little = change_endianess(data)
 		expect(h.io.s_axis_tready, true)
 		poke(h.io.s_axis_tvalid, true)
-		poke(h.io.s_axis_tdata, data)
+		poke(h.io.s_axis_tdata, data_little)
 		poke(h.io.s_axis_tkeep, 0xff)
 		poke(h.io.s_axis_tlast, last)
 		step(1)
@@ -99,8 +128,11 @@ extends PeekPokeTester(harness) {
 	}
 
 	def recv(data : BigInt, last : Boolean = false) = {
+		// AXI automagically interprets data as a 64bit litle endian integer
+		// we assume that our input and output is big-endian
+		val data_little = change_endianess(data)
 		expect(h.io.m_axis_tvalid, true)
-		expect(h.io.m_axis_tdata, data)
+		expect(h.io.m_axis_tdata, data_little)
 		expect(h.io.m_axis_tlast, last)
 		poke(h.io.m_axis_tready, true)
 		step(1)
