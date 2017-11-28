@@ -37,10 +37,10 @@ class DUTConfig(cov: CoverageConfig) {
 	val src = "gcdcov.v"
 	val name = "gcdcov"
 	val input: ListMap[String, Int] = ListMap(
-		"io_in_valid"  ->  1,
-		"io_out_ready" ->  1,
 		"io_in_bits_a" -> 32,
-		"io_in_bits_b" -> 32)
+		"io_in_bits_b" -> 32,
+		"io_in_valid"  ->  1,
+		"io_out_ready" ->  1)
 	val coverage_counters = cov.counters.map{case(k,_) => k}
 	val input_bits = input.map{case(_,w) => w}.reduce(_+_)
 }
