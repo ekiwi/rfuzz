@@ -61,6 +61,26 @@ public:
 	void push(uint32_t, uint32_t);
 };
 
+static inline uint16_t change_endianess(uint16_t value) {
+	return (value >> 8) | ((value & 0xff) << 8);
+}
+static inline uint32_t change_endianess(uint32_t value) {
+	return ((value & 0xff000000) >> 24) |
+	       ((value & 0x00ff0000) >>  8) |
+	       ((value & 0x0000ff00) <<  8) |
+	       ((value & 0x000000ff) << 24);
+}
+static inline uint64_t change_endianess(uint64_t value) {
+	return ((value & 0xff00000000000000) >> 56) |
+	       ((value & 0x00ff000000000000) >> 40) |
+	       ((value & 0x0000ff0000000000) >> 24) |
+	       ((value & 0x000000ff00000000) >>  8) |
+	       ((value & 0x00000000ff000000) <<  8) |
+	       ((value & 0x0000000000ff0000) << 24) |
+	       ((value & 0x000000000000ff00) << 40) |
+	       ((value & 0x00000000000000ff) << 56);
+}
+
 class FPGAQueueFuzzer : public Fuzzer {
 private:
 	std::unique_ptr<NamedPipe> command_pipe;
