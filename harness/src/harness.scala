@@ -38,6 +38,18 @@ class DUTDriverInterface(input_width: Int) extends Bundle {
 	override def cloneType: this.type = new DUTDriverInterface(input_width).asInstanceOf[this.type]
 }
 
+object Convert64BitEndianess {
+	def apply(in : UInt) : UInt = {
+		require(in.widthKnown)
+		// TODO: how do we get the width?
+		val width = 64
+		// bytes from right to left
+		val bytes = for(ii <- 0 until (width/8)) yield in(((ii+1) * 8) - 1, ii * 8)
+		// concat bytes from left to right
+		Cat(bytes)
+	}
+}
+
 class InputsReceiver(input_width: Int) extends Module {
 	val max_cycles = 64
 	val in_width = 64
@@ -144,6 +156,15 @@ class Harness() extends Module {
 	})
 	val m_axis_fire = io.m_axis_tready && io.m_axis_tvalid
 
+	// endianess conversion
+	// AXI interprets every 64 bit data value as a little endian integer,
+	// however we want to treat data as big endian as it simplifies things
+	// when we are bit packing input and coverage signals
+	// (WARN: don't think about it too much or your head might explode)
+	val s_axis_big_endian_data = Convert64BitEndianess(io.s_axis_tdata)
+	val m_axis_big_endian_data = Wire(UInt(64.W))
+	io.m_axis_tdata := Convert64BitEndianess(m_axis_big_endian_data)
+
 	// control states
 	val sReceiveHeader :: sReceiveControl :: sSendHeader :: sRunTests :: sSendStatus :: Nil = Enum(5)
 	val state = RegInit(sReceiveHeader)
@@ -165,7 +186,7 @@ class Harness() extends Module {
 		(Module (new DUT(dut_conf) ), Module (new Coverage(cov_conf))) }
 
 	// connect axis inputs
-	inp.io.axis_data  := io.s_axis_tdata
+	inp.io.axis_data  := s_axis_big_endian_data
 	inp.io.axis_valid := Mux(state === sRunTests, io.s_axis_tvalid, false.B)
 	io.s_axis_tready := MuxLookup(state, false.B, Array(
 	sReceiveHeader -> true.B, sReceiveControl -> true.B, sRunTests -> inp.io.axis_ready))
@@ -182,8 +203,9 @@ class Harness() extends Module {
 	// connect axis output
 	val coverage_header = Cat("h73537353".U, buffer_id)
 	cov.io.axis_ready := io.m_axis_tready
-	io.m_axis_tdata  := Mux(state === sSendHeader, coverage_header,
-	                    Mux(state === sSendStatus, status, cov.io.axis_data))
+	m_axis_big_endian_data :=
+	            Mux(state === sSendHeader, coverage_header,
+	            Mux(state === sSendStatus, status, cov.io.axis_data))
 	io.m_axis_tvalid := Mux((state === sSendHeader) || (state === sSendStatus),
 	                        true.B, cov.io.axis_valid)
 	io.m_axis_tkeep  := ((1 << axis_bit_count) - 1).U
@@ -198,16 +220,16 @@ class Harness() extends Module {
 	switch (state) {
 	is (sReceiveHeader) {
 		// wait for start of test buffer
-		val magic_header = io.s_axis_tdata(63,32)
+		val magic_header = s_axis_big_endian_data(63,32)
 		val valid_header = magic_header === "h19931993".U
 		when (io.s_axis_tvalid && valid_header) {
-			buffer_id := io.s_axis_tdata(31,0)
+			buffer_id := s_axis_big_endian_data(31,0)
 			state := sReceiveControl
 		}
 	}
 	is (sReceiveControl) {
 		when (io.s_axis_tvalid) {
-			control := io.s_axis_tdata
+			control := s_axis_big_endian_data
 			state := sSendHeader
 		}
 	}
