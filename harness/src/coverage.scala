@@ -20,10 +20,6 @@ class CoverageControl extends Bundle {
 }
 
 
-// 1) reset with DUT
-// 2) assert `do_collect` in first cycle after test, keep asserted!
-// 3) wait for `collect_done` to be asserted
-// 4) goto (1)
 class Coverage(conf: CoverageConfig) extends Module {
 	val out_width = 64
 	// all counter output values concatenated
