@@ -5,7 +5,8 @@ use std::io::{Read, Write, Seek, SeekFrom};
 use std::fs;
 use std::path;
 use std::os::unix::io::AsRawFd;
-use super::buffered::{ CommunicationBuffer, CommunicationChannel, WriteInts, ReadInts };
+use super::buffered::{ CommunicationBuffer, CommunicationChannel };
+use super::rwint::{ ReadIntsBigEndian, WriteIntsBigEndian };
 
 pub struct SharedMemory {
 	data: *mut u8,
@@ -88,8 +89,8 @@ impl Seek for SharedMemory {
 	}
 }
 
-impl ReadInts for SharedMemory {}
-impl WriteInts for SharedMemory {}
+impl ReadIntsBigEndian for SharedMemory {}
+impl WriteIntsBigEndian for SharedMemory {}
 
 impl CommunicationBuffer for SharedMemory {
 	fn len(&self) -> usize { self.size }

@@ -1,5 +1,6 @@
 pub mod buffered;
 mod history;
+mod rwint;
 #[cfg(not(target_arch = "arm"))]
 mod shmem;
 #[cfg(target_arch = "arm")]

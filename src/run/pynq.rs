@@ -7,7 +7,8 @@ use std::ffi::CString;
 use std::ops::{Drop};
 use std::io::{Read, Write, Seek, SeekFrom};
 use std::fs::File;
-use super::buffered::{ReadInts, WriteInts, CommunicationBuffer};
+use super::buffered::CommunicationBuffer;
+use super::rwint::{ ReadIntsBigEndian, WriteIntsBigEndian };
 
 #[derive(Copy, Clone, Debug)]
 pub struct Clock { pub div0 : u32, pub div1 : u32 }
@@ -182,8 +183,8 @@ impl Drop for DmaBuffer {
 	}
 }
 
-impl ReadInts for DmaBuffer {}
-impl WriteInts for DmaBuffer {}
+impl ReadIntsBigEndian for DmaBuffer {}
+impl WriteIntsBigEndian for DmaBuffer {}
 
 impl CommunicationBuffer for DmaBuffer {
 	fn len(&self) -> usize { self.size }
