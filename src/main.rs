@@ -54,6 +54,9 @@ fn main() {
 				if is_interesting {
 					let (info, interesting_input) = server.get_info(feedback.id);
 					q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
+					println!("New Interesting Input: {:?}", feedback.id);
+					println!("input:  {:?}", interesting_input);
+					println!("-> cov: {:?}", feedback.data);
 				}
 			}
 		}
