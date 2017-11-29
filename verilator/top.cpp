@@ -75,42 +75,33 @@ struct Simulation {
 	TOP_TYPE* top = nullptr;
 	vluint64_t main_time = 0;
 	VerilatedVcdC* tfp = nullptr;
+	void step() {
+		top->clock = 0;
+		top->eval();
+		#if VM_TRACE
+		if (tfp) { tfp->dump(main_time); }
+		#endif
+		main_time++;
+		top->clock = 1;
+		top->eval();
+		#if VM_TRACE
+		if (tfp) { tfp->dump(main_time); }
+		#endif
+		main_time++;
+	}
+	uint64_t cycles() { return main_time / 2; }
 };
 
-const long timeout = 10000L;
-
-static inline void dummy_run(Simulation& sim, uint64_t cycles) {
-	const vluint64_t end_time = sim.main_time + (cycles * 10);
-	while (sim.main_time < end_time) {
-		if ((sim.main_time % 10) == 1) { sim.top->clock = 1; }
-		if ((sim.main_time % 10) == 6) { sim.top->clock = 0; }
-		sim.top->eval();
-		#if VM_TRACE
-		if (sim.tfp) { sim.tfp->dump (sim.main_time); }
-		#endif
-		sim.main_time++;
-	}
-}
-
-
 static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
-	// reset circuit for two cycles
+	// reset circuit for one cycles
 	sim.top->reset = 1;
-	dummy_run(sim, 2);
+	sim.step();
 	sim.top->reset = 0;
 	// run for as many cycles as we get data
 	uint8_t input[InputSize];
-	assert(sim.main_time % 10 == 0);
-	while(!Verilated::gotFinish()) {
-		if ((sim.main_time % 10) == 0) { if(!fuzzer.pop(input, InputSize)) break; }
-		if ((sim.main_time % 10) == 1) { sim.top->clock = 1; }
-		if ((sim.main_time % 10) == 6) { sim.top->clock = 0; }
-		if ((sim.main_time % 10) == 6) { apply_input(sim.top, input); }
-		sim.top->eval();
-		#if VM_TRACE
-		if (sim.tfp) { sim.tfp->dump (sim.main_time); }
-		#endif
-		sim.main_time++;
+	while(fuzzer.pop(input, InputSize)) {
+		apply_input(sim.top, input);
+		sim.step();
 	}
 	uint8_t coverage[CoverageSize];
 	read_coverage(sim.top, coverage);
@@ -140,9 +131,12 @@ int main(int argc, char** argv) {
 		run_test(sim, fuzzer);
 	}
 
-	cout << "Simulation completed after " << sim.main_time / 10 << " cycles" << endl;
+	cout << "Simulation completed after " << sim.cycles() << " cycles" << endl;
 
+	// finish last cycle
+	sim.top->eval();
 #if VM_TRACE
+	if (sim.tfp) { sim.tfp->dump(sim.main_time); }
 	if (sim.tfp) { sim.tfp->close(); }
 #endif
 }
