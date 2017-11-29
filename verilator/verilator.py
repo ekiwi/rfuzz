@@ -62,18 +62,18 @@ if __name__ == '__main__':
 	parser.add_argument('--print-out', help='print the files that were created',
 		                           action='store_const', const=True)
 	parser.add_argument('-o', '--output', help='files expected to be generated', nargs='+', required=True)
-	parser.add_argument('-i', '--input', help='verilog file to be simulated', required=True)
-	parser.add_argument('-d', '--dependency', help='file that the top level depends on', nargs='*')
+	parser.add_argument('-i', '--input', help='verilog file to be simulated, first file is the toplevel',
+	                    nargs='+', required=True)
 	args = parser.parse_args()
 
-	verilog = args.input
+	verilog = args.input[0]
 	if not os.path.isfile(verilog):
 		sys.stderr.write("input file `{}` not found\n".format(verilog))
 		sys.exit(1)
 	toplevel = os.path.splitext(os.path.basename(verilog))[0]
 
 	# dependencies
-	dependencies = args.dependency if args.dependency else []
+	dependencies = args.input[1:]
 	for dep in dependencies:
 		if not os.path.isfile(dep):
 			sys.stderr.write("dependency `{}` not found\n".format(dep))

@@ -6,11 +6,13 @@
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
-#include <verilated.h>
 
+#include <Vgcdcov.h>
+#include <verilated.h>
 #if VM_TRACE
 # include <verilated_vcd_c.h>	// Trace file format header
 #endif
+#define TOP_TYPE Vgcdcov
 
 #include <module_interface.hpp>
 #ifdef USE_AFL

@@ -1,1 +1,1 @@
-option('trace', type: 'boolean', value: true)
+option('trace', type: 'boolean', value: false)

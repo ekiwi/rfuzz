@@ -40,6 +40,10 @@
 #ifndef FPGA_QUEUE_HPP
 #define FPGA_QUEUE_HPP
 
+
+#include <Vgcdcov.h>
+#define TOP_TYPE Vgcdcov
+
 #include <module_interface.hpp>    // TODO: how and where should this be included?
 #include <fuzzer.hpp>
 #include <cstdint>
