@@ -61,8 +61,9 @@ if __name__ == '__main__':
 		                           action='store_const', const=True)
 	parser.add_argument('--print-out', help='print the files that were created',
 		                           action='store_const', const=True)
-	parser.add_argument('-o', '--output', help='files expected to be generated', nargs='+')
-	parser.add_argument('-i', '--input', help='verilog file to be simulated', nargs='+', required=True)
+	parser.add_argument('-o', '--output', help='files expected to be generated', nargs='+', required=True)
+	parser.add_argument('-i', '--input', help='verilog file to be simulated', required=True)
+	parser.add_argument('-d', '--dependency', help='file that the top level depends on', nargs='*')
 	args = parser.parse_args()
 
 	verilog = args.input
@@ -71,12 +72,31 @@ if __name__ == '__main__':
 		sys.exit(1)
 	toplevel = os.path.splitext(os.path.basename(verilog))[0]
 
+	# dependencies
+	dependencies = args.dependency if args.dependency else []
+	for dep in dependencies:
+		if not os.path.isfile(dep):
+			sys.stderr.write("dependency `{}` not found\n".format(dep))
+			sys.exit(1)
+	dep_dirs = { os.path.dirname(dep) for dep in dependencies } | {'.'}
+	include_paths = set({ os.path.abspath(dd): dd for dd in dep_dirs }.values())
+	# check whether dependencies are unique
+	for dep in dependencies:
+		name = os.path.basename(dep)
+		contains_dep = { pp: os.path.isfile(os.path.join(pp, name)) for pp in include_paths }
+		assert sum(contains_dep.values()) > 0
+		if sum(contains_dep.values()) > 1:
+			dirs = ", ".join(k for k,v in contains_dep.items() if v)
+			sys.stderr.write("dependency `{}` exists in multiple directories: {}!\n".format(dep, dirs))
+			sys.exit(1)
+	include_flags = ["-I{}".format(pp) for pp in include_paths]
+
 	out_dir = tempfile.TemporaryDirectory()
 	out = out_dir.name
 
 	TraceFlag = ['--trace'] if args.trace else []
 
-	cmd = Verilator + TraceFlag + DefaultFlags + ['-Mdir', out, verilog]
+	cmd = Verilator + TraceFlag + DefaultFlags + include_flags + ['-Mdir', out, verilog]
 	cmd = ' '.join(cmd)	# TODO: this should not be necessary!
 	r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
 	if r.returncode != 0:
