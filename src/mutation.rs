@@ -3,6 +3,12 @@ pub struct MutationAlgorithmId {
 	id: u32,
 	seed: Option<u64>,
 }
+impl MutationAlgorithmId {
+	pub fn custom(id: u16) -> Self {
+		let actual_id : u32 = 0xffff0000 | id as u32;
+		MutationAlgorithmId { id: actual_id, seed: None }
+	}
+}
 
 #[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Default)]
 pub struct MutationId(u32);
@@ -30,6 +36,11 @@ impl MutationInfo {
 			let mutation_algo = self.mutation_algo.clone();
 			Some(MutationInfo {mutation_algo, mutation_id })
 		} else { None }
+	}
+	pub fn custom(id : u16) -> Self {
+		let mutation_algo = MutationAlgorithmId::custom(id);
+		let mutation_id = MutationId::default();
+		MutationInfo { mutation_algo, mutation_id }
 	}
 }
 

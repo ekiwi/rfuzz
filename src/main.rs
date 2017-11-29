@@ -8,9 +8,18 @@ mod queue;
 
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::{FuzzServer, TestSize};
+use mutation::MutationInfo;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const TEST_SIZE : TestSize = TestSize { coverage: 16, input: 16 };
+
+fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
+	let info = MutationInfo::custom(0);
+	server.push_test(&info, &input);
+	server.sync();
+	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
+	feedback.data.to_vec()
+}
 
 fn main() {
 	// test runner
