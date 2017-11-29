@@ -82,11 +82,12 @@ class InputsReceiver(input_width: Int) extends Module {
 	assert(q.io.deq.valid || !q.io.deq.ready, "Never pop when queue is empty")
 
 	// receive test data
+	val unused_data_bits = data_per_cycle * in_width - input_width
 	q.io.enq.bits := Cat((0 until data_per_cycle - 1).map{ case(cycle) => {
 		val reg = RegInit(0.U(in_width.W))
 		when(axis_fire && data_count.io.value === cycle.U) { reg := io.axis_data }
 		reg
-	}} ++ Seq(io.axis_data))
+	}} ++ Seq(io.axis_data(in_width - 1, unused_data_bits)))
 	q.io.enq.valid := axis_fire && data_count.io.last
 
 	// dut driver interaction (wait state in case test execution takes longer)
