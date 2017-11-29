@@ -40,11 +40,6 @@
 #ifndef FPGA_QUEUE_HPP
 #define FPGA_QUEUE_HPP
 
-
-#include <Vgcdcov.h>
-#define TOP_TYPE Vgcdcov
-
-#include <module_interface.hpp>    // TODO: how and where should this be included?
 #include <fuzzer.hpp>
 #include <cstdint>
 #include <cstddef>
@@ -106,9 +101,17 @@ private:
 		test_in_ptr += sizeof(T);
 		return value;
 	}
+	inline void read_from_test(uint8_t* out, size_t len) {
+		std::memcpy(out, test_in_ptr, len);
+		test_in_ptr += len;
+	}
 	template<typename T> inline void write_to_coverage(const T& value) {
 		std::memcpy(coverage_out_ptr, &value, sizeof(T));
 		coverage_out_ptr += sizeof(T);
+	}
+	inline void write_to_coverage(const uint8_t* in, size_t len) {
+		std::memcpy(coverage_out_ptr, in, len);
+		coverage_out_ptr += len;
 	}
 
 	// current test
@@ -123,10 +126,10 @@ private:
 	void release_buffer();
 	void parse_header();
 public:
-	void init() override;
+	void init(size_t coverage_size) override;
 	bool done() override;
-	bool pop(InputType* input) override;
-	void push(const CoverageType& coverage) override;
+	bool pop(uint8_t* input, size_t len) override;
+	void push(const uint8_t* coverage, size_t len) override;
 	~FPGAQueueFuzzer();
 };
 

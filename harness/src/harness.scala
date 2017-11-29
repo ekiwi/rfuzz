@@ -247,5 +247,6 @@ class Harness() extends Module {
 
 object HarnessGenerator extends App {
 	chisel3.Driver.execute(args, () => new Harness())
+	chisel3.Driver.execute(args, () => new VerilatorHarness())
 }
 
