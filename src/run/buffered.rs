@@ -348,7 +348,10 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 	fn sync(&mut self) {
 		// TODO: deal with blocking send
 		self.send_active_buffers();
-		while self.used.len() > 0 { self.receive_buffers(); }
+		while self.used.len() > 0 || self.send.len() > 0 {
+			self.try_send_buffers();
+			self.receive_buffers();
+		}
 	}
 }
 
