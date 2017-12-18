@@ -47,6 +47,11 @@ fn main() {
 		coverage_buffer_size : 64 * 1024,
 		buffer_count: 3,
 	};
+
+	println!("Test Buffer:     {} KiB", config.test_buffer_size / 1024);
+	println!("Coverage Buffer: {} KiB", config.coverage_buffer_size / 1024);
+	println!("Max Inputs: {}", config.test_buffer_size / 16 / 3);
+
 	let mut server = find_one_fuzz_server(FPGA_DIR, config).expect("failed to find a fuzz server");
 
 	// queue
