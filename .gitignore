@@ -4,3 +4,12 @@ build/
 
 dump.vcd
 out*/
+
+# sbt
+target/
+project/project/
+
+# temporary verilog files
+rob.v
+icache.v
+
