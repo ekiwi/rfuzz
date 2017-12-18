@@ -153,7 +153,8 @@ fn arith_8(ii: u32, input: &mut [u8]) {
 	let b = (rest / 2) as i8;
 	let a = input[byte as usize] as i8;
 	let add_not_sub = (rest & 1) == 0;
-	input[byte as usize] = if add_not_sub { a + b } else { a - b } as u8;
+	input[byte as usize] = if add_not_sub { a.wrapping_add(b) }
+	                       else { a.wrapping_sub(b) } as u8;
 }
 #[derive(Clone, Copy)]
 enum Endian { Big, Little }
@@ -179,7 +180,7 @@ fn arith_16(ii: u32, input: &mut [u8]) {
 	let add_not_sub = (rest & 2) == 0;
 	let endian = if (rest & 1) == 1 { Endian::Big } else { Endian::Little };
 	let a = read_u16(endian, input, byte) as i16;
-	let res = if add_not_sub { a + b } else { a - b} as u16;
+	let res = if add_not_sub { a.wrapping_add(b) } else { a.wrapping_sub(b) } as u16;
 	write_u16(endian, input, byte, res);
 }
 fn read_u32(end: Endian, mem: &[u8], byte: usize) -> u32 {
@@ -210,6 +211,6 @@ fn arith_32(ii: u32, input: &mut [u8]) {
 	let add_not_sub = (rest & 2) == 0;
 	let endian = if (rest & 1) == 1 { Endian::Big } else { Endian::Little };
 	let a = read_u32(endian, input, byte) as i32;
-	let res = if add_not_sub { a + b } else { a - b} as u32;
+	let res = if add_not_sub { a.wrapping_add(b) } else { a.wrapping_sub(b) } as u32;
 	write_u32(endian, input, byte, res);
 }
