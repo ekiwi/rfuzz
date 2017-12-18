@@ -31,16 +31,16 @@ pub struct MutationInfo {
 	pub mutation_id: MutationId,
 }
 impl MutationInfo {
-	fn next(&self, max: MutationId) -> Option<MutationInfo> {
+	pub fn next(&self, max: MutationId) -> Option<MutationInfo> {
 		if let Some(mutation_id) = self.mutation_id.next(max) {
 			let mutation_algo = self.mutation_algo.clone();
 			Some(MutationInfo {mutation_algo, mutation_id })
 		} else { None }
 	}
-	pub fn custom(id : u16) -> Self {
+	pub fn custom(id : u16, max: u32) -> (Self, MutationId) {
 		let mutation_algo = MutationAlgorithmId::custom(id);
 		let mutation_id = MutationId::default();
-		MutationInfo { mutation_algo, mutation_id }
+		( MutationInfo { mutation_algo, mutation_id }, MutationId(max) )
 	}
 }
 
