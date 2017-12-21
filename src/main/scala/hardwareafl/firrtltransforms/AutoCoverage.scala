@@ -85,10 +85,10 @@ object TomlGenerator {
     possible_inputs.flatten.toSeq.sortWith(_.width > _.width)
   }
   def parseFileInfo(info: FileInfo) : DebugInfo = {
-    val pattern = raw":([^@]+)@(\d+)\.(\d+)".r
+    val pattern = raw":([^@:]+)@(\d+)\.(\d+)".r.unanchored
     info.info.string match {
       case pattern(filename, line, col) => DebugInfo(filename, line.toInt, col.toInt)
-      case _ => throw new Exception(s"Unexpected FileInfo string: ${info.info.string}")
+      case _ => throw new Exception(s"Unexpected FileInfo string: `${info.info.string}`")
     }
   }
   def getDebugInfo(info: Info) : Seq[Option[DebugInfo]] = {
@@ -126,11 +126,7 @@ object TomlGenerator {
   }
   def isGeneratedIdentifier(id: String) : Boolean = {
     // heuristic
-    val pattern = raw"(T_\d+)".r
-    id match {
-      case pattern(_) => true
-      case _ => false
-    }
+    id.matches(raw"(_?(:?(:?T)|(:?GEN))_\d+(:?_\d+)?)")
   }
   var definitions: Map[String, IsDeclaration] = Map()
   def getHumanReadableExpression(decl: IsDeclaration) : String = {
@@ -148,18 +144,21 @@ object TomlGenerator {
     }
   }
   def getHumanReadableExpression(cond: Expression) : String = {
-    // this is a *heuristic* to essentially try and undo SplitExpressions
+    // this is a *heuristic*
+    // TODO: minimize expressions ....
     cond match {
-      case ref: WRef => { getHumanReadableExpression(this.definitions(ref.name)) }
-      //   if(isGeneratedIdentifier(ref.name)) {
-      //     getHumanReadableExpression(this.definitions(ref.name))
-      //   } else { ref.name }
-      // }
+      case ref: WRef => {
+        if(isGeneratedIdentifier(ref.name)) {
+          getHumanReadableExpression(this.definitions(ref.name))
+        } else { ref.name }
+      }
       case lit: Literal => { s"${lit.value}" }
       case doprim: DoPrim => {
         // lot's of code similar to the Verilog Emitter .... hm
-        val a0 = getHumanReadableExpression(doprim.args.head)
-        val a1 = getHumanReadableExpression(doprim.args(1))
+        def a0 = getHumanReadableExpression(doprim.args.head)
+        def a1 = getHumanReadableExpression(doprim.args(1))
+        def c0 = doprim.consts.head.toInt
+        def c1 = doprim.consts(1).toInt
         doprim.op match {
           case Add  => s"(${a0} + ${a1})"
           case Addw => s"(${a0} + ${a1})"
@@ -174,12 +173,29 @@ object TomlGenerator {
           case Geq  => s"(${a0} >= ${a1})"
           case Eq   => s"(${a0} == ${a1})"
           case Neq  => s"(${a0} != ${a1})"
+          case Dshlw => s"(${a0} << ${a1})"
+          case Dshl => s"(${a0} << ${a1})"
+          case Dshr => s"(${a0} >> ${a1})"
+          case Shlw => s"(${a0} << ${c0})"
+          case Shl => s"(${a0} << ${c0})"
+          case Shr => s"(${a0} >> ${c0})"
           case Neg  => s"-${a0}"
           case Not  => s"(not ${a0})"
           case And  => s"(${a0} and ${a1})"
           case Or   => s"(${a0} or ${a1})"
           case Xor  => s"(${a0} xor ${a1})"
+          case Bits => s"${a0}[${c0}:${c1}]"
+          case other => s"Todo(${other})"
         }
+      }
+      case mux: Mux => {
+        val cond = getHumanReadableExpression(mux.cond)
+        val tval = getHumanReadableExpression(mux.tval)
+        val fval = getHumanReadableExpression(mux.fval)
+        s"(${cond}? ${tval} : ${fval})"
+      }
+      case other => {
+        s"Todo(${other})"
       }
     }
   }
