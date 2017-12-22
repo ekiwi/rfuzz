@@ -12,4 +12,8 @@ project/project/
 # temporary verilog files
 rob.v
 icache.v
+gcdcov.v
+gcd.v
 
+# generated toml files
+/*.toml
