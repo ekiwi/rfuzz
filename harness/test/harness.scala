@@ -181,13 +181,15 @@ extends PeekPokeTester(harness) {
 }
 
 class GCDTester extends ChiselFlatSpec {
+	private val conf = Config.loadToml("../gcd.toml")
+
 	private val backendNames =
 		if(firrtl.FileUtils.isCommandAvailable("verilator")) {
 			Array("firrtl", "verilator") } else { Array("firrtl") }
 
 	for ( backendName <- backendNames ) {
 		"Harness" should s"behave correctly (with $backendName)" in {
-			Driver(() => new Harness(), backendName) {
+			Driver(() => new Harness(conf), backendName) {
 				harness => new HarnessUnitTester(harness)
 			} should be (true)
 		}

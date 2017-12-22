@@ -9,9 +9,7 @@ import chisel3.util._
 // having to reason about endianess in the C++ toplevel.
 
 
-class VerilatorHarness extends Module {
-	val cov_conf = new CoverageConfig
-	val dut_conf = new DUTConfig(cov_conf)
+class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 
 	val io = this.IO(new Bundle {
 		val input_bytes = Input(Vec(16, UInt(8.W)))
@@ -22,12 +20,12 @@ class VerilatorHarness extends Module {
 	// inputs
 	val input_bytes = Cat(io.input_bytes)
 	val input_width = 16 * 8
-	dut.io.inputs := input_bytes(input_width-1, input_width - dut_conf.input_bits)
+	dut.io.inputs := input_bytes(input_width-1, input_width - dut_conf.inputBits)
 
 	// coverage
 	val coverage = {
-		var left = cov_conf.counters.size - 1
-		Cat(cov_conf.counters.map{ case(_,w) => {
+		var left = dut_conf.coverageCounters.size - 1
+		Cat(dut_conf.coverageCounters.map{ case(_,w) => {
 			val counter = Module(new SaturatingCounter(w))
 			counter.io.enable := dut.io.coverage(left)
 			left = left - 1
@@ -35,7 +33,7 @@ class VerilatorHarness extends Module {
 		}}.toSeq)
 	}
 	// TODO: clean up code
-	var left = cov_conf.counters.map{ case(_,w) => w }.reduce(_+_) - 1
+	var left = dut_conf.coverageCounters.map{ case(_,w) => w }.reduce(_+_) - 1
 	io.coverage_bytes.map{ case(cov) =>
 		val right = left - 8 + 1
 		cov := { if(right >= 0) {        coverage(left, right)

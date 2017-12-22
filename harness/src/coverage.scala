@@ -20,10 +20,10 @@ class CoverageControl extends Bundle {
 }
 
 
-class Coverage(conf: CoverageConfig) extends Module {
+class Coverage(conf: DUTConfig) extends Module {
 	val out_width = 64
 	// all counter output values concatenated
-	val coverage_width = conf.counters.map{ case(n,w) => w }.reduce(_+_)
+	val coverage_width = conf.coverageCounters.map{ case (_,w) => w }.reduce(_+_)
 	// output(0) is the test id!
 	val output_count = div2Ceil(coverage_width, out_width)
 	val test_id_width = 64
@@ -31,7 +31,7 @@ class Coverage(conf: CoverageConfig) extends Module {
 	val io = this.IO(new Bundle {
 		val control = new CoverageControl
 		// from DUT
-		val coverage_signals = Input(UInt(conf.counters.size.W))
+		val coverage_signals = Input(UInt(conf.coverageCounters.size.W))
 		// simple axi stream producer
 		val axis_ready = Input(Bool())
 		val axis_valid = Output(Bool())
@@ -45,8 +45,8 @@ class Coverage(conf: CoverageConfig) extends Module {
 
 	val connect_coverage = !collecting
 	val coverage = {
-		var left = conf.counters.size - 1
-		Cat(conf.counters.map{ case(n,w) => {
+		var left = conf.coverageCounters.size - 1
+		Cat(conf.coverageCounters.map{ case(n,w) => {
 			val counter = Module(new SaturatingCounter(w))
 			counter.io.enable := Mux(connect_coverage, io.coverage_signals(left), false.B)
 			left = left - 1
