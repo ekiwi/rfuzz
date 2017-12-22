@@ -54,14 +54,16 @@ class Coverage(conf: DUTConfig) extends Module {
 		}}.toSeq)
 	}
 
-	val output_ii = Module(new WrappingCounter(log2Ceil(output_count)))
-	output_ii.io.max := (output_count - 1).U
-	output_ii.io.enable := axis_fire
-	io.control.done_next := axis_fire && output_ii.io.last
-
 	// axis
 	io.axis_valid := collecting
-	io.axis_data := MuxLookup(output_ii.io.value, 0.U, {
+	if(output_count > 1) {
+		// create counter to emit data in multiple steps
+		val output_ii = Module(new WrappingCounter(log2Ceil(output_count)))
+		output_ii.io.max := (output_count - 1).U
+		output_ii.io.enable := axis_fire
+		io.control.done_next := axis_fire && output_ii.io.last
+		// select current output value based on counter
+		io.axis_data := MuxLookup(output_ii.io.value, 0.U, {
 		var left = coverage_width - 1
 		(0 until output_count).map{ case(ii) => ii.U -> {
 			val right = left - out_width + 1
@@ -69,6 +71,11 @@ class Coverage(conf: DUTConfig) extends Module {
 				Cat(coverage(left, 0), 0.U((-right).W)) }
 			left = left - out_width
 			out }}
-	})
+		})
+	} else {
+		// send all coverage data in a single transaction
+		io.control.done_next := axis_fire
+		io.axis_data := Cat(coverage, 0.U((out_width - coverage_width).W))
+	}
 }
 
