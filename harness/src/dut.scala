@@ -26,7 +26,7 @@ class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 		// TODO: is it ok to just ignore the output?
 	}))
 	setInline(conf.src,
-		scala.io.Source.fromFile(conf.src).mkString)
+		scala.io.Source.fromFile("../" + conf.src).mkString)
 }
 
 class DUT(conf: DUTConfig) extends Module {
