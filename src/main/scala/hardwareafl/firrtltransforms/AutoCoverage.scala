@@ -240,11 +240,11 @@ object TomlGenerator {
         out.println(s"""name = "${name}"""")
         out.println(s"""inverted = ${inverted}""")
         out.println(s"""index = ${index}""")
-        out.println(s"""counter-bits = 1""")
+        out.println(s"""counterbits = 1""")
         out.println(s"""filename = "${dbg.filename}"""")
         out.println(s"""line = ${dbg.line}""")
         out.println(s"""column = ${dbg.col}""")
-        out.println(s"""human-expr = "${human}"""")
+        out.println(s"""human = "${human}"""")
         out.println()
         index += 1
       }

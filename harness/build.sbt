@@ -22,5 +22,9 @@ libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
 		dep + "Version", defaultVersions(dep))
 })
 
+// toml-scala: https://github.com/sparsetech/toml-scala
+// (stoml does not support dates)
+libraryDependencies += "tech.sparse" %% "toml-scala" % "0.1.0"
+
 scalaSource in Compile := baseDirectory.value / "src"
 scalaSource in Test := baseDirectory.value / "test"

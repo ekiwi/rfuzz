@@ -247,6 +247,53 @@ class Harness() extends Module {
 }
 
 object HarnessGenerator extends App {
+	import java.time.OffsetDateTime
+	import java.nio.file.{Paths, Files}
+	import java.nio.charset.StandardCharsets
+	import toml._
+	import toml.Codecs._
+
+	implicit val booleanCodec: toml.Codec[Boolean] = toml.Codec[Boolean]( {
+		case toml.Value.Bool(value) => Right(value)
+		case value  =>
+			Left((List.empty, s"Boolean expected, $value provided"))
+	})
+	// TODO: why does this not work out of the box? why do we need to reimplement this here?
+	implicit val offsetDateTimeCodec: toml.Codec[OffsetDateTime] = toml.Codec[OffsetDateTime]( {
+		case toml.Value.OffsetDateTime(value) => Right(value)
+		case value  =>
+			Left((List.empty, s"OffsetDateTime expected, $value provided"))
+	})
+	// TODO: this seems like quite a hack .... why does the `tableCodec` from the lib not work?
+	implicit val intTableCodec: toml.Codec[Map[String,Int]] = toml.Codec[Map[String,Int]]( {
+		case toml.Value.Tbl(values) => {
+			Right(values.map{
+				case (key: String, num: toml.Value.Num) => (key, num.value.toInt)
+				case (k, v) => throw new Exception(s"Unexpected ${k} -> ${v}, expected String -> Int")
+			})
+		}
+		case value  =>
+			Left((List.empty, s"Table expected, $value provided"))
+	})
+
+	def loadFileContent(filename: String) : String = {
+		new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8)
+	}
+	def loadToml(filename: String) = {
+		case class General(filename: String, module: String, timestamp: OffsetDateTime)
+		case class Coverage(name: String, inverted: Boolean, index: Int, counterbits: Int, filename: String, line: Int, column: Int, human: String)
+		case class Test(general: General, coverage: List[Coverage], input: Map[String, Int])
+		val Right(toml) = Toml.parseAs[Test](loadFileContent(filename))
+		println(s"Module: ${toml.general.module}")
+		println(s"Created on: ${toml.general.timestamp}")
+		println(s"Inputs:")
+		for((name, width) <- toml.input) {
+			println(s"${name}: ${width}")
+		}
+	}
+
+	loadToml("../gcd.toml")
+
 	chisel3.Driver.execute(args, () => new Harness())
 	chisel3.Driver.execute(args, () => new VerilatorHarness())
 }

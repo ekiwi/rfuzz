@@ -1,0 +1,13 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Kevin's Scala Style
+
+[*.scala]
+end_of_line = lf
+charset = utf-8
+indent_style = tab
+
+# indent_size = 4
