@@ -76,10 +76,11 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	val cycle_data_1     = hex("80_00_00_00_00_00_00_00")
 	val cycle_data_zeros = hex("00_00_00_00_00_00_00_00")
 
-	// the same values were observed when running on the FPGA
-	// TODO: manually check whether this makes sense
-	val cov_cycle_0 = hex("01_01_03_02_01_00_03_03")
-	val cov_cycle_1 = hex("00_01_02_00_00_00_00_00")
+	// these values were manually collected by looking at
+	// the instrumented signals in the wave view
+	// and then mapped to the counters
+	val cov_cycle_0 = hex("02_01_00_03_01_02_00_03")
+	val cov_cycle_1 = hex("03_00_00_03_00_00_00_00")
 
 	send(header)
 	send(conf)
