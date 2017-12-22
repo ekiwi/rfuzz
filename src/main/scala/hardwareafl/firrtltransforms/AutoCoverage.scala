@@ -236,7 +236,7 @@ object TomlGenerator {
       val name = cond.serialize
       val dbg = getDebugInfo(stmt)
       val human = getHumanReadableExpression(cond)
-      var counterbits = 8
+      var counterbits = 1
       for(inverted <- Seq(false, true)) {
         out.println(s"""[[coverage]]""")
         out.println(s"""name = "${name}"""")

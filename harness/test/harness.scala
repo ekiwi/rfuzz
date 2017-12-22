@@ -79,8 +79,9 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	// these values were manually collected by looking at
 	// the instrumented signals in the wave view
 	// and then mapped to the counters
-	val cov_cycle_0 = hex("02_01_00_03_01_02_00_03")
-	val cov_cycle_1 = hex("03_00_00_03_00_00_00_00")
+	// 0b11011101 = 0xdd
+	// 0b10010000 = 0x90
+	val cov_cycle_0 = hex("dd_90_00_00_00_00_00_00")
 
 	send(header)
 	send(conf)
@@ -95,8 +96,6 @@ class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 		// wait a bit
 		step(4)
 		recv(cov_cycle_0)
-		step(1)
-		recv(cov_cycle_1)
 	}
 
 	// receive status
