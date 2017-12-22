@@ -384,11 +384,11 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>/home/kevin/hfuzz/hardware-afl/harness/gcdcov.v</spirit:name>
+        <spirit:name>../../../gcd.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>/home/kevin/hfuzz/hardware-afl/harness/Harness.v</spirit:name>
+        <spirit:name>../../../harness/Harness.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
