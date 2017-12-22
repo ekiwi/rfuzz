@@ -11,7 +11,7 @@ project('fuzz-server', 'cpp', default_options : ['cpp_std=c++14'], version: '0.0
 #     command : [sbt, '"run -X verilog --target-dir ."'])
 
 top = '../harness/VerilatorHarness.v'
-dependencies = ['../build/gcdcov.v']
+dependencies = ['../gcd.v']
 
 # custom verilator target
 verilator_py = find_program('verilator.py')
