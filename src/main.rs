@@ -33,7 +33,7 @@ fn main() {
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
-	let mut analysis = analysis::Analysis::new(TEST_SIZE.coverage);
+	let mut analysis = analysis::Analysis::new(TEST_SIZE);
 
 	// statistics
 	let mut runs : u64 = 0;
@@ -86,6 +86,7 @@ fn main() {
 	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
 	println!("Discovered {} new paths.", analysis.path_count());
 	println!("Discovered {} new inputs.", analysis.new_inputs_count());
+	println!("Covered {} coverage points.", analysis.coverage_count());
 	let bitmap = analysis.get_bitmap();
 	println!("Bitmap: {:?}", bitmap);
 }
