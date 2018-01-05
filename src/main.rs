@@ -110,10 +110,11 @@ fn main() {
 	for entry in q.entries() {
 		q.print_entry_summary(entry.id);
 		config.print_inputs(&entry.inputs);
+		println!("Achieved Coverage:");
 		let coverage = fuzz_one(&mut server, &entry.inputs, ii);
 		ii += 1;
 		config.print_coverage(&coverage, false);
-		println!();
+		println!("\n");
 	}
 
 	println!("Total Coverage:");

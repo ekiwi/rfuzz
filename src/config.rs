@@ -76,7 +76,41 @@ impl Config {
 	}
 
 	pub fn print_inputs(&self, inputs: &[u8]) {
-		println!("TODO: print inputs: {:?}", inputs);
+		let cycle_count = inputs.len() / self.size.input;
+		assert_eq!(cycle_count * self.size.input, inputs.len());
+
+		// print the inputs as a table! (one row per cycle)
+		let mut table = Table::new();
+
+		let mut head_row = vec![Cell::new("C")];
+		for name in self.data.input.keys() { head_row.push(Cell::new(&name)); }
+		table.add_row(Row::new(head_row));
+
+		// bits are labled left to right (the MSB is bit0!)
+		let read_bit = |cycle: usize, bit: usize| -> char {
+			let byte_ii = cycle * self.size.input + bit / 8;
+			let byte = inputs[byte_ii];
+			let bit_ii = 7 - (bit % 8);
+			let is_set = (byte & (1 << bit_ii)) != 0;
+			if is_set { '1' } else { '0' }
+		};
+
+		for cycle in 0..cycle_count {
+			let mut row = vec![Cell::new(&cycle.to_string())];
+			let mut bit = 0;
+			for (field, width) in &self.data.input {
+				let mut bit_str = String::with_capacity(*width as usize);
+				for _ in 0..*width {
+					bit_str.push(read_bit(cycle, bit));
+					bit += 1;
+				}
+				row.push(Cell::new(&bit_str));
+			}
+			table.add_row(Row::new(row));
+		}
+
+		table.printstd();
+		//println!("{:?}", inputs)
 	}
 
 	// the coverage map is inverted, i.e., a 0 means covered, a 1 means not covered
