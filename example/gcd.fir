@@ -10,9 +10,9 @@ circuit gcd :
     reg done : UInt<1>, clock with :
       reset => (reset, UInt<1>("h0"))
     reg x : UInt<32>, clock with :
-      reset => (UInt<1>("h0"), x)
+      reset => (reset, UInt<32>("h0"))
     reg y : UInt<32>, clock with :
-      reset => (UInt<1>("h0"), y)
+      reset => (reset, UInt<32>("h0"))
     node T_40 = eq(busy, UInt<1>("h0"))
     io.in.ready <= T_40
     io.out.valid <= done
