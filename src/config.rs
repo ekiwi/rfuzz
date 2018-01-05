@@ -85,7 +85,7 @@ impl Config {
 
 		// print the coverage as a table!
 		let mut table = Table::new();
-		table.add_row(row!["C?", "name", "expression", "source location"]);
+		table.add_row(row!["C?", "T?", "F?", "name", "expression", "source location"]);
 
 		// we expect each coverage point to be followed by its inverted version
 		let mut coverage_count = 0u64;
@@ -97,11 +97,15 @@ impl Config {
 			// the index of the NOT inverted signal
 			let bit_ii = 7 - (cov.index as usize - 8 * byte_ii);
 			let bit_ii_inv = bit_ii - 1;
-			let covered = ((byte >> bit_ii_inv) & 3) == 3;
+			let covered_true  = ((byte >> bit_ii) & 1) == 1;
+			let covered_false = ((byte >> bit_ii_inv) & 1) == 1;
+			let covered = covered_true && covered_false;
 			// create table row
-			let cov_str = if covered { "X" } else { "" };
+			let covd       = if covered { "X" } else { "" };
+			let covd_true  = if covered_true { "X" } else { "" };
+			let covd_false = if covered_false { "X" } else { "" };
 			let src = format!("{}:{}", cov.filename, cov.line);
-			table.add_row(row![cov_str, cov.name, cov.human, src]);
+			table.add_row(row![covd, covd_true, covd_false, cov.name, cov.human, src]);
 			// increment coverage count
 			coverage_count += if covered { 1 } else { 0 }
 		}
