@@ -16,17 +16,18 @@ use run::{FuzzServer, TestSize};
 use mutation::MutationInfo;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
-const TEST_SIZE : TestSize = TestSize { coverage: 16, input: 16 };
+const WORD_SIZE : usize = 8;
 
 fn main() {
 	// load test config
-	let test_config_file = "../hardware-afl/gcd.toml";
-	let config = config::Config::from_file(TEST_SIZE, test_config_file);
+	let test_config_file = "../hardware-afl/ICache.toml";
+	let config = config::Config::from_file(WORD_SIZE, test_config_file);
+	let test_size = config.get_test_size();
 	config.print_header();
 
 	// test runner
 	let srv_config = BufferedFuzzServerConfig {
-		test_size : TEST_SIZE,
+		test_size : test_size,
 		test_buffer_size : 64 * 1024,
 		coverage_buffer_size : 64 * 1024,
 		buffer_count: 3,
@@ -39,11 +40,11 @@ fn main() {
 	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
 
 	// queue
-	let starting_seed = vec![0u8; TEST_SIZE.input * 3];
+	let starting_seed = vec![0u8; test_size.input * 3];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
-	let mut analysis = analysis::Analysis::new(TEST_SIZE);
+	let mut analysis = analysis::Analysis::new(test_size);
 	let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
 	analysis.run(&seed_coverage);
 	// TODO: support multiple seeds

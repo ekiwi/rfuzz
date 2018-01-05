@@ -24,14 +24,25 @@ pub struct Config {
 
 
 impl Config {
-	pub fn from_file(size: TestSize, filename: &str) -> Self {
+	pub fn from_file(word_size: usize, filename: &str) -> Self {
 		let mut file = File::open(filename).expect("failed to open config");
 		let mut contents = String::new();
 		file.read_to_string(&mut contents).expect("failed to read config");
 		let data: ConfigData = toml::from_str(&contents).unwrap();
+		let size = Config::determine_test_size(word_size, &data);
 		let config = Config { size, data };
 		config.validate();
 		config
+	}
+
+	fn determine_test_size(word_size: usize, data: &ConfigData) -> TestSize {
+		let div_2_ceil = |a, b| (a + (b - 1)) / b;
+		let to_bytes = |b| div_2_ceil(div_2_ceil(b, 8), word_size) * word_size;
+
+		let input_bits : usize = data.input.values().sum::<u64>() as usize;
+		let coverage_bits : usize = data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
+
+		TestSize { input: to_bytes(input_bits), coverage: to_bytes(coverage_bits) }
 	}
 
 	fn validate(&self) {
@@ -60,6 +71,8 @@ impl Config {
 		assert!(coverage_bits <= self.size.coverage * 8);
 	}
 
+	pub fn get_test_size(&self) -> TestSize { self.size }
+
 	pub fn coverage_signal_count(&self) -> usize {
 		// WARN: this assumes that we have an inverted version of every coverage point!
 		assert!(self.data.coverage.len() % 2 == 0);
@@ -73,6 +86,8 @@ impl Config {
 		println!("Input Fields:      {}", self.data.input.len());
 		let width : u64 = self.data.input.values().sum();
 		println!("Total Input Width: {}", width);
+		println!("Allocated Bytes per Input:    {}", self.size.input);
+		println!("Allocated Bytes for Coverage: {}", self.size.coverage);
 	}
 
 	pub fn print_inputs(&self, inputs: &[u8]) {
