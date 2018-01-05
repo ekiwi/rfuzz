@@ -293,7 +293,10 @@ class AutoCoverage extends Transform {
           case ref: WRef => ref
           case other => throw new Exception(s"Unexpected mux condition that isn't a WRef! $other")
         }
-        muxConds += (cond -> stmt)
+        // skip reset, as it is not fuzzed at the moment
+        if(cond.serialize != "reset") {
+          muxConds += (cond -> stmt)
+        }
         mux
       case other => other
     }
