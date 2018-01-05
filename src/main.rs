@@ -12,15 +12,18 @@ mod analysis;
 mod queue;
 
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
-use run::{FuzzServer, TestSize};
+use run::FuzzServer;
 use mutation::MutationInfo;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
 
 fn main() {
+	let args: Vec<_> = std::env::args().collect();
+	assert!(args.len() >= 2, "Please specify the config TOML file!");
+
 	// load test config
-	let test_config_file = "../hardware-afl/ICache.toml";
+	let test_config_file = &args[1];//"../hardware-afl/ICache.toml";
 	let config = config::Config::from_file(WORD_SIZE, test_config_file);
 	let test_size = config.get_test_size();
 	config.print_header();
