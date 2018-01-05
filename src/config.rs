@@ -160,11 +160,11 @@ struct General {
 struct Coverage {
 	name: String,
 	inverted: bool,
-	index: u64,
-	counterbits: u64,
+	index: i32,
+	counterbits: i32,
 	filename: String,
-	line: u64,
-	column: u64,
+	line: i32,
+	column: i32,
 	human: String,
 }
 
