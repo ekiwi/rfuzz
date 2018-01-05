@@ -5,10 +5,13 @@
 // (and potentially extended/modified by hand)
 
 use toml;
+use config::toml::value::Datetime;
 use colored::*;
+use prettytable::Table;
+use prettytable::row::Row;
+use prettytable::cell::Cell;
 
 use std::collections::BTreeMap;
-use config::toml::value::Datetime;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -26,10 +29,38 @@ impl Config {
 		let mut contents = String::new();
 		file.read_to_string(&mut contents).expect("failed to read config");
 		let data: ConfigData = toml::from_str(&contents).unwrap();
-		Config { size, data }
+		let config = Config { size, data };
+		config.validate();
+		config
 	}
 
-	pub fn coverage_count(&self) -> usize {
+	fn validate(&self) {
+		// we currently only support 1-bit counters!
+		assert!(self.data.coverage.iter().all(|ref c| c.counterbits == 1));
+
+		// we expect each coverage point to be followed by its inverted version
+		let mut expect_inverted = false;
+		let mut last_name = String::new();
+		for cov in self.data.coverage.iter() {
+			if expect_inverted {
+				assert_eq!(cov.name, last_name);
+				assert!(cov.inverted);
+				expect_inverted = false;
+			} else {
+				assert!(!cov.inverted);
+				last_name = cov.name.clone();
+				expect_inverted = true;
+			}
+		}
+
+		// make sure the size is large enough to hold coverage and inputs
+		let input_bits : usize = self.data.input.values().sum::<u64>() as usize;
+		assert!(input_bits <= self.size.input * 8);
+		let coverage_bits : usize = self.data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
+		assert!(coverage_bits <= self.size.coverage * 8);
+	}
+
+	pub fn coverage_signal_count(&self) -> usize {
 		// WARN: this assumes that we have an inverted version of every coverage point!
 		assert!(self.data.coverage.len() % 2 == 0);
 		self.data.coverage.len() / 2
@@ -38,7 +69,7 @@ impl Config {
 	pub fn print_header(&self) {
 		println!("Fuzzing {}", self.data.general.module.bold());
 		println!("Instrumented on:   {}", self.data.general.timestamp);
-		println!("Coverage Signals:  {}", self.coverage_count());
+		println!("Coverage Signals:  {}", self.coverage_signal_count());
 		println!("Input Fields:      {}", self.data.input.len());
 		let width : u64 = self.data.input.values().sum();
 		println!("Total Input Width: {}", width);
@@ -50,7 +81,33 @@ impl Config {
 
 	// the coverage map is inverted, i.e., a 0 means covered, a 1 means not covered
 	pub fn print_coverage(&self, coverage: &[u8], inverted: bool) {
-		println!("TODO: print coverage: {:?}", coverage);
+		assert_eq!(coverage.len(), self.size.coverage);
+
+		// print the coverage as a table!
+		let mut table = Table::new();
+		table.add_row(row!["C?", "name", "expression", "source location"]);
+
+		// we expect each coverage point to be followed by its inverted version
+		let mut coverage_count = 0u64;
+		for cov in self.data.coverage.iter() {
+			if cov.inverted { continue; }
+			// check if true + false are covered (one of them is trivially true)
+			let byte_ii = (cov.index / 8) as usize;
+			let byte = if inverted { !coverage[byte_ii] } else { coverage[byte_ii] };
+			// the index of the NOT inverted signal
+			let bit_ii = 7 - (cov.index as usize - 8 * byte_ii);
+			let bit_ii_inv = bit_ii - 1;
+			let covered = ((byte >> bit_ii_inv) & 3) == 3;
+			// create table row
+			let cov_str = if covered { "X" } else { "" };
+			let src = format!("{}:{}", cov.filename, cov.line);
+			table.add_row(row![cov_str, cov.name, cov.human, src]);
+			// increment coverage count
+			coverage_count += if covered { 1 } else { 0 }
+		}
+
+		table.printstd();
+		println!("Covered a total of {}/{} signals.", coverage_count, self.coverage_signal_count());
 	}
 }
 

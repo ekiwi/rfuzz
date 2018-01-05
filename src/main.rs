@@ -3,6 +3,7 @@ extern crate time;
 extern crate toml;
 #[macro_use] extern crate serde_derive;
 extern crate colored;
+#[macro_use] extern crate prettytable;
 
 mod config;
 mod run;
