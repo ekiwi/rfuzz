@@ -1,6 +1,8 @@
 extern crate libc;
 extern crate time;
+extern crate toml;
 #[macro_use] extern crate serde_derive;
+extern crate colored;
 
 mod config;
 mod run;
@@ -18,21 +20,22 @@ const TEST_SIZE : TestSize = TestSize { coverage: 16, input: 16 };
 fn main() {
 	// load test config
 	let test_config_file = "../hardware-afl/gcd.toml";
-	config::load_from_file(test_config_file);
+	let config = config::Config::from_file(TEST_SIZE, test_config_file);
+	config.print_header();
 
 	// test runner
-	let config = BufferedFuzzServerConfig {
+	let srv_config = BufferedFuzzServerConfig {
 		test_size : TEST_SIZE,
 		test_buffer_size : 64 * 1024,
 		coverage_buffer_size : 64 * 1024,
 		buffer_count: 3,
 	};
 
-	println!("Test Buffer:     {} KiB", config.test_buffer_size / 1024);
-	println!("Coverage Buffer: {} KiB", config.coverage_buffer_size / 1024);
-	println!("Max Inputs: {}", config.test_buffer_size / 16 / 3);
+	println!("Test Buffer:     {} KiB", srv_config.test_buffer_size / 1024);
+	println!("Coverage Buffer: {} KiB", srv_config.coverage_buffer_size / 1024);
+	println!("Max Inputs: {}", srv_config.test_buffer_size / 16 / 3);
 
-	let mut server = find_one_fuzz_server(FPGA_DIR, config).expect("failed to find a fuzz server");
+	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
 
 	// queue
 	let starting_seed = vec![0u8; TEST_SIZE.input * 3];
@@ -95,6 +98,14 @@ fn main() {
 	println!("Covered {} coverage points.", analysis.coverage_count());
 	let bitmap = analysis.get_bitmap();
 	println!("Bitmap: {:?}", bitmap);
+
+	// print formated statistics
+	println!("\n\n");
+	println!("NEW: Formated Inputs and Coverage!");
+	//for
+	println!("\nTODO: iterate over discovered inputs!\n");
+	println!("Total Coverage:");
+	config.print_coverage(&bitmap, true);
 }
 
 fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
