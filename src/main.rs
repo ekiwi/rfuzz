@@ -44,6 +44,9 @@ fn main() {
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(TEST_SIZE);
+	let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
+	analysis.run(&seed_coverage);
+	// TODO: support multiple seeds
 
 	// statistics
 	let mut runs : u64 = 0;
@@ -103,7 +106,7 @@ fn main() {
 	println!("\n\n");
 	println!("NEW: Formated Inputs and Coverage!");
 
-	let mut ii = 0u16;
+	let mut ii = 1u16;
 	for entry in q.entries() {
 		q.print_entry_summary(entry.id);
 		config.print_inputs(&entry.inputs);
