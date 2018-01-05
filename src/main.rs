@@ -96,21 +96,29 @@ fn main() {
 	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
 	println!("Discovered {} new paths.", analysis.path_count());
 	println!("Discovered {} new inputs.", analysis.new_inputs_count());
-	println!("Covered {} coverage points.", analysis.coverage_count());
 	let bitmap = analysis.get_bitmap();
 	println!("Bitmap: {:?}", bitmap);
 
 	// print formated statistics
 	println!("\n\n");
 	println!("NEW: Formated Inputs and Coverage!");
-	//for
-	println!("\nTODO: iterate over discovered inputs!\n");
+
+	let mut ii = 0u16;
+	for entry in q.entries() {
+		q.print_entry_summary(entry.id);
+		config.print_inputs(&entry.inputs);
+		let coverage = fuzz_one(&mut server, &entry.inputs, ii);
+		ii += 1;
+		config.print_coverage(&coverage, false);
+		println!();
+	}
+
 	println!("Total Coverage:");
 	config.print_coverage(&bitmap, true);
 }
 
-fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
-	let (info, max) = MutationInfo::custom(0, 1);
+fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
+	let (info, max) = MutationInfo::custom(ii, 1);
 	server.push_test(&info, &input);
 	server.sync();
 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");

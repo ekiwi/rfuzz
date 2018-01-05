@@ -11,6 +11,14 @@ pub struct Entry {
 	pub fuzzing_stage: u32,
 }
 
+impl Entry {
+	fn from_internal(entry: &InternalEntry) -> Self {
+		Entry { id: entry.id,
+		        inputs: entry.inputs.clone(),
+		        fuzzing_stage: entry.fuzzing_stage }
+	}
+}
+
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub struct EntryId(u32);
 
@@ -79,12 +87,15 @@ impl Queue {
 		next
 	}
 
+	pub fn entries(&self) -> Vec<Entry> {
+		self.entries.iter().map(|ref e| Entry::from_internal(e)).collect()
+	}
 	pub fn get_next_test(&mut self) -> Entry {
 		assert!(self.active_entry.is_none());
 		let id = self.choose_next_test();
 		let entry = self.entries.get(id.0 as usize).expect("invalid entry id");
 		self.active_entry = Some(id);
-		Entry { id, inputs: entry.inputs.clone(), fuzzing_stage: entry.fuzzing_stage }
+		Entry::from_internal(entry)
 	}
 	pub fn return_test(&mut self, id: EntryId, fuzzing_stage: u32) {
 		assert_eq!(Some(id), self.active_entry);
@@ -103,6 +114,17 @@ impl Queue {
 	pub fn debug_print_entry(&self, id: EntryId) {
 		if let Some(ee) = self.entries.get(id.0 as usize) {
 			println!("{:?}", ee);
+		}
+	}
+	pub fn print_entry_summary(&self, id: EntryId) {
+		if let Some(ee) = self.entries.get(id.0 as usize) {
+			println!("{}. Queue Entry", ee.id.0);
+			if let Some(ref lineage) = ee.lineage {
+				println!("Generated from {}. Entry", lineage.parent.0);
+				println!("In stage {:?} of mutation algorithm {:?}.",
+				         lineage.mutation_id, lineage.mutation_algo);
+			}
+			// TODO: creation time
 		}
 	}
 
