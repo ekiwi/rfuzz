@@ -21,6 +21,7 @@ verilator_warnings = ['-Wno-char-subscripts', '-Wno-sign-compare',
                       '-Wno-uninitialized', '-Wno-unused-but-set-variable',
                       '-Wno-unused-parameter', '-Wno-unused-variable']
 verilator_files = ['VVerilatorHarness.h', 'VVerilatorHarness__Syms.h',
+                   'VVerilatorHarness__Inlines.h',
                    'VVerilatorHarness.cpp', 'VVerilatorHarness__Syms.cpp',
                    'verilated_vcd_c.cpp', 'verilated.cpp']
 if get_option('trace')
