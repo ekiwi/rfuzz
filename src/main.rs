@@ -1,6 +1,8 @@
 extern crate libc;
 extern crate time;
+#[macro_use] extern crate serde_derive;
 
+mod config;
 mod run;
 mod mutation;
 mod analysis;
@@ -14,6 +16,10 @@ const FPGA_DIR: &'static str = "/tmp/fpga";
 const TEST_SIZE : TestSize = TestSize { coverage: 16, input: 16 };
 
 fn main() {
+	// load test config
+	let test_config_file = "../hardware-afl/gcd.toml";
+	config::load_from_file(test_config_file);
+
 	// test runner
 	let config = BufferedFuzzServerConfig {
 		test_size : TEST_SIZE,
