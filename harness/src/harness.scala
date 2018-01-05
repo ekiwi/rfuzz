@@ -245,7 +245,7 @@ class Harness(dut_conf: DUTConfig) extends Module {
 }
 
 object HarnessGenerator extends App {
-	val conf = Config.loadToml("../gcd.toml")
+	val conf = Config.loadToml(args(0))
 	println(s"Conf: ${conf}")
 	chisel3.Driver.execute(args, () => new Harness(conf))
 	chisel3.Driver.execute(args, () => new VerilatorHarness(conf))

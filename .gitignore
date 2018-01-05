@@ -12,6 +12,7 @@ project/project/
 # temporary verilog files
 rob.v
 icache.v
+ICache.v
 gcdcov.v
 gcd.v
 

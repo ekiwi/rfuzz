@@ -6,12 +6,12 @@ sbt "run-main firrtl.Driver -i example/gcd.fir -o gcd.v -X verilog -fct hardware
 
 echo "2) Testing the Chisel Harness"
 cd harness
-sbt run
+sbt test
 cd ..
 
 echo "3) Generating the FPGA and Verilator Harness"
 cd harness
-sbt run
+sbt run "../gcd.toml"
 cd ..
 
 echo "4) Building the Verilator Harness"
