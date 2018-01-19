@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use super::TestId;
 use super::buffered::BufferSlot;
-use super::super::mutation::{ MutationInfo, MutationAlgorithmId, MutationId };
+use super::super::mutation::{ MutationInfo, MutatorId };
 
 trait IntervalProperty {
 	type ChapterT : PartialEq + Debug + Copy + Clone;
@@ -92,17 +92,17 @@ impl <T: IntervalProperty> History<T> {
 }
 
 impl IntervalProperty for MutationInfo {
-	type ChapterT = MutationAlgorithmId;
-	type IndexT = MutationId;
+	type ChapterT = MutatorId;
+	type IndexT = u32;
 	fn from_interval(chapter: Self::ChapterT, start: u64, pos: u64) -> Self {
-		let id = MutationId::from_integer_interval(start, pos);
-		MutationInfo { mutation_algo: chapter, mutation_id: id }
+		let ii = (pos - start) as u32;
+		MutationInfo { mutator: chapter, ii }
 	}
-	fn get_offset(ii: &Self::IndexT) -> u64 { ii.get_offset() }
-	fn chapter(&self) -> Self::ChapterT { self.mutation_algo }
-	fn index(&self) -> Self::IndexT { self.mutation_id }
+	fn get_offset(ii: &Self::IndexT) -> u64 { *ii as u64 }
+	fn chapter(&self) -> Self::ChapterT { self.mutator }
+	fn index(&self) -> Self::IndexT { self.ii }
 	fn is_direct_succession(old: &Self::IndexT, next: &Self::IndexT) -> bool {
-		old.is_predecessor(next)
+		*old + 1 == *next
 	}
 }
 

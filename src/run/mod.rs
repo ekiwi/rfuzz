@@ -8,7 +8,7 @@ mod pynq;
 #[cfg(target_arch = "arm")]
 mod pynqchannel;
 
-use super::mutation::{MutationInfo};
+use super::mutation::{MutationInfo, Mutator};
 
 #[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Default)]
 pub struct TestId(u64);
@@ -36,7 +36,7 @@ pub struct BasicFeedback { pub id: TestId, pub data: Vec<u8> }
 
 pub trait FuzzServer {
 	/// shedule test input for execution
-	fn push_test(&mut self, info: &MutationInfo, input : &[u8]);
+	fn run(&mut self, mutator: &Mutator);
 	/// get a copy of the coverage information from a test
 	/// the TestId can be used to retrieve further info if needed
 	fn pop_coverage(&mut self) -> Option<BasicFeedback>;

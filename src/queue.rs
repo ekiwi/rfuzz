@@ -2,20 +2,21 @@ extern crate time;
 
 use std::fs;
 use std::path;
-use mutation::{MutationAlgorithmId, MutationId};
+use std::clone::Clone;
+use mutation::{MutationInfo, MutationHistory};
 
 #[derive(Debug)]
 pub struct Entry {
 	pub id: EntryId,	// always equivalent to position in vector!
 	pub inputs: Vec<u8>,
-	pub fuzzing_stage: u32,
+	pub mutation_history: MutationHistory,
 }
 
 impl Entry {
 	fn from_internal(entry: &InternalEntry) -> Self {
 		Entry { id: entry.id,
 		        inputs: entry.inputs.clone(),
-		        fuzzing_stage: entry.fuzzing_stage }
+		        mutation_history: entry.mutation_history.clone() }
 	}
 }
 
@@ -25,8 +26,7 @@ pub struct EntryId(u32);
 #[derive(Debug)]
 struct Lineage {
 	parent: EntryId,
-	mutation_algo: MutationAlgorithmId,
-	mutation_id: MutationId,
+	mutation: MutationInfo
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ struct InternalEntry {
 	lineage: Option<Lineage>,
 	creation_time: i64,
 	// variable
-	fuzzing_stage: u32,
+	mutation_history: MutationHistory,
 	is_being_fuzzed: bool,
 }
 
@@ -46,13 +46,15 @@ impl InternalEntry {
 		let creation_time = time::get_time().sec;
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage: None, creation_time,
-		                fuzzing_stage: 0, is_being_fuzzed: false }
+		                mutation_history: MutationHistory::default(),
+		                is_being_fuzzed: false }
 	}
 	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>) -> Self {
 		let creation_time = time::get_time().sec;
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage, creation_time,
-		                fuzzing_stage: 0, is_being_fuzzed: false }
+		                mutation_history: MutationHistory::default(),
+		                is_being_fuzzed: false }
 	}
 }
 
@@ -97,18 +99,18 @@ impl Queue {
 		self.active_entry = Some(id);
 		Entry::from_internal(entry)
 	}
-	pub fn return_test(&mut self, id: EntryId, fuzzing_stage: u32) {
+	pub fn return_test(&mut self, id: EntryId, mutation_history: MutationHistory) {
 		assert_eq!(Some(id), self.active_entry);
 		let entry = self.entries.get_mut(id.0 as usize).expect("invalid entry id");
-		entry.fuzzing_stage = fuzzing_stage;
+		entry.mutation_history = mutation_history;
 		entry.is_being_fuzzed = false;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutation_algo: MutationAlgorithmId, mutation_id: MutationId) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
-			Some(Lineage { parent, mutation_algo, mutation_id }) } else { None };
+			Some(Lineage { parent, mutation }) } else { None };
 		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage))
 	}
 	pub fn debug_print_entry(&self, id: EntryId) {
@@ -122,7 +124,7 @@ impl Queue {
 			if let Some(ref lineage) = ee.lineage {
 				println!("Generated from {}. Entry", lineage.parent.0);
 				println!("In stage {:?} of mutation algorithm {:?}.",
-				         lineage.mutation_id, lineage.mutation_algo);
+				         lineage.mutation.ii, lineage.mutation.mutator);
 			}
 			// TODO: creation time
 		}

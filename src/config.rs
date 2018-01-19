@@ -72,6 +72,14 @@ impl Config {
 
 	pub fn get_test_size(&self) -> TestSize { self.size }
 
+	pub fn get_inputs(&self) -> Vec<(String,u32)> {
+		let mut ii = Vec::with_capacity(self.data.input.len());
+		for field in &self.data.input {
+			ii.push((field.name.clone(), field.width));
+		}
+		ii
+	}
+
 	pub fn coverage_signal_count(&self) -> usize {
 		// WARN: this assumes that we have an inverted version of every coverage point!
 		assert!(self.data.coverage.len() % 2 == 0);

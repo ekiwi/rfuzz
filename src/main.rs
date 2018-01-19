@@ -10,10 +10,10 @@ mod run;
 mod mutation;
 mod analysis;
 mod queue;
-
+use std::borrow::Borrow;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::FuzzServer;
-use mutation::MutationInfo;
+use mutation::MutationSchedule;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
@@ -48,9 +48,14 @@ fn main() {
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size);
-	let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
-	analysis.run(&seed_coverage);
+	// TODO: reenable once fuzz one is fixed!
+	//let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
+	//analysis.run(&seed_coverage);
+
 	// TODO: support multiple seeds
+
+	// mutation
+	let mutations = MutationSchedule::initialize(test_size, config.get_inputs());
 
 	// statistics
 	let mut runs : u64 = 0;
@@ -61,31 +66,26 @@ fn main() {
 
 	for entry_count in 0..max_entries {
 		let active_test = q.get_next_test();
+		let mut history = active_test.mutation_history;
 		println!("{}. queue entry:", entry_count + 1);
 		q.debug_print_entry(active_test.id);
-		for mutation_stage in mutation::MUTATIONS.iter() {
-			let iterator = mutation_stage.iter(active_test.inputs.len());
-			println!("running {} mutation", mutation_stage.name);
-			for mutator in iterator {
-				let mut input = active_test.inputs.clone();
-				mutator.run(&mut input);
-				server.push_test(mutator.info(), &input);
-				runs += 1;
-			}
+		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
+			println!("running {} mutation", mutations.get_name(mutator.borrow()));
+			server.run(mutator.borrow());
+			runs += mutator.max() as u64;
+
 			while let Some(feedback) = server.pop_coverage() {
 				let is_interesting = analysis.run(&feedback.data);
 				if is_interesting {
 					let (info, interesting_input) = server.get_info(feedback.id);
-					q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
+					q.add_new_test(interesting_input, info);
 					println!("New Interesting Input: {:?}", feedback.id);
 					println!("input:  {:?}", interesting_input);
 					println!("-> cov: {:?}", feedback.data);
 				}
 			}
 		}
-		// TODO: remember last fuzzing stage here (this will be easier,
-		//       once we have a MutationSchedule classe)
-		q.return_test(active_test.id, 9);
+		q.return_test(active_test.id, history);
 	}
 
 	server.sync();
@@ -93,7 +93,7 @@ fn main() {
 		let is_interesting = analysis.run(&feedback.data);
 		if is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
-			q.add_new_test(interesting_input, info.mutation_algo, info.mutation_id);
+			q.add_new_test(interesting_input, info);
 		}
 	}
 
@@ -115,9 +115,10 @@ fn main() {
 		q.print_entry_summary(entry.id);
 		config.print_inputs(&entry.inputs);
 		println!("Achieved Coverage:");
-		let coverage = fuzz_one(&mut server, &entry.inputs, ii);
+		//let coverage = fuzz_one(&mut server, &entry.inputs, ii);
 		ii += 1;
-		config.print_coverage(&coverage, false);
+		//config.print_coverage(&coverage, false);
+		println!("TODO: fix fuzz_one!");
 		println!("\n");
 	}
 
@@ -125,28 +126,29 @@ fn main() {
 	config.print_coverage(&bitmap, true);
 }
 
-fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
-	let (info, max) = MutationInfo::custom(ii, 1);
-	server.push_test(&info, &input);
-	server.sync();
-	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
-	feedback.data.to_vec()
-}
+// TODO: make work with new mutation interface!
+// fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
+// 	let (info, max) = MutationInfo::custom(ii, 1);
+// 	server.push_test(&info, &input);
+// 	server.sync();
+// 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
+// 	feedback.data.to_vec()
+// }
 
-fn fuzz_multiple(server: &mut FuzzServer, input: &[u8], count: u64) {
-	assert!(count > 0);
-	let (mut info, max) = MutationInfo::custom(0, (count+1) as u32);
-	for ii in 0..count {
-		server.push_test(&info, &input);
-		info = info.next(max).unwrap();
-	}
-	server.sync();
-	println!("input:  {:?}", input.to_vec());
-	let first_result = server.pop_coverage().expect("should get coverage back!").data.to_vec();
-	println!("-> cov[0]: {:?}", first_result);
-	for ii in 0..count-1 {
-		let next_result = server.pop_coverage().expect("should get more coverage back!").data.to_vec();
-		println!("-> cov[{}]: {:?}", ii + 1, next_result);
-		assert!(first_result == next_result);
-	}
-}
+// fn fuzz_multiple(server: &mut FuzzServer, input: &[u8], count: u64) {
+// 	assert!(count > 0);
+// 	let (mut info, max) = MutationInfo::custom(0, (count+1) as u32);
+// 	for ii in 0..count {
+// 		server.push_test(&info, &input);
+// 		info = info.next(max).unwrap();
+// 	}
+// 	server.sync();
+// 	println!("input:  {:?}", input.to_vec());
+// 	let first_result = server.pop_coverage().expect("should get coverage back!").data.to_vec();
+// 	println!("-> cov[0]: {:?}", first_result);
+// 	for ii in 0..count-1 {
+// 		let next_result = server.pop_coverage().expect("should get more coverage back!").data.to_vec();
+// 		println!("-> cov[{}]: {:?}", ii + 1, next_result);
+// 		assert!(first_result == next_result);
+// 	}
+// }

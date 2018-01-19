@@ -4,7 +4,7 @@ use std;
 use std::io::{Write, Seek};
 use std::mem;
 use super::{ TestId, BasicFeedback, FuzzServer, TestSize };
-use super::super::mutation::{ MutationInfo };
+use super::super::mutation::{ MutationInfo, Mutator };
 use super::rwint::{ReadIntsBigEndian, WriteIntsBigEndian};
 use std::collections::VecDeque;
 use super::history::TestHistory;
@@ -310,9 +310,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		}
 		None
 	}
-}
 
-impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<ChannelT> {
 	fn push_test(&mut self, info: &MutationInfo, input : &[u8]) {
 		let slot =
 			if let Some(slot) = self.active_in.add_test(input) {
@@ -326,6 +324,21 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 			};
 		let _id = self.history.new_test(info, &slot);
 		// println!("{:?} -> {:?}", slot, _id);
+	}
+}
+
+impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<ChannelT> {
+	/// shedule test input for execution
+	fn run(&mut self, mutator: &Mutator) {
+		let mutator_id = mutator.id();
+		let max = mutator.max();
+		// output of the mutator aka input to our fuzz server
+		let mut output = vec![0u8; mutator.output_size()];
+		for ii in 0..max {
+			mutator.apply(ii, &mut output);
+			// TODO: inline push test, we could save a copy here!
+			self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
+		}
 	}
 
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {
