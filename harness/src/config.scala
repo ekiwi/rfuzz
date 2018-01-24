@@ -45,7 +45,8 @@ object Config {
 	def loadToml(filename: String) : DUTConfig = {
 		case class General(filename: String, module: String, instrumented: String, timestamp: OffsetDateTime)
 		case class Coverage(name: String, inverted: Boolean, index: Int, counterbits: Int, filename: String, line: Int, column: Int, human: String)
-		case class Test(general: General, coverage: List[Coverage], input: Seq[(String, Int)])
+		case class Input(name: String, width: Int)
+		case class Test(general: General, coverage: List[Coverage], input: List[Input])
 		val Right(toml) = Toml.parseAs[Test](loadFileContent(filename))
 		// DEBUG print
 		// println(s"Module: ${toml.general.module}")
@@ -57,7 +58,7 @@ object Config {
 		// extract relevant values
 		val src = toml.general.instrumented
 		val name = toml.general.module
-		val input = toml.input
+		val input = toml.input.map{ case inp: Input => (inp.name, inp.width) }
 		val inputBits = input.map{ case (_,w) => w }.reduce(_+_)
 		val coverageSignals = toml.coverage.size
 		val coverageCounters = toml.coverage.map{ case cov: Coverage => (cov.name -> cov.counterbits) }

@@ -226,9 +226,11 @@ object TomlGenerator {
     out.println(s"""module = "${mod.name}"""")
     out.println(s"""timestamp = ${timestamp}""")
     out.println()
-    out.println(s"""[input]""")
     for(inp <- getFuzzingInputs(mod.ports)) {
-      out.println(s"""${inp.name} = ${inp.width}""")
+      out.println(s"""[[input]]""")
+      out.println(s"""name = "${inp.name}"""")
+      out.println(s"""width = ${inp.width}""")
+      out.println()
     }
     out.println()
     var index = 0
