@@ -11,7 +11,6 @@ use prettytable::Table;
 use prettytable::row::Row;
 use prettytable::cell::Cell;
 
-use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -39,7 +38,7 @@ impl Config {
 		let div_2_ceil = |a, b| (a + (b - 1)) / b;
 		let to_bytes = |b| div_2_ceil(div_2_ceil(b, 8), word_size) * word_size;
 
-		let input_bits : usize = data.input.values().sum::<u64>() as usize;
+		let input_bits : usize = data.input_bits() as usize;
 		let coverage_bits : usize = data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
 
 		TestSize { input: to_bytes(input_bits), coverage: to_bytes(coverage_bits) }
@@ -65,7 +64,7 @@ impl Config {
 		}
 
 		// make sure the size is large enough to hold coverage and inputs
-		let input_bits : usize = self.data.input.values().sum::<u64>() as usize;
+		let input_bits : usize = self.data.input_bits() as usize;
 		assert!(input_bits <= self.size.input * 8);
 		let coverage_bits : usize = self.data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
 		assert!(coverage_bits <= self.size.coverage * 8);
@@ -84,7 +83,7 @@ impl Config {
 		println!("Instrumented on:   {}", self.data.general.timestamp);
 		println!("Coverage Signals:  {}", self.coverage_signal_count());
 		println!("Input Fields:      {}", self.data.input.len());
-		let width : u64 = self.data.input.values().sum();
+		let width = self.data.input_bits();
 		println!("Total Input Width: {}", width);
 		println!("Allocated Bytes per Input:    {}", self.size.input);
 		println!("Allocated Bytes for Coverage: {}", self.size.coverage);
@@ -98,7 +97,7 @@ impl Config {
 		let mut table = Table::new();
 
 		let mut head_row = vec![Cell::new("C")];
-		for name in self.data.input.keys() { head_row.push(Cell::new(&name)); }
+		for field in &self.data.input { head_row.push(Cell::new(&field.name)); }
 		table.add_row(Row::new(head_row));
 
 		// bits are labled left to right (the MSB is bit0!)
@@ -113,9 +112,9 @@ impl Config {
 		for cycle in 0..cycle_count {
 			let mut row = vec![Cell::new(&cycle.to_string())];
 			let mut bit = 0;
-			for (field, width) in &self.data.input {
-				let mut bit_str = String::with_capacity(*width as usize);
-				for _ in 0..*width {
+			for field in &self.data.input {
+				let mut bit_str = String::with_capacity(field.width as usize);
+				for _ in 0..field.width {
 					bit_str.push(read_bit(cycle, bit));
 					bit += 1;
 				}
@@ -182,10 +181,22 @@ struct Coverage {
 	column: i32,
 	human: String,
 }
+#[derive(Debug, Deserialize)]
+struct Input {
+	name: String,
+	width: u32,
+}
+
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigData {
 	general: General,
 	coverage: Vec<Coverage>,
-	input: BTreeMap<String, u64>,
+	input: Vec<Input>,
+}
+
+impl ConfigData {
+	fn input_bits(&self) -> u32 {
+		self.input.iter().map(|ii| ii.width).sum::<u32>()
+	}
 }
