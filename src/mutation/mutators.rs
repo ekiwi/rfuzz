@@ -17,11 +17,12 @@ impl IdentityMutator {
 }
 impl Mutator for IdentityMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: 0, seed: None } }
-	fn max(&self) -> u32 { 11 }
+	fn max(&self) -> u32 { 1 }
 	fn output_size(&self) -> usize { self.inputs.len() }
 	fn apply(&self, ii: u32, output: &mut [u8]) {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
+		println!("IdMutator: out: {:?}", output);
 	}
 }
 
