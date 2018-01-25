@@ -122,7 +122,6 @@ fn main() {
 	config.print_coverage(&bitmap, true);
 }
 
-// TODO: make work with new mutation interface!
 fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
 	let mutator = mutation::identity(input);
 	server.run(mutator.borrow());
@@ -130,21 +129,3 @@ fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
 	feedback.data.to_vec()
 }
-
-// fn fuzz_multiple(server: &mut FuzzServer, input: &[u8], count: u64) {
-// 	assert!(count > 0);
-// 	let (mut info, max) = MutationInfo::custom(0, (count+1) as u32);
-// 	for ii in 0..count {
-// 		server.push_test(&info, &input);
-// 		info = info.next(max).unwrap();
-// 	}
-// 	server.sync();
-// 	println!("input:  {:?}", input.to_vec());
-// 	let first_result = server.pop_coverage().expect("should get coverage back!").data.to_vec();
-// 	println!("-> cov[0]: {:?}", first_result);
-// 	for ii in 0..count-1 {
-// 		let next_result = server.pop_coverage().expect("should get more coverage back!").data.to_vec();
-// 		println!("-> cov[{}]: {:?}", ii + 1, next_result);
-// 		assert!(first_result == next_result);
-// 	}
-// }
