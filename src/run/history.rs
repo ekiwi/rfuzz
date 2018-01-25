@@ -12,6 +12,7 @@ trait IntervalProperty {
 	fn get_offset(ii: &Self::IndexT) -> u64;
 	fn chapter(&self) -> Self::ChapterT;
 	fn index(&self) -> Self::IndexT;
+	fn is_first(&self) -> bool;
 }
 
 #[derive(Clone)]
@@ -46,9 +47,13 @@ impl <T: IntervalProperty> History<T> {
 		          start: TestId::default() }
 	}
 	fn new_test(&mut self, prop: &T, last_id: TestId) {
-		if self.active_chapter == Some(prop.chapter()) {
+		let same_chapter = self.active_chapter == Some(prop.chapter());
+		if same_chapter && !prop.is_first() {
+			// Catches mistakes like [(MutatorA, 0), (MutatorA, 2)]
+			// Going back to the start is fine, e.g.,
+			// [(MutatorA, 2), (MutatorA, 0)]
 			assert!(T::is_direct_succession(&self.last_index, &prop.index()),
-				"tests must be consecutive");
+				"tests must be consecutive ({:?} -> {:?})", self.last_index, prop.index());
 		} else {
 			// remember previous if it existed
 			if let Some(chapter) = self.active_chapter {
@@ -104,6 +109,7 @@ impl IntervalProperty for MutationInfo {
 	fn is_direct_succession(old: &Self::IndexT, next: &Self::IndexT) -> bool {
 		*old + 1 == *next
 	}
+	fn is_first(&self) -> bool { self.ii == 0 }
 }
 
 impl IntervalProperty for BufferSlot {
@@ -119,6 +125,7 @@ impl IntervalProperty for BufferSlot {
 	fn is_direct_succession(old: &Self::IndexT, next: &Self::IndexT) -> bool {
 		*old + 1 == *next
 	}
+	fn is_first(&self) -> bool { self.offset == 0 }
 }
 
 
