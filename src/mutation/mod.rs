@@ -1,7 +1,7 @@
 mod format;
 mod mutators;
 
-use std::collections::{ HashMap, HashSet };
+use std::collections::{ HashMap, HashSet, BTreeMap };
 use self::format::InputFormat;
 use run::TestSize;
 
@@ -19,7 +19,7 @@ pub struct MutationSchedule {
 	/// length of input in bytes including padding
 	input_size: usize,
 	///
-	mutators: HashMap<u64, MutatorEntry>
+	mutators: BTreeMap<u64, MutatorEntry>
 }
 
 impl MutationSchedule {
@@ -27,7 +27,7 @@ impl MutationSchedule {
 		let format = InputFormat::new(input);
 		let input_size = test_size.input;
 		let list = mutators::get_list();
-		let mut mutators = HashMap::with_capacity(list.len());
+		let mut mutators = BTreeMap::new(); //with_capacity(list.len());
 		for mutator in list {
 			mutators.insert(mutator.id, mutator);
 		}
