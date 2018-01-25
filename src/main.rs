@@ -13,7 +13,6 @@ mod queue;
 use std::borrow::Borrow;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::FuzzServer;
-use mutation::MutationSchedule;
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
@@ -48,14 +47,12 @@ fn main() {
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size);
-	// TODO: reenable once fuzz one is fixed!
-	//let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
-	//analysis.run(&seed_coverage);
-
+	let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
+	analysis.run(&seed_coverage);
 	// TODO: support multiple seeds
 
 	// mutation
-	let mutations = MutationSchedule::initialize(test_size, config.get_inputs());
+	let mutations = mutation::MutationSchedule::initialize(test_size, config.get_inputs());
 
 	// statistics
 	let mut runs : u64 = 0;
@@ -115,10 +112,9 @@ fn main() {
 		q.print_entry_summary(entry.id);
 		config.print_inputs(&entry.inputs);
 		println!("Achieved Coverage:");
-		//let coverage = fuzz_one(&mut server, &entry.inputs, ii);
+		let coverage = fuzz_one(&mut server, &entry.inputs, ii);
 		ii += 1;
-		//config.print_coverage(&coverage, false);
-		println!("TODO: fix fuzz_one!");
+		config.print_coverage(&coverage, false);
 		println!("\n");
 	}
 
@@ -127,13 +123,13 @@ fn main() {
 }
 
 // TODO: make work with new mutation interface!
-// fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
-// 	let (info, max) = MutationInfo::custom(ii, 1);
-// 	server.push_test(&info, &input);
-// 	server.sync();
-// 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
-// 	feedback.data.to_vec()
-// }
+fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
+	let mutator = mutation::identity(input);
+	server.run(mutator.borrow());
+	server.sync();
+	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
+	feedback.data.to_vec()
+}
 
 // fn fuzz_multiple(server: &mut FuzzServer, input: &[u8], count: u64) {
 // 	assert!(count > 0);

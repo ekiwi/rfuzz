@@ -1,48 +1,29 @@
-////////////////////////////////////////////////////////////////////////////////
-// mutators
-////////////////////////////////////////////////////////////////////////////////
+// Copyright 2018, Kevin Laeufer <laeufer@cs.berkeley.edu>
 
 use super::{ Mutator, MutatorEntry, MutatorId };
 use super::format::InputFormat;
 
-macro_rules!  v { ($major:expr, $minor:expr) => {($major as u32) << 16 | ($minor as u32) }; }
-macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version as u64) }; }
 
-macro_rules! afl_mut {
-	($uid:expr, $name:expr, $version:expr, $max:expr, $mutate:expr) => {
-		MutatorEntry {
-			id: id!($uid, $version),
-			name: String::from($name),
-			version: $version,
-			deterministic: true,
-			create: Box::new(|_: &InputFormat, seed: &[u8]| {
-				Box::new(AflStyleConstLengthMutator {
-					max_fn: $max,
-					mutate: $mutate,
-					id: id!($uid, $version),
-					inputs: seed.to_vec()
-				})
-			})}
-		};
+////////////////////////////////////////////////////////////////////////////////
+// Special Case Mutators
+////////////////////////////////////////////////////////////////////////////////
+
+/// used for running a single input through the fuzzer
+pub struct IdentityMutator { inputs: Vec<u8> }
+impl IdentityMutator {
+	pub fn create(seed: &[u8]) -> Self {
+		IdentityMutator { inputs: seed.to_vec() }
+	}
 }
-
-
-
-
-pub(crate) fn get_list() -> Vec<MutatorEntry> {
-	vec![
-		afl_mut!( 1, "bitflip  1/1", v!(1,0), bitflip_1_max,  bitflip_1),
-		afl_mut!( 2, "bitflip  2/1", v!(1,0), bitflip_2_max,  bitflip_2),
-		afl_mut!( 3, "bitflip  4/1", v!(1,0), bitflip_4_max,  bitflip_4),
-		afl_mut!( 4, "bitflip  8/8", v!(1,0), byteflip_1_max, byteflip_1),
-		afl_mut!( 5, "bitflip 16/8", v!(1,0), byteflip_2_max, byteflip_2),
-		afl_mut!( 6, "bitflip 32/8", v!(1,0), byteflip_4_max, byteflip_4),
-		afl_mut!( 7, "arith    8/8", v!(1,0),    arith_8_max,    arith_8),
-		afl_mut!( 8, "arith   16/8", v!(1,0),   arith_16_max,   arith_16),
-		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32)
-	]
+impl Mutator for IdentityMutator {
+	fn id(&self) -> MutatorId { MutatorId { id: 0, seed: None } }
+	fn max(&self) -> u32 { 11 }
+	fn output_size(&self) -> usize { self.inputs.len() }
+	fn apply(&self, ii: u32, output: &mut [u8]) {
+		assert_eq!(self.inputs.len(), output.len());
+		output.copy_from_slice(&self.inputs);
+	}
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // AFL Style Mutators
@@ -64,6 +45,28 @@ impl Mutator for AflStyleConstLengthMutator {
 		output.copy_from_slice(&self.inputs);
 		(self.mutate)(ii, output);
 	}
+}
+
+// helper macros to declare AFL style mutators in the registry at the bottom of
+// this submodule
+macro_rules!  v { ($major:expr, $minor:expr) => {($major as u32) << 16 | ($minor as u32) }; }
+macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version as u64) }; }
+macro_rules! afl_mut {
+	($uid:expr, $name:expr, $version:expr, $max:expr, $mutate:expr) => {
+		MutatorEntry {
+			id: id!($uid, $version),
+			name: String::from($name),
+			version: $version,
+			deterministic: true,
+			create: Box::new(|_: &InputFormat, seed: &[u8]| {
+				Box::new(AflStyleConstLengthMutator {
+					max_fn: $max,
+					mutate: $mutate,
+					id: id!($uid, $version),
+					inputs: seed.to_vec()
+				})
+			})}
+		};
 }
 
 fn bitflip_1_max(len: u32) -> u32 { len * 8 }
@@ -178,3 +181,25 @@ fn arith_32(ii: u32, input: &mut [u8]) {
 	let res = if add_not_sub { a.wrapping_add(b) } else { a.wrapping_sub(b) } as u32;
 	write_u32(endian, input, byte, res);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Mutator Registry
+////////////////////////////////////////////////////////////////////////////////
+// This needs to be at the bottom of the file because of our macro use,
+// which is an unfortunate shortcoming of Rust.
+
+
+pub(crate) fn get_list() -> Vec<MutatorEntry> {
+	vec![
+		afl_mut!( 1, "bitflip  1/1", v!(1,0), bitflip_1_max,  bitflip_1),
+		afl_mut!( 2, "bitflip  2/1", v!(1,0), bitflip_2_max,  bitflip_2),
+		afl_mut!( 3, "bitflip  4/1", v!(1,0), bitflip_4_max,  bitflip_4),
+		afl_mut!( 4, "bitflip  8/8", v!(1,0), byteflip_1_max, byteflip_1),
+		afl_mut!( 5, "bitflip 16/8", v!(1,0), byteflip_2_max, byteflip_2),
+		afl_mut!( 6, "bitflip 32/8", v!(1,0), byteflip_4_max, byteflip_4),
+		afl_mut!( 7, "arith    8/8", v!(1,0),    arith_8_max,    arith_8),
+		afl_mut!( 8, "arith   16/8", v!(1,0),   arith_16_max,   arith_16),
+		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32)
+	]
+}
+

@@ -51,6 +51,10 @@ impl MutationSchedule {
 	}
 }
 
+pub fn identity(seed: &[u8]) -> Box<Mutator> {
+	Box::new(mutators::IdentityMutator::create(seed))
+}
+
 pub(crate) struct MutatorEntry {
 	id: u64,
 	name: String,
