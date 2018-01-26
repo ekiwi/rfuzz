@@ -1,7 +1,7 @@
 mod format;
 mod mutators;
 
-use std::collections::{ HashMap, HashSet, BTreeMap };
+use std::collections::{ HashMap, HashSet };
 use self::format::InputFormat;
 use run::TestSize;
 
@@ -19,23 +19,24 @@ pub struct MutationSchedule {
 	/// length of input in bytes including padding
 	input_size: usize,
 	///
-	mutators: BTreeMap<u64, MutatorEntry>
+	mutators: Vec<MutatorEntry>,
+	mutator_id_to_name: HashMap<u64, String>
 }
 
 impl MutationSchedule {
 	pub fn initialize(test_size: TestSize, input: Vec<(String,u32)>) -> Self {
 		let input_size = test_size.input;
 		let format = InputFormat::new(input, input_size);
-		let list = mutators::get_list();
-		let mut mutators = BTreeMap::new(); //with_capacity(list.len());
-		for mutator in list {
-			mutators.insert(mutator.id, mutator);
+		let mutators = mutators::get_list();
+		let mut mutator_id_to_name = HashMap::with_capacity(mutators.len());
+		for mutator in &mutators {
+			mutator_id_to_name.insert(mutator.id, mutator.name.clone());
 		}
-		MutationSchedule { format, input_size, mutators }
+		MutationSchedule { format, input_size, mutators, mutator_id_to_name }
 	}
 
 	pub fn get_mutator(&self, history: &mut MutationHistory, seed: &[u8]) -> Option<Box<Mutator>> {
-		for mutator in self.mutators.values() {
+		for mutator in &self.mutators {
 			assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
 			// TODO: for non-deterministic mutators, the single hash set is not really going to work....
 			if !history.finished.contains(&mutator.id) {
@@ -47,7 +48,7 @@ impl MutationSchedule {
 	}
 
 	pub fn get_name(&self, id: MutatorId) -> &str {
-		&self.mutators[&id.id].name
+		&self.mutator_id_to_name[&id.id]
 	}
 }
 
