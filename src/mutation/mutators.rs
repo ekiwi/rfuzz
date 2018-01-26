@@ -140,7 +140,7 @@ impl Mutator for IdentityMutator {
 	fn apply(&self, ii: u32, output: &mut [u8]) {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
-		println!("IdMutator: out: {:?}", output);
+		//println!("IdMutator: out: {:?}", output);
 	}
 }
 
