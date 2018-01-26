@@ -18,7 +18,7 @@ pub struct InputFormat {
 }
 
 impl InputFormat {
-	pub fn new(field_name_bits: Vec<(String,u32)>) -> Self {
+	pub fn new(field_name_bits: Vec<(String,u32)>, input_size: usize) -> Self {
 		let mut bits = 0 as u32;
 		let mut fields = Vec::new();
 		let mut last_bits = u32::max_value();
@@ -29,8 +29,9 @@ impl InputFormat {
 			fields.push(ff);
 			bits += b;
 		}
-		let min_bytes = (bits + 7) / 8;
-		let size = min_bytes + (min_bytes % 4);
+		// input size depends on the fuzz server and buffer size used
+		let size = input_size as u32;
+		assert!(size * 8 >= bits, "Input size is too small for the bits present in one input!");
 		InputFormat { size, bits, fields }
 	}
 	pub fn size(&self) -> usize { self.size as usize }
@@ -45,6 +46,7 @@ pub struct Test {
 impl Test {
 	pub fn wrap(format: &InputFormat, data: &[u8]) -> Self {
 		let cycle_count = (data.len() / format.size()) as u32;
+		// TODO format.size does not mean what you think it means!
 		assert_eq!(format.size() * cycle_count as usize, data.len(),
 		           "test does not contain an integer number of cycles");
 		let bits_per_cycle = format.bits;

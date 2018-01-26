@@ -24,8 +24,8 @@ pub struct MutationSchedule {
 
 impl MutationSchedule {
 	pub fn initialize(test_size: TestSize, input: Vec<(String,u32)>) -> Self {
-		let format = InputFormat::new(input);
 		let input_size = test_size.input;
+		let format = InputFormat::new(input, input_size);
 		let list = mutators::get_list();
 		let mut mutators = BTreeMap::new(); //with_capacity(list.len());
 		for mutator in list {
