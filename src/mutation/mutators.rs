@@ -1,7 +1,125 @@
 // Copyright 2018, Kevin Laeufer <laeufer@cs.berkeley.edu>
 
 use super::{ Mutator, MutatorEntry, MutatorId };
-use super::format::InputFormat;
+use super::format::{ InputFormat, Test };
+
+macro_rules!  v { ($major:expr, $minor:expr) => {($major as u32) << 16 | ($minor as u32) }; }
+macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version as u64) }; }
+
+////////////////////////////////////////////////////////////////////////////////
+// Field Structure Aware Mutators
+////////////////////////////////////////////////////////////////////////////////
+
+/// wrapper that contains some functionality/state that is common to all
+/// field structure aware mutators
+struct FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
+	id: u64,
+	mutator: M,
+	test: Test,
+	inputs: Vec<u8>,
+}
+
+impl<M> FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
+	fn create(id: u64, format: &InputFormat, seed: &[u8]) -> Self {
+		let test = Test::wrap(format, seed);
+		let mutator = M::initialize(format, test.cycle_count());
+		let inputs = seed.to_vec();
+		FieldAwareMutatorWrapper { id, mutator, test, inputs }
+	}
+}
+
+impl<M> Mutator for FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
+	fn id(&self) -> MutatorId { MutatorId { id: self.id, seed: None } }
+	fn max(&self) -> u32 { self.mutator.max() }
+	// TODO: allow change in seed size
+	fn output_size(&self) -> usize { self.inputs.len() }
+	fn apply(&self, ii: u32, output: &mut [u8]) {
+		assert_eq!(self.inputs.len(), output.len());
+		output.copy_from_slice(&self.inputs);
+		self.mutator.apply(ii, &self.test, output);
+	}
+}
+
+// helper macros to declare field structure aware mutators
+/// in the registry at the bottom of this submodule
+macro_rules! struct_mut {
+	($uid:expr, $name:expr, $version:expr, $mutator:ty) => {
+		MutatorEntry {
+			id: id!($uid, $version),
+			name: String::from($name),
+			version: $version,
+			deterministic: true,
+			create: Box::new(|format: &InputFormat, seed: &[u8]| {
+				Box::new(FieldAwareMutatorWrapper::<$mutator>::create(
+					id!($uid, $version), format, seed))
+			})}
+		};
+}
+
+trait FieldAwareMutator {
+	fn initialize(format: &InputFormat, cycle_count: u32) -> Self;
+	fn max(&self) -> u32;
+	fn apply(&self, ii: u32, test: &Test, data: &mut [u8]);
+}
+
+
+/// try all permutations for all bitflags in each cycle
+struct HorizontalBitFlagPermuation {
+	/// number of flag bits; all flags will be adjacent
+	flag_width: u32,
+	/// first flag bit
+	flag_pos: u32,
+	/// calculated during initalization
+	max: u32,
+	permuations: u32,
+}
+impl FieldAwareMutator for HorizontalBitFlagPermuation {
+	fn initialize(format : &InputFormat, cycle_count: u32) -> Self {
+		let max_flag_size = 1u32;
+		let ff = &format.fields;
+		let flag_width = ff.iter().filter(|f| f.bits <= max_flag_size).count() as u32;
+		let flag_pos = ff.iter().filter(|f| f.bits <= max_flag_size).next().map(|f| f.pos).unwrap_or(0);
+		let permuations = 2u32.pow(flag_width) - 1;
+		let max = cycle_count * permuations;
+		HorizontalBitFlagPermuation { flag_width, flag_pos, max, permuations}
+	}
+	fn max(&self) -> u32 { self.max }
+	fn apply(&self, ii: u32, test: &Test, data: &mut [u8]) {
+		let cycle_num =  ii / self.permuations;
+		let bitflips  = (ii % self.permuations) + 1;
+		test.field(self.flag_pos, self.flag_width).unwrap()
+			.in_cycle(cycle_num).unwrap()
+			.flip(data, bitflips as u64);
+	}
+}
+
+/// try all permutations for each bitflag in all cycles
+struct VerticalBitFlagPermuation {
+	/// number of flag bits; all flags will be adjacent
+	flag_width: u32,
+	/// first flag bit
+	flag_pos: u32,
+	/// calculated during initalization
+	max: u32,
+	permuations: u32,
+}
+impl FieldAwareMutator for VerticalBitFlagPermuation {
+	fn initialize(format : &InputFormat, cycle_count: u32) -> Self {
+		let max_flag_size = 1u32;
+		let ff = &format.fields;
+		let flag_width = ff.iter().filter(|f| f.bits <= max_flag_size).count() as u32;
+		let flag_pos = ff.iter().filter(|f| f.bits <= max_flag_size).next().map(|f| f.pos).unwrap_or(0);
+		let permuations = 2u32.pow(cycle_count);
+		let max = (flag_width * permuations);
+		VerticalBitFlagPermuation { flag_width, flag_pos, max, permuations}
+	}
+	fn max(&self) -> u32 { self.max }
+	fn apply(&self, ii: u32, test: &Test, data: &mut [u8]) {
+		let flag_id = ii / self.flag_width;
+		let bitflips = ii % self.permuations;
+		test.field(self.flag_pos + flag_id, 1).unwrap().flip(data, bitflips as u64);
+	}
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,8 +168,6 @@ impl Mutator for AflStyleConstLengthMutator {
 
 // helper macros to declare AFL style mutators in the registry at the bottom of
 // this submodule
-macro_rules!  v { ($major:expr, $minor:expr) => {($major as u32) << 16 | ($minor as u32) }; }
-macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version as u64) }; }
 macro_rules! afl_mut {
 	($uid:expr, $name:expr, $version:expr, $max:expr, $mutate:expr) => {
 		MutatorEntry {
@@ -200,7 +316,9 @@ pub(crate) fn get_list() -> Vec<MutatorEntry> {
 		afl_mut!( 6, "bitflip 32/8", v!(1,0), byteflip_4_max, byteflip_4),
 		afl_mut!( 7, "arith    8/8", v!(1,0),    arith_8_max,    arith_8),
 		afl_mut!( 8, "arith   16/8", v!(1,0),   arith_16_max,   arith_16),
-		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32)
+		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32),
+		struct_mut!(10, "horizontal bit flag permuation", v!(0,1), HorizontalBitFlagPermuation),
+		struct_mut!(11, "vertical bit flag permuation",   v!(0,1), VerticalBitFlagPermuation)
 	]
 }
 
