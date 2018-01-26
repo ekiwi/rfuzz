@@ -46,8 +46,8 @@ impl MutationSchedule {
 		None
 	}
 
-	pub fn get_name(&self, mutator: &Mutator) -> &str {
-		&self.mutators[&mutator.id().id].name
+	pub fn get_name(&self, id: MutatorId) -> &str {
+		&self.mutators[&id.id].name
 	}
 }
 

@@ -67,7 +67,7 @@ fn main() {
 		println!("{}. queue entry:", entry_count + 1);
 		q.debug_print_entry(active_test.id);
 		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
-			println!("running {} mutation", mutations.get_name(mutator.borrow()));
+			println!("running {} mutation", mutations.get_name(mutator.id()));
 			server.run(mutator.borrow());
 			runs += mutator.max() as u64;
 
@@ -109,7 +109,7 @@ fn main() {
 
 	let mut ii = 1u16;
 	for entry in q.entries() {
-		q.print_entry_summary(entry.id);
+		q.print_entry_summary(entry.id, &mutations);
 		config.print_inputs(&entry.inputs);
 		println!("Achieved Coverage:");
 		let coverage = fuzz_one(&mut server, &entry.inputs, ii);

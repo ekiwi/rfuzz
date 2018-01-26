@@ -3,7 +3,7 @@ extern crate time;
 use std::fs;
 use std::path;
 use std::clone::Clone;
-use mutation::{MutationInfo, MutationHistory};
+use mutation::{MutationInfo, MutationHistory, MutationSchedule};
 
 #[derive(Debug)]
 pub struct Entry {
@@ -118,13 +118,14 @@ impl Queue {
 			println!("{:?}", ee);
 		}
 	}
-	pub fn print_entry_summary(&self, id: EntryId) {
+	pub fn print_entry_summary(&self, id: EntryId, mutations: &MutationSchedule) {
 		if let Some(ee) = self.entries.get(id.0 as usize) {
 			println!("{}. Queue Entry", ee.id.0);
 			if let Some(ref lineage) = ee.lineage {
 				println!("Generated from {}. Entry", lineage.parent.0);
 				println!("In stage {:?} of mutation algorithm {:?}.",
-				         lineage.mutation.ii, lineage.mutation.mutator);
+				         lineage.mutation.ii,
+				         mutations.get_name(lineage.mutation.mutator));
 			}
 			// TODO: creation time
 		}
