@@ -17,12 +17,28 @@ use run::FuzzServer;
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
 
+#[derive(Debug)]
+struct Args {
+	flag_print_queue: bool,
+	flag_print_total_cov: bool
+}
+
+impl Default for Args {
+	fn default() -> Self {
+		Args { flag_print_queue: false, flag_print_total_cov: false }
+	}
+}
+
 fn main() {
-	let args: Vec<_> = std::env::args().collect();
-	assert!(args.len() >= 2, "Please specify the config TOML file!");
+	let s_args: Vec<_> = std::env::args().collect();
+	assert!(s_args.len() >= 2, "Please specify the config TOML file!");
+
+	// TODO: actually parse command line args, e.g. with:
+	// https://github.com/docopt/docopt.rs or https://clap.rs
+	let args = Args::default();
 
 	// load test config
-	let test_config_file = &args[1];//"../hardware-afl/ICache.toml";
+	let test_config_file = &s_args[1];//"../hardware-afl/ICache.toml";
 	let config = config::Config::from_file(WORD_SIZE, test_config_file);
 	let test_size = config.get_test_size();
 	config.print_header();
@@ -64,10 +80,9 @@ fn main() {
 	for entry_count in 0..max_entries {
 		let active_test = q.get_next_test();
 		let mut history = active_test.mutation_history;
-		println!("{}. queue entry:", entry_count + 1);
-		q.debug_print_entry(active_test.id);
+		q.print_entry_summary(active_test.id, &mutations);
 		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
-			println!("running {} mutation", mutations.get_name(mutator.id()));
+			// println!("running {} mutation", mutations.get_name(mutator.id()));
 			server.run(mutator.borrow());
 			runs += mutator.max() as u64;
 
@@ -76,9 +91,9 @@ fn main() {
 				if is_interesting {
 					let (info, interesting_input) = server.get_info(feedback.id);
 					q.add_new_test(interesting_input, info);
-					println!("New Interesting Input: {:?}", feedback.id);
-					println!("input:  {:?}", interesting_input);
-					println!("-> cov: {:?}", feedback.data);
+					//println!("New Interesting Input: {:?}", feedback.id);
+					//println!("input:  {:?}", interesting_input);
+					//println!("-> cov: {:?}", feedback.data);
 				}
 			}
 		}
@@ -94,32 +109,40 @@ fn main() {
 		}
 	}
 
+	// final bitmap
+	let bitmap = analysis.get_bitmap();
+
+	// print inputs from queue
+	if args.flag_print_queue {
+		println!("\n");
+		println!("Formated Inputs and Coverage!");
+
+		let mut ii = 1u16;
+		for entry in q.entries() {
+			q.print_entry_summary(entry.id, &mutations);
+			config.print_inputs(&entry.inputs);
+			println!("Achieved Coverage:");
+			let coverage = fuzz_one(&mut server, &entry.inputs, ii);
+			ii += 1;
+			config.print_coverage(&coverage, false);
+			println!("\n");
+		}
+	}
+
+	if args.flag_print_total_cov {
+		println!("Total Coverage:");
+		config.print_coverage(&bitmap, true);
+	}
+
+
 	// print statistics
 	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
 	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
 	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
 	println!("Discovered {} new paths.", analysis.path_count());
 	println!("Discovered {} new inputs.", analysis.new_inputs_count());
-	let bitmap = analysis.get_bitmap();
 	println!("Bitmap: {:?}", bitmap);
 
-	// print formated statistics
-	println!("\n\n");
-	println!("NEW: Formated Inputs and Coverage!");
-
-	let mut ii = 1u16;
-	for entry in q.entries() {
-		q.print_entry_summary(entry.id, &mutations);
-		config.print_inputs(&entry.inputs);
-		println!("Achieved Coverage:");
-		let coverage = fuzz_one(&mut server, &entry.inputs, ii);
-		ii += 1;
-		config.print_coverage(&coverage, false);
-		println!("\n");
-	}
-
-	println!("Total Coverage:");
-	config.print_coverage(&bitmap, true);
 }
 
 fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
