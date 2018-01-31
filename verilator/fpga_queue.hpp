@@ -23,6 +23,7 @@
 // struct Test {
 //     Input inputs[input_count];
 // }
+// sizeof(Input) = round_up_to_multiple_of_64(input_bits);
 //
 // Coverage Data Format (FPGA -> CPU)
 // ==================================
@@ -32,8 +33,10 @@
 //     Coverage coverage[test_count];
 //     uint64_t reserved_status;
 // }
+// sizeof(Coverage) = round_up_to_multiple_of_64(coverage_bits);
+//
 // Every data item is 64bit word aligned!
-// TODO: deal with endianess issues.
+// All integers are saved to memory in big endian format!
 
 
 
