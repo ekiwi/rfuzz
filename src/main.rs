@@ -1,5 +1,6 @@
 extern crate libc;
 extern crate time;
+extern crate rand;
 extern crate toml;
 #[macro_use] extern crate serde_derive;
 extern crate colored;
@@ -10,7 +11,7 @@ mod run;
 mod mutation;
 mod analysis;
 mod queue;
-use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::FuzzServer;
 
@@ -83,8 +84,7 @@ fn main() {
 		q.print_entry_summary(active_test.id, &mutations);
 		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
 			// println!("running {} mutation", mutations.get_name(mutator.id()));
-			server.run(mutator.borrow());
-			runs += mutator.max() as u64;
+			runs += server.run(mutator) as u64;
 
 			while let Some(feedback) = server.pop_coverage() {
 				let is_interesting = analysis.run(&feedback.data);
@@ -147,7 +147,7 @@ fn main() {
 
 fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
 	let mutator = mutation::identity(input);
-	server.run(mutator.borrow());
+	server.run(mutator);
 	server.sync();
 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
 	feedback.data.to_vec()

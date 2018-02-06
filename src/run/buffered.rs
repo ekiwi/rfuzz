@@ -329,7 +329,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 
 impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<ChannelT> {
 	/// shedule test input for execution
-	fn run(&mut self, mutator: &Mutator) {
+	fn run(&mut self, mut mutator: Box<Mutator>) -> u32 {
 		let mutator_id = mutator.id();
 		let max = mutator.max();
 		// output of the mutator aka input to our fuzz server
@@ -339,6 +339,7 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 			// TODO: inline push test, we could save a copy here!
 			self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
 		}
+		max
 	}
 
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {
