@@ -77,7 +77,9 @@ fn main() {
 	// TODO: support multiple seeds
 
 	// mutation
-	let mutations = mutation::MutationSchedule::initialize(test_size, config.get_inputs());
+	let mut_config = mutation::MutationScheduleConfig {
+		skip_deterministic: true, skip_non_deterministic: false };
+	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics
 	let mut runs : u64 = 0;
