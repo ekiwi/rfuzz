@@ -15,8 +15,14 @@ pub struct MutationHistory {
 	finished: HashSet<u64>
 }
 
+pub struct MutationScheduleConfig {
+	pub skip_deterministic: bool,
+	pub skip_non_deterministic: bool,
+}
+
 /// contains a list of possible mutations
 pub struct MutationSchedule {
+	config: MutationScheduleConfig,
 	format: InputFormat,
 	/// length of input in bytes including padding
 	input_size: usize,
@@ -26,7 +32,7 @@ pub struct MutationSchedule {
 }
 
 impl MutationSchedule {
-	pub fn initialize(test_size: TestSize, input: Vec<(String,u32)>) -> Self {
+	pub fn initialize(config: MutationScheduleConfig, test_size: TestSize, input: Vec<(String,u32)>) -> Self {
 		let input_size = test_size.input;
 		let format = InputFormat::new(input, input_size);
 		let mutators = mutators::get_list();
@@ -36,25 +42,28 @@ impl MutationSchedule {
 		}
 		// TODO: fix horrible hack!!!
 		mutator_id_to_name.insert(mutators::RANDOM_BITFLIP_MUTATOR_ID, "random biflips".to_string());
-		MutationSchedule { format, input_size, mutators, mutator_id_to_name }
+		MutationSchedule { config, format, input_size, mutators, mutator_id_to_name }
 	}
 
 	pub fn get_mutator(&self, history: &mut MutationHistory, inputs: &[u8]) -> Option<Box<Mutator>> {
-		for mutator in &self.mutators {
-			assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
-			// TODO: for non-deterministic mutators, the single hash set is not really going to work....
-			if !history.finished.contains(&mutator.id) {
-				history.finished.insert(mutator.id);
-				return Some((mutator.create)(&self.format, inputs));
+		if !self.config.skip_deterministic {
+			for mutator in &self.mutators {
+				assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
+				// TODO: for non-deterministic mutators, the single hash set is not really going to work....
+				if !history.finished.contains(&mutator.id) {
+					history.finished.insert(mutator.id);
+					return Some((mutator.create)(&self.format, inputs));
+				}
 			}
 		}
 		// hacky non-deterministic stage
-		{
+		if !self.config.skip_non_deterministic {
 			let mut rng = rand::thread_rng();
 			let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
 			let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
-			Some(mutator)
+			return Some(mutator);
 		}
+		None
 	}
 
 	pub fn get_name(&self, id: MutatorId) -> &str {
