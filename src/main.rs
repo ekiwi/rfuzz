@@ -29,7 +29,7 @@ struct Args {
 
 impl Default for Args {
 	fn default() -> Self {
-		Args { flag_print_queue: false, flag_print_total_cov: true }
+		Args { flag_print_queue: true, flag_print_total_cov: true }
 	}
 }
 
@@ -83,7 +83,7 @@ fn main() {
 	let mut runs : u64 = 0;
 	let start = time::PreciseTime::now();
 
-	let max_entries = 32;
+	let max_entries = 1000;
 	let max_children = 100000;
 	println!("fuzzing a maximum of {} queue entries", max_entries);
 
