@@ -1,10 +1,75 @@
 // Copyright 2018, Kevin Laeufer <laeufer@cs.berkeley.edu>
 
-use super::{ Mutator, MutatorEntry, MutatorId };
+use super::{ Mutator, MutatorEntry, MutatorId, Seed };
 use super::format::{ InputFormat, Test };
 
 macro_rules!  v { ($major:expr, $minor:expr) => {($major as u32) << 16 | ($minor as u32) }; }
 macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version as u64) }; }
+
+use rand;
+use rand::{ SeedableRng, Rng };
+
+////////////////////////////////////////////////////////////////////////////////
+// Random Mutators
+////////////////////////////////////////////////////////////////////////////////
+// TODO
+// For now there is only one random mutator and it will need to be handled as
+// a special case in the mutation schedule.
+
+
+
+pub struct RandomBitflipMutator {
+	id: MutatorId,
+	inputs: Vec<u8>,
+	test: Test,
+	rng: rand::XorShiftRng,
+	max: u32,
+	bits_per_cycle: u32,
+	last_ii: Option<u32>,
+}
+
+impl RandomBitflipMutator {
+	pub fn create(format: &InputFormat, inputs: &[u8], seed: Seed) -> Self {
+		let uid = 100;
+		let max = 10000;
+
+		let id = MutatorId { id: id!(uid, v!(0,1)), seed: Some(seed) };
+		let test = Test::wrap(format, inputs);
+		let rng = rand::XorShiftRng::from_seed(seed);
+		let bits_per_cycle = format.bits;
+		let last_ii = None;
+		RandomBitflipMutator { id, inputs: inputs.to_vec(), test, rng, max, bits_per_cycle, last_ii }
+	}
+}
+
+impl Mutator for RandomBitflipMutator {
+	fn id(&self) -> MutatorId { self.id }
+	fn max(&self) -> u32 { self.max }
+	fn output_size(&self) -> usize { self.inputs.len() }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+		// parameters:
+		let max_flips = 200;
+		let min_flips = 1;
+
+		// checks
+		assert_eq!(self.inputs.len(), output.len());
+		if let Some(last) = self.last_ii {
+			assert_eq!(last + 1, ii);
+		}
+		self.last_ii = Some(ii);
+
+		// copy input to output
+		output.copy_from_slice(&self.inputs);
+
+		// chose random set of bits to flip in random cycle
+		let flips = self.rng.gen_range(min_flips, max_flips + 1);
+		for _ in 0..flips {
+			let cycle = self.rng.gen_range(0, self.test.cycle_count());
+			let bit = self.rng.gen_range(0, self.bits_per_cycle);
+			self.test.field(bit, 1).unwrap().in_cycle(cycle).unwrap().flip(output, 1);
+		}
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Field Structure Aware Mutators
@@ -33,7 +98,7 @@ impl<M> Mutator for FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
 	fn max(&self) -> u32 { self.mutator.max() }
 	// TODO: allow change in seed size
 	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&self, ii: u32, output: &mut [u8]) {
+	fn apply(&mut self, ii: u32, output: &mut [u8]) {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		self.mutator.apply(ii, &self.test, output);
@@ -137,7 +202,7 @@ impl Mutator for IdentityMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: 0, seed: None } }
 	fn max(&self) -> u32 { 1 }
 	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&self, ii: u32, output: &mut [u8]) {
+	fn apply(&mut self, ii: u32, output: &mut [u8]) {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		//println!("IdMutator: out: {:?}", output);
@@ -159,7 +224,7 @@ impl Mutator for AflStyleConstLengthMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: self.id, seed: None } }
 	fn max(&self) -> u32 { (self.max_fn)(self.inputs.len() as u32) }
 	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&self, ii: u32, output: &mut [u8]) {
+	fn apply(&mut self, ii: u32, output: &mut [u8]) {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		(self.mutate)(ii, output);

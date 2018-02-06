@@ -2,6 +2,8 @@ mod format;
 mod mutators;
 
 use std::collections::{ HashMap, HashSet };
+use rand;
+use rand::{ SeedableRng, Rng };
 use self::format::InputFormat;
 use run::TestSize;
 
@@ -35,16 +37,21 @@ impl MutationSchedule {
 		MutationSchedule { format, input_size, mutators, mutator_id_to_name }
 	}
 
-	pub fn get_mutator(&self, history: &mut MutationHistory, seed: &[u8]) -> Option<Box<Mutator>> {
+	pub fn get_mutator(&self, history: &mut MutationHistory, inputs: &[u8]) -> Option<Box<Mutator>> {
 		for mutator in &self.mutators {
 			assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
 			// TODO: for non-deterministic mutators, the single hash set is not really going to work....
 			if !history.finished.contains(&mutator.id) {
 				history.finished.insert(mutator.id);
-				return Some((mutator.create)(&self.format, seed));
+				return Some((mutator.create)(&self.format, inputs));
 			}
 		}
-		None
+		// hacky non-deterministic stage
+		{
+			let mut rng = rand::thread_rng();
+			let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
+			return Some(Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed)));
+		}
 	}
 
 	pub fn get_name(&self, id: MutatorId) -> &str {
@@ -72,13 +79,15 @@ pub trait Mutator {
 	/// the number of bytes that *all* mutation results have
 	fn output_size(&self) -> usize;
 	/// apply mutation `ii` on input (`ii` in [0, max]) and write it to output
-	fn apply(&self, ii: u32, output: &mut [u8]);
+	fn apply(&mut self, ii: u32, output: &mut [u8]);
 }
+
+pub(crate) type Seed = [u32; 4];
 
 #[derive(Hash,Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct MutatorId {
 	id: u64,
-	seed: Option<u64>,
+	seed: Option<Seed>,
 }
 
 #[derive(Copy,Clone,Debug,PartialEq,PartialOrd)]
