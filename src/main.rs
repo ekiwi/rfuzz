@@ -5,6 +5,9 @@ extern crate toml;
 #[macro_use] extern crate serde_derive;
 extern crate colored;
 #[macro_use] extern crate prettytable;
+extern crate ctrlc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 mod config;
 mod run;
@@ -31,6 +34,11 @@ impl Default for Args {
 }
 
 fn main() {
+	let canceled = Arc::new(AtomicBool::new(false));
+	let c = canceled.clone();
+	ctrlc::set_handler(move || { c.store(true, Ordering::SeqCst); })
+		.expect("Error setting Ctrl-C handler");
+
 	let s_args: Vec<_> = std::env::args().collect();
 	assert!(s_args.len() >= 2, "Please specify the config TOML file!");
 
@@ -103,6 +111,10 @@ fn main() {
 		}
 		runs += new_runs;
 		q.return_test(active_test.id, history);
+		if canceled.load(Ordering::SeqCst) {
+			println!("User interrupted fuzzing. Going to shut down....");
+			break;
+		}
 	}
 
 	server.sync();
