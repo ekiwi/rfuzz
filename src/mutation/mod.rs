@@ -34,6 +34,8 @@ impl MutationSchedule {
 		for mutator in &mutators {
 			mutator_id_to_name.insert(mutator.id, mutator.name.clone());
 		}
+		// TODO: fix horrible hack!!!
+		mutator_id_to_name.insert(mutators::RANDOM_BITFLIP_MUTATOR_ID, "random biflips".to_string());
 		MutationSchedule { format, input_size, mutators, mutator_id_to_name }
 	}
 
@@ -50,7 +52,8 @@ impl MutationSchedule {
 		{
 			let mut rng = rand::thread_rng();
 			let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
-			return Some(Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed)));
+			let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
+			Some(mutator)
 		}
 	}
 

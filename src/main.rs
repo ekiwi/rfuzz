@@ -75,16 +75,18 @@ fn main() {
 	let mut runs : u64 = 0;
 	let start = time::PreciseTime::now();
 
-	let max_entries = 16;
+	let max_entries = 32;
+	let max_children = 100000;
 	println!("fuzzing a maximum of {} queue entries", max_entries);
 
 	for entry_count in 0..max_entries {
 		let active_test = q.get_next_test();
 		let mut history = active_test.mutation_history;
+		let mut new_runs : u64 = 0;
 		q.print_entry_summary(active_test.id, &mutations);
 		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
 			// println!("running {} mutation", mutations.get_name(mutator.id()));
-			runs += server.run(mutator) as u64;
+			new_runs += server.run(mutator) as u64;
 
 			while let Some(feedback) = server.pop_coverage() {
 				let is_interesting = analysis.run(&feedback.data);
@@ -96,7 +98,10 @@ fn main() {
 					//println!("-> cov: {:?}", feedback.data);
 				}
 			}
+
+			if new_runs >= max_children { break; }
 		}
+		runs += new_runs;
 		q.return_test(active_test.id, history);
 	}
 

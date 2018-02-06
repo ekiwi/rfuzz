@@ -28,12 +28,13 @@ pub struct RandomBitflipMutator {
 	last_ii: Option<u32>,
 }
 
+pub const RANDOM_BITFLIP_MUTATOR_ID : u64 = id!(100, v!(0,1));
+
 impl RandomBitflipMutator {
 	pub fn create(format: &InputFormat, inputs: &[u8], seed: Seed) -> Self {
-		let uid = 100;
 		let max = 10000;
 
-		let id = MutatorId { id: id!(uid, v!(0,1)), seed: Some(seed) };
+		let id = MutatorId { id: RANDOM_BITFLIP_MUTATOR_ID, seed: Some(seed) };
 		let test = Test::wrap(format, inputs);
 		let rng = rand::XorShiftRng::from_seed(seed);
 		let bits_per_cycle = format.bits;
