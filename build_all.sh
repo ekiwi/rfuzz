@@ -2,7 +2,7 @@
 echo "WARN: run git clean -dxf first."
 
 echo "1) Instrumenting the GCD circuit"
-sbt "run-main firrtl.Driver -i example/gcd.fir -o gcd.v -X verilog -fct hardwareafl.firrtltransforms.AutoCoverage,hardwareafl.firrtltransforms.SplitMuxConditions -ll info"
+sbt "runMain firrtl.Driver -i example/gcd.fir -o gcd.v -X verilog -fct hardwareafl.firrtltransforms.AutoCoverage,hardwareafl.firrtltransforms.SplitMuxConditions -ll info"
 
 echo "2) Testing the Chisel Harness"
 cd harness
