@@ -382,9 +382,9 @@ pub(crate) fn get_list() -> Vec<MutatorEntry> {
 		afl_mut!( 6, "bitflip 32/8", v!(1,0), byteflip_4_max, byteflip_4),
 		afl_mut!( 7, "arith    8/8", v!(1,0),    arith_8_max,    arith_8),
 		afl_mut!( 8, "arith   16/8", v!(1,0),   arith_16_max,   arith_16),
-		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32),
-		struct_mut!(10, "horizontal bit flag permuation", v!(0,1), HorizontalBitFlagPermuation),
-		struct_mut!(11, "vertical bit flag permuation",   v!(0,1), VerticalBitFlagPermuation)
+		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32)
+		// struct_mut!(10, "horizontal bit flag permuation", v!(0,1), HorizontalBitFlagPermuation),
+		// struct_mut!(11, "vertical bit flag permuation",   v!(0,1), VerticalBitFlagPermuation)
 	]
 }
 

@@ -67,7 +67,7 @@ fn main() {
 	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
 
 	// queue
-	let starting_seed = vec![0u8; test_size.input * 3];
+	let starting_seed = vec![0u8; test_size.input * 4];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
