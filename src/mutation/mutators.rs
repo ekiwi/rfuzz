@@ -365,6 +365,36 @@ fn arith_32(ii: u32, input: &mut [u8]) {
 	write_u32(endian, input, byte, res);
 }
 
+const INTERESTING_8 : [i8; 9] = [-128, -1, 0, 1, 16, 32, 64, 100, 127];
+fn int_8_max(len: u32) -> u32 { len * INTERESTING_8.len() as u32 }
+fn int_8(ii: u32, input: &mut [u8]) {
+	let pos = ii as usize / INTERESTING_8.len();
+	let interesting = INTERESTING_8[ii as usize - pos * INTERESTING_8.len()] as u8;
+	input[pos] = interesting;
+}
+
+const INTERESTING_16 : [i16; 10] =
+	[-32768, -129, 128, 255, 256, 512, 1000, 1024, 4096, 32767];
+fn int_16_max(len: u32) -> u32 { 2 * (len - 1) * INTERESTING_16.len() as u32 }
+fn int_16(ii: u32, input: &mut [u8]) {
+	let pos  = ii as usize        / INTERESTING_16.len() / 2;
+	let rest = ii as usize - (pos * INTERESTING_16.len() * 2);
+	let interesting = INTERESTING_16[rest / 2] as u16;
+	let endian = if (rest & 1) == 1 { Endian::Big } else { Endian::Little };
+	write_u16(endian, input, pos, interesting);
+}
+
+const INTERESTING_32 : [i32; 8] =
+	[-2147483648, -100663046, -32769, 32768, 65535, 65536, 100663045, 2147483647];
+fn int_32_max(len: u32) -> u32 { 2 * (len - 3) * INTERESTING_32.len() as u32 }
+fn int_32(ii: u32, input: &mut [u8]) {
+	let pos  = ii as usize        / INTERESTING_32.len() / 2;
+	let rest = ii as usize - (pos * INTERESTING_32.len() * 2);
+	let interesting = INTERESTING_32[rest / 2] as u32;
+	let endian = if (rest & 1) == 1 { Endian::Big } else { Endian::Little };
+	write_u32(endian, input, pos, interesting);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Mutator Registry
 ////////////////////////////////////////////////////////////////////////////////
@@ -382,7 +412,10 @@ pub(crate) fn get_list() -> Vec<MutatorEntry> {
 		afl_mut!( 6, "bitflip 32/8", v!(1,0), byteflip_4_max, byteflip_4),
 		afl_mut!( 7, "arith    8/8", v!(1,0),    arith_8_max,    arith_8),
 		afl_mut!( 8, "arith   16/8", v!(1,0),   arith_16_max,   arith_16),
-		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32)
+		afl_mut!( 9, "arith   32/8", v!(1,0),   arith_32_max,   arith_32),
+		afl_mut!(10, "interest 8/8", v!(1,0),      int_8_max,      int_8),
+		afl_mut!(11, "interest 16/8", v!(1,0),    int_16_max,     int_16),
+		afl_mut!(12, "interest 32/8", v!(1,0),    int_32_max,     int_32),
 		// struct_mut!(10, "horizontal bit flag permuation", v!(0,1), HorizontalBitFlagPermuation),
 		// struct_mut!(11, "vertical bit flag permuation",   v!(0,1), VerticalBitFlagPermuation)
 	]
