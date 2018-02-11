@@ -42,6 +42,7 @@ impl MutationSchedule {
 		}
 		// TODO: fix horrible hack!!!
 		mutator_id_to_name.insert(mutators::RANDOM_BITFLIP_MUTATOR_ID, "random biflips".to_string());
+		mutator_id_to_name.insert(mutators::AFL_HAVOC_MUTATOR_ID, "afl havoc".to_string());
 		MutationSchedule { config, format, input_size, mutators, mutator_id_to_name }
 	}
 
@@ -60,7 +61,8 @@ impl MutationSchedule {
 		if !self.config.skip_non_deterministic {
 			let mut rng = rand::thread_rng();
 			let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
-			let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
+			//let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
+			let mutator = Box::new(mutators::AflHavocMutator::create(&self.format, inputs, seed));
 			return Some(mutator);
 		}
 		None

@@ -395,6 +395,146 @@ fn int_32(ii: u32, input: &mut [u8]) {
 	write_u32(endian, input, pos, interesting);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Random AFL Style Mutator
+////////////////////////////////////////////////////////////////////////////////
+// TODO
+// For now this mutator needs to be handled as a special case in the mutation schedule.
+
+
+
+#[derive(Debug)]
+pub struct AflHavocMutator {
+	id: MutatorId,
+	inputs: Vec<u8>,
+	rng: rand::XorShiftRng,
+	max: u32,
+	size_inc_max: usize,
+	last_ii: Option<u32>,
+}
+
+pub const AFL_HAVOC_MUTATOR_ID : u64 = id!(110, v!(0,1));
+
+impl AflHavocMutator {
+	pub fn create(format: &InputFormat, inputs: &[u8], seed: Seed) -> Self {
+		let max = 1024;
+
+		let id = MutatorId { id: AFL_HAVOC_MUTATOR_ID, seed: Some(seed) };
+		let rng = rand::XorShiftRng::from_seed(seed);
+		// TODO: fix buffer bug and allow size extension!
+		let size_inc_max = 0; // format.size();
+		let last_ii = None;
+		AflHavocMutator { id, inputs: inputs.to_vec(), rng, max, size_inc_max, last_ii }
+	}
+
+	fn apply_havoc_step(&mut self, mutation: HavocMutation, output: &mut [u8], len: u32) -> u32 {
+		match mutation {
+			HavocMutation::FlipBit => {
+				let ii = self.rng.gen_range(0, bitflip_1_max(len));
+				bitflip_1(ii, output);
+				len
+			},
+			HavocMutation::Interest8 => {
+				let ii = self.rng.gen_range(0, int_8_max(len));
+				int_8(ii, output);
+				len
+			},
+			HavocMutation::Interest16 => {
+				let ii = self.rng.gen_range(0, int_16_max(len));
+				int_16(ii, output);
+				len
+			},
+			HavocMutation::Interest32 => {
+				let ii = self.rng.gen_range(0, int_32_max(len));
+				int_32(ii, output);
+				len
+			},
+			HavocMutation::Arith8 => {
+				let ii = self.rng.gen_range(0, arith_8_max(len));
+				arith_8(ii, output);
+				len
+			},
+			HavocMutation::Arith16 => {
+				let ii = self.rng.gen_range(0, arith_16_max(len));
+				arith_16(ii, output);
+				len
+			},
+			HavocMutation::Arith32 => {
+				let ii = self.rng.gen_range(0, arith_32_max(len));
+				arith_32(ii, output);
+				len
+			},
+			HavocMutation::Random8 => {
+				let pos = self.rng.gen_range(0, len) as usize;
+				let flips : u8 = self.rng.gen_range(0, 255) + 1;
+				output[pos] ^= flips;
+				len
+			},
+			_ => {
+				//println!("TODO: implement {:?}", mutation);
+				len
+			}
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy)]
+enum HavocMutation {
+	FlipBit, Interest8, Interest16, Interest32, Arith8, Arith16, Arith32,
+	Random8, DeleteBytes, CloneBytes, OverwriteBytes
+}
+
+impl Mutator for AflHavocMutator {
+	fn id(&self) -> MutatorId { self.id }
+	fn max(&self) -> u32 { self.max }
+	fn output_size(&self) -> usize { self.inputs.len() + self.size_inc_max }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+		// TODO: remove debug print
+		// if ii == 0 { println!("{:?}", self); }
+
+		// checks
+		let output_size = self.output_size();
+		assert_eq!(output_size, output.len());
+		if let Some(last) = self.last_ii {
+			assert_eq!(last + 1, ii);
+		}
+		self.last_ii = Some(ii);
+
+
+		// copy input to output and set padding at the end to zero
+		let orig_len = self.inputs.len();
+		let padding_len = self.output_size() - orig_len;
+		output[..orig_len].copy_from_slice(&self.inputs);
+		for ii in orig_len..output_size {
+			output[ii] = 0;
+		}
+
+		// pick the number of stacked mutations
+		let use_stacking = *self.rng.choose(&[2,4,8,16,32,64,128]).unwrap();
+		// println!("use_stacking: {}", use_stacking);
+		// keep track of how much we have extended the output
+		let mut len = orig_len as u32;
+		for _ in 0..use_stacking {
+			// chose mutation to apply
+			let mutation = self.rng.choose(&[
+				HavocMutation::FlipBit,
+				HavocMutation::Interest8,
+				HavocMutation::Interest16,
+				HavocMutation::Interest32,
+				HavocMutation::Arith8,  HavocMutation::Arith8,
+				HavocMutation::Arith16, HavocMutation::Arith16,
+				HavocMutation::Arith32, HavocMutation::Arith32,
+				HavocMutation::Random8,
+				HavocMutation::DeleteBytes, HavocMutation::DeleteBytes,
+				HavocMutation::CloneBytes,
+				HavocMutation::OverwriteBytes,
+			]).unwrap();
+			len = self.apply_havoc_step(*mutation, output, len);
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Mutator Registry
 ////////////////////////////////////////////////////////////////////////////////
