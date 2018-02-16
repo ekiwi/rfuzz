@@ -1,0 +1,64 @@
+# running havoc with an input size of 15 on the ICache
+
+This seems to leads to an assertion failure which crashes verilator
+and thus our fuzzer. Therefore we do not get the actual bug causing input.
+
+Since the fuzzer is playing the role of all external components, it might
+just be misbehaving and that is caught by the assertion. Thus this might
+not be a bug in the actual ICache implementation.
+
+Running with longer inputs like 100 cycles also leads to an input that
+violates the same assertion.
+
+## kfuzz output
+
+```
+Fuzzing ICache
+Instrumented on:   2018-02-01T18:30:00-08:00
+Coverage Signals:  21
+Input Fields:      28
+Total Input Width: 313
+Allocated Bytes per Input:    40
+Allocated Bytes for Coverage: 8
+Test Buffer:     64 KiB
+Coverage Buffer: 64 KiB
+Max Inputs: 1365
+New branch covered!
+fuzzing a maximum of 1000 queue entries
+0. Queue Entry
+New branch covered!
+New branch covered!
+New branch covered!
+New branch covered!
+New branch covered!
+New branch covered!
+New branch covered!
+1. Queue Entry
+Generated from 0. Entry
+In stage 1 of mutation algorithm "afl havoc".
+2. Queue Entry
+Generated from 0. Entry
+In stage 7 of mutation algorithm "afl havoc".
+3. Queue Entry
+Generated from 0. Entry
+In stage 16 of mutation algorithm "afl havoc".
+thread 'main' panicked at 'assertion failed: `(left == right)`
+  left: `0`,
+ right: `8`: tx pipe was closed unexpectedly!', src/run/shmem.rs:206:3
+note: Run with `RUST_BACKTRACE=1` for a backtrace.
+
+```
+
+## verilator output
+
+
+```
+
+Assertion failed
+    at ICache.scala:222 assert(!(s1_valid || s1_slaveValid) || PopCount(s1_tag_hit zip s1_tag_disparity map { case (h, d) => h && !d }) <= 1)
+[10298767] %Error: ICache.v:1364: Assertion failed in TOP.VerilatorHarness.dut.bb
+%Error: ../../ICache.v:1364: Verilog $stop
+Aborting...
+[1]    11538 abort (core dumped)  ./decoder
+
+```
