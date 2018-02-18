@@ -12,18 +12,37 @@ import firrtl.Utils.{BoolType, get_info}
 
 import scala.collection.mutable
 
-/** Uses Firrtl's Wiring Transform to wire cover points from rocket-chip to the top
+/** Uses Firrtl's Wiring Transform to wire profiling signals in rocket-chip to the top
   *
-  * Cover points are expected to be of the form: printf(..., "COVER:..." signal")
+  * Cover points are expected to be of the form: printf(..., "COVER:..." signal)
+  * Assertions are expected to be of the form: printf(..., "Assertion...")
   */
-class CollectCoverPoints extends Transform {
+class ProfilingTransform extends Transform {
   def inputForm = MidForm
   def outputForm = MidForm
+
+  case class ProfileConfig(topPortName: String)(
+      // Returns the optionally mutated input statement and any expressions
+      // that should be extracted to the top for profiling
+      val processStmt: PartialFunction[Statement, (Statement, Seq[Expression])]
+  )
+
+  val coverageConfig = ProfileConfig("func_cover_out") {
+    case Print(_, slit, Seq(pred), _, en) if slit.string.startsWith("COVER:") =>
+      (EmptyStmt, Seq(And(pred, en)))
+  }
+  val assertConfig = ProfileConfig("assert_out") {
+    case Print(_, slit, _, _, en) if slit.string.startsWith("Assertion") =>
+      (EmptyStmt, Seq(en))
+    case _: Stop => (EmptyStmt, Seq.empty) // Remove stops
+  }
+  val configs = Seq(
+    coverageConfig,
+    assertConfig
+  )
+
   // Hardwired constants
-  val coveragePortName = "funcCoverOut"
-  val coverPointPrefix = "_COV"
-  val tempNodePrefix = "_REF"
-  val coverPointName = "coverPoint"
+  val profilePinPrefix = "profilePin"
 
   //// Helper functions that probably should be in Firrtl itself
   private def Cat(exprs: Expression*) = {
@@ -46,68 +65,92 @@ class CollectCoverPoints extends Transform {
   }
 
   // This namespace is based on the ports that exist in the top
-  private def onModule(mod: Module, top: String, namespace: Namespace): (Module, Seq[Annotation]) = {
-    val wiringAnnos = mutable.ArrayBuffer.empty[Annotation]
+  private def onModule(
+    mod: Module,
+    top: String,
+    namespace: Namespace
+  ): (Module, Map[ProfileConfig, Seq[Annotation]]) = {
+    // We record Annotations for each profiled signal for each profiling configuration
+    val profiledSignals = Map(configs.map(c => c -> mutable.ArrayBuffer.empty[Annotation]): _*)
     val localNS = Namespace(mod)
 
-    def onStmt(stmt: Statement): Statement = stmt.map(onStmt) match {
-      case Print(_, slit, Seq(pred), _, en) if slit.string.startsWith("COVER:") =>
-        // We need to and the predicate with the enable signal
-        val node = DefNode(NoInfo, localNS.newName(tempNodePrefix), And(pred, en))
-        val named = ComponentName(node.name, ModuleName(mod.name, CircuitName(top)))
-        val pinName = namespace.newName(coverPointPrefix)
-        assert(!localNS.contains(pinName), s"Name collision with $pinName in ${mod.name}!")
-        val anno = SourceAnnotation(named, pinName)
-        wiringAnnos += anno
-        node
-      case other => other
+    def onStmt(stmt: Statement): Statement = {
+      val stmtx = stmt.map(onStmt)
+      configs.map(c => c.processStmt.lift(stmtx).map(c -> _)).flatten match {
+        // No profiling on this Statement, just return it
+        case Seq() => stmtx
+        case Seq((config, (retStmt, signals))) =>
+          val (nodes, annos) = (signals.map { expr =>
+            val node = DefNode(NoInfo, localNS.newTemp, expr)
+            val named = ComponentName(node.name, ModuleName(mod.name, CircuitName(top)))
+            val pinName = namespace.newName(profilePinPrefix)
+            assert(localNS.tryName(pinName), s"Name collision with $pinName in ${mod.name}!")
+            val anno = SourceAnnotation(named, pinName)
+            (node, anno)
+          }).unzip
+          profiledSignals(config) ++= annos
+          Block(retStmt +: nodes)
+        case multiple =>
+          // We don't let multiple configurations match on a statement because they could have
+          // different behavior for what should happen to that Statement (eg. removed vs. not
+          // removed)
+          throw new Exception("Error! Multiple profiling configurations trying to " +
+            "profile the same Statement!")
+      }
     }
 
     val bodyx = onStmt(mod.body)
-    (mod.copy(body = bodyx), wiringAnnos)
+    (mod.copy(body = bodyx), profiledSignals)
   }
 
   // Create sinks for all the cover points in top and cat them to a bitvector output
   def onTop(mod: Module,
-            namespace: Namespace,
-            sourceAnnos: Seq[Annotation]): (Module, Seq[Annotation]) = {
+            profiledSignals: Map[ProfileConfig, Seq[Annotation]]): (Module, Seq[Annotation]) = {
     val modName = ModuleName(mod.name, CircuitName(mod.name))
-    // Create wires and sink annos
-    val (wires, sinkAnnos) = (sourceAnnos.map { case SourceAnnotation(_, pin) =>
-      val w = DefWire(NoInfo, namespace.newName(coverPointName), BoolType)
-      (w, SinkAnnotation(ComponentName(w.name, modName), pin))
-    }).unzip
-    assert(namespace.tryName(coveragePortName))
+    val namespace = Namespace(mod)
 
-    // Wire cover points to top
-    val numCovs = wires.size
-    val covport = Port(NoInfo, coveragePortName, Output, UIntType(IntWidth(numCovs)))
-    val covconnect = Connect(NoInfo,
-      WRef(covport.name, covport.tpe, PortKind, MALE),
-      Cat(wires.map(w => WRef(w.name, BoolType, NodeKind, MALE)): _*)
-    )
+    val (newPorts, stmts, annos) = (profiledSignals.map { case (config, sourceAnnos) =>
+      // Create wires and sink annos
+      val (wires, sinkAnnos) = (sourceAnnos.map { case SourceAnnotation(_, pin) =>
+        val w = DefWire(NoInfo, namespace.newTemp, BoolType)
+        (w, SinkAnnotation(ComponentName(w.name, modName), pin))
+      }).unzip
+      assert(namespace.tryName(config.topPortName))
 
-    val bodyx = Block(wires :+ mod.body :+ covconnect)
-    val portsx = mod.ports :+ covport
+      // Wire profiled points to top
+      val numPoints = wires.size
+      if (numPoints > 0) {
+        val port = Port(NoInfo, config.topPortName, Output, UIntType(IntWidth(numPoints)))
+        val connect = Connect(NoInfo,
+          WRef(port.name, port.tpe, PortKind, MALE),
+          Cat(wires.map(w => WRef(w.name, BoolType, NodeKind, MALE)): _*)
+        )
+        Some((port, wires :+ connect, sourceAnnos ++ sinkAnnos))
+      } else {
+        None
+      }
+    }).flatten.unzip3
+
+    val bodyx = Block(stmts.flatten.toSeq :+ mod.body)
+    val portsx = mod.ports ++ newPorts
     val modx = mod.copy(body = bodyx, ports = portsx)
-    (modx, sinkAnnos ++ sourceAnnos)
+    (modx, annos.flatten.toSeq)
   }
 
   def execute(state: CircuitState): CircuitState = {
 
     val top = state.circuit.modules.find(_.name == state.circuit.main).get
-    val topNameS = Namespace(top)
+    val topNameS = Namespace(top) // used for pins naming
 
-    val (modsx, sourceAnnos) = (state.circuit.modules.map {
+    val (modsx, profiledSignalMaps) = (state.circuit.modules.map {
       case mod: Module => onModule(mod, top.name, topNameS)
-      case ext: ExtModule => (ext, Seq.empty)
+      case ext: ExtModule => (ext, Map.empty[ProfileConfig, Seq[Annotation]])
     }).unzip
-    val sourceAnnosx = sourceAnnos.flatten
+    val profiledSignals =
+      configs.map(c => c -> profiledSignalMaps.map(_.apply(c)).reduce(_ ++ _)).toMap
 
     val (Seq(topx: Module), otherMods) = modsx.partition(_.name == state.circuit.main)
-    val (newTop, fullAnnos) =
-      if (sourceAnnosx.size > 0) onTop(topx, topNameS, sourceAnnosx)
-      else (topx, sourceAnnosx)
+    val (newTop, fullAnnos) = onTop(topx, profiledSignals)
 
     val circuitx = state.circuit.copy(modules = newTop +: otherMods)
     val annosx = state.annotations.getOrElse(AnnotationMap(Seq.empty)).annotations ++ fullAnnos

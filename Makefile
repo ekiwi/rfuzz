@@ -3,13 +3,13 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 COMMA := ,
 FIRRTL_TRANSFORMS := \
-	hardwareafl.firrtltransforms.CollectCoverPoints \
+	hardwareafl.firrtltransforms.ProfilingTransform \
 	firrtl.passes.wiring.WiringTransform \
 	hardwareafl.firrtltransforms.AutoCoverage \
 	hardwareafl.firrtltransforms.SplitMuxConditions
 
 INPUT := benchmarks/ICacheCover.fir
-OUTPUT := ICacheCover.v
+OUTPUT := $(basename $(notdir $(INPUT))).v
 SCALA_SOURCES := $(shell find . -name '*.scala')
 
 default: $(OUTPUT)
