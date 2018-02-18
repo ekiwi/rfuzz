@@ -8,6 +8,7 @@ INSTRUMENTED := $(BUILD)/$(DUT).v
 TOML := $(BUILD)/$(DUT).toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
 FPGA_HARNESS := $(BUILD)/$(DUT)_FPGAHarness.v
+FUZZ_SERVER := $(BUILD)/$(DUT)_server
 
 
 
@@ -59,3 +60,14 @@ $(VERILATOR_HARNESS) $(FPGA_HARNESS): $(TOML) $(HARNESS_SRC)
 ################################################################################
 # Verilator Binary Rules
 ################################################################################
+VERILATOR_TB_SRC = $(shell ls verilator/*.hpp verilator/*.cpp verilator/*.h verilator/*.c verilator/meson.build)
+VERILATOR_BUILD = $(BUILD)/v$(DUT)
+
+
+$(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
+	mkdir -p $(VERILATOR_BUILD)
+	cd $(VERILATOR_BUILD) ;\
+	meson ../../verilator --buildtype=release && \
+	meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)' && \
+	ninja
+	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
