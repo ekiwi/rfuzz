@@ -1,8 +1,9 @@
 
-DUT := ICacheCover
+FIR := ICacheCover.fir
+DUT := ICache
 
 BUILD := build
-INPUT := benchmarks/$(DUT).fir
+INPUT := benchmarks/$(FIR)
 INSTRUMENTED := $(BUILD)/$(DUT).v
 TOML := $(BUILD)/$(DUT).toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
@@ -10,7 +11,18 @@ FPGA_HARNESS := $(BUILD)/$(DUT)_FPGAHarness.v
 
 
 
-default: $(INSTRUMENTED)
+default: $(VERILATOR_HARNESS)
+
+################################################################################
+# gobal clean
+################################################################################
+clean:
+	rm -rf build/*
+	rm -rf harness/*.anno
+	rm -rf harness/*.fir
+	rm -rf harness/*.v
+	rm -rf harness/*.f
+	rm -rf harness/test_run_dir
 
 ################################################################################
 # instrumentation rules
@@ -28,7 +40,7 @@ INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 $(INSTRUMENTED) $(TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
-	sbt "runMain firrtl.Driver -i ../$< -o ../$@ -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
+	sbt "runMain firrtl.Driver -i ../$< -o ../$(INSTRUMENTED) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
 	mv instrumentation/$(DUT).toml $(TOML)
 
 ################################################################################
