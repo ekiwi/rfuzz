@@ -52,3 +52,9 @@ class WithCoverage extends Config((site, here, up) => {
   case PropertyLibrary => new PrintfPropertyLibrary
 })
 ```
+
+## gcd
+
+This is the small circuit that we originally used for testing the basic system.
+No one remembers the exact origin, but the file definitely has been edited
+by hand to make all registers have resets (including `x` and `y`).
