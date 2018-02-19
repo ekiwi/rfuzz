@@ -71,3 +71,12 @@ $(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
 	meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)' && \
 	ninja
 	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
+
+################################################################################
+# Fuzz Server Pseudo Target
+################################################################################
+
+run: $(FUZZ_SERVER)
+	rm -rf /tmp/fpga
+	mkdir /tmp/fpga
+	./$(FUZZ_SERVER)
