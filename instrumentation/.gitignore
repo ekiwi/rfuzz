@@ -11,3 +11,6 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+
+# sometimes we generate random toml files
+*.toml

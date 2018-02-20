@@ -238,20 +238,15 @@ object TomlGenerator {
       val name = cond.serialize
       val dbg = getDebugInfo(stmt)
       val human = getHumanReadableExpression(cond)
-      var counterbits = 1
-      for(inverted <- Seq(false, true)) {
-        out.println(s"""[[coverage]]""")
-        out.println(s"""name = "${name}"""")
-        out.println(s"""inverted = ${inverted}""")
-        out.println(s"""index = ${index}""")
-        out.println(s"""counterbits = ${counterbits}""")
-        out.println(s"""filename = "${dbg.filename}"""")
-        out.println(s"""line = ${dbg.line}""")
-        out.println(s"""column = ${dbg.col}""")
-        out.println(s"""human = "${human}"""")
-        out.println()
-        index += 1
-      }
+      out.println(s"""[[coverage]]""")
+      out.println(s"""name = "${name}"""")
+      out.println(s"""index = ${index}""")
+      out.println(s"""filename = "${dbg.filename}"""")
+      out.println(s"""line = ${dbg.line}""")
+      out.println(s"""column = ${dbg.col}""")
+      out.println(s"""human = "${human}"""")
+      out.println()
+      index += 1
     }
     out.close
   }
@@ -308,7 +303,7 @@ class AutoCoverage extends Transform {
 
     // collect Mux conditions
     onStmt(mod.body)
-    val numCovPoints = muxConds.size * 2 // we want both sides of each mux condition
+    val numCovPoints = muxConds.size
 
     // generate TOML for the fuzzer and the test harness generator
     TomlGenerator(mod, muxConds.toSeq)
@@ -320,10 +315,8 @@ class AutoCoverage extends Transform {
     val covPort = Port(NoInfo, coveragePortName, Output, UIntType(IntWidth(numCovPoints)))
 
     // Generate cover points
-    val coverPoints: Seq[DefNode] = muxConds.keys.toSeq.flatMap { expr =>
-      val trueNode = DefNode(NoInfo, namespace.newName(coverPointPrefix), expr)
-      val falseNode = DefNode(NoInfo, namespace.newName(coverPointPrefix), Not(expr))
-      List(trueNode, falseNode)
+    val coverPoints: Seq[DefNode] = muxConds.keys.toSeq.map { expr =>
+      DefNode(NoInfo, namespace.newName(coverPointPrefix), expr)
     }
 
     // Cat cover points and connect to coverage port
