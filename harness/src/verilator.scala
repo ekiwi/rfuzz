@@ -43,6 +43,10 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 			counter.io.value
 		}}.toSeq)
 	}
+
+
+	println(s"coverage width: ${coverage.getWidth}")
+
 	// TODO: clean up code
 	var left = coverage_bits - 1
 	io.coverage_bytes.map{ case(cov) =>
