@@ -21,6 +21,7 @@ pub struct Config {
 	data: ConfigData,
 }
 
+const BITS_PER_COVER_POINT : usize = 2 * 8;
 
 impl Config {
 	pub fn from_file(word_size: usize, filename: &str) -> Self {
@@ -39,34 +40,16 @@ impl Config {
 		let to_bytes = |b| div_2_ceil(div_2_ceil(b, 8), word_size) * word_size;
 
 		let input_bits : usize = data.input_bits() as usize;
-		let coverage_bits : usize = data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
+		let coverage_bits : usize = data.coverage.len() * BITS_PER_COVER_POINT;
 
 		TestSize { input: to_bytes(input_bits), coverage: to_bytes(coverage_bits) }
 	}
 
 	fn validate(&self) {
-		// we currently only support 1-bit counters!
-		assert!(self.data.coverage.iter().all(|ref c| c.counterbits == 1));
-
-		// we expect each coverage point to be followed by its inverted version
-		let mut expect_inverted = false;
-		let mut last_name = String::new();
-		for cov in self.data.coverage.iter() {
-			if expect_inverted {
-				assert_eq!(cov.name, last_name);
-				assert!(cov.inverted);
-				expect_inverted = false;
-			} else {
-				assert!(!cov.inverted);
-				last_name = cov.name.clone();
-				expect_inverted = true;
-			}
-		}
-
 		// make sure the size is large enough to hold coverage and inputs
 		let input_bits : usize = self.data.input_bits() as usize;
 		assert!(input_bits <= self.size.input * 8);
-		let coverage_bits : usize = self.data.coverage.iter().map(|ref c| c.counterbits as usize).sum();
+		let coverage_bits : usize = self.data.coverage.len() * BITS_PER_COVER_POINT;
 		assert!(coverage_bits <= self.size.coverage * 8);
 	}
 
@@ -81,9 +64,7 @@ impl Config {
 	}
 
 	pub fn coverage_signal_count(&self) -> usize {
-		// WARN: this assumes that we have an inverted version of every coverage point!
-		assert!(self.data.coverage.len() % 2 == 0);
-		self.data.coverage.len() / 2
+		self.data.coverage.len()
 	}
 
 	pub fn print_header(&self) {
@@ -135,39 +116,54 @@ impl Config {
 		//println!("{:?}", inputs)
 	}
 
-	// the coverage map is inverted, i.e., a 0 means covered, a 1 means not covered
-	pub fn print_coverage(&self, coverage: &[u8], inverted: bool) {
+	// New Config Notes
+	// * for individual inputs, the coverage are actual counts
+	//  -> display true count + false count
+	// * for the bitmap, those counts are bucketed
+	//  -> display how many bins are covered, e.g. `7/8`
+	//  -> display which bins are covered, e.g. `00100101`
+	//
+	// ==> thus we should probably split this function into two for now
+	//     instead of using the "inverted flag"
+
+	// to be run on the raw coverage feedback from the fuzz server
+	pub fn print_test_coverage(&self, coverage: &[u8]) {
 		assert_eq!(coverage.len(), self.size.coverage);
 
-		// print the coverage as a table!
 		let mut table = Table::new();
-		table.add_row(row!["C?", "T?", "F?", "name", "expression", "source location"]);
+		table.add_row(row!["True", "False", "name", "expression", "source location"]);
 
-		// we expect each coverage point to be followed by its inverted version
-		let mut coverage_count = 0u64;
 		for cov in self.data.coverage.iter() {
-			if cov.inverted { continue; }
-			// check if true + false are covered (one of them is trivially true)
-			let byte_ii = (cov.index / 8) as usize;
-			let byte = if inverted { !coverage[byte_ii] } else { coverage[byte_ii] };
-			// the index of the NOT inverted signal
-			let bit_ii = 7 - (cov.index as usize - 8 * byte_ii);
-			let bit_ii_inv = bit_ii - 1;
-			let covered_true  = ((byte >> bit_ii) & 1) == 1;
-			let covered_false = ((byte >> bit_ii_inv) & 1) == 1;
-			let covered = covered_true && covered_false;
-			// create table row
-			let covd       = if covered { "X" } else { "" };
-			let covd_true  = if covered_true { "X" } else { "" };
-			let covd_false = if covered_false { "X" } else { "" };
+			let byte_ii = (cov.index * 2) as usize;
+			let count_true = coverage[byte_ii];
+			let count_false = coverage[byte_ii+1];
 			let src = format!("{}:{}", cov.filename, cov.line);
-			table.add_row(row![covd, covd_true, covd_false, cov.name, cov.human, src]);
-			// increment coverage count
-			coverage_count += if covered { 1 } else { 0 }
+			table.add_row(row![count_true, count_false, cov.name, cov.human, src]);
 		}
-
 		table.printstd();
-		println!("Covered a total of {}/{} signals.", coverage_count, self.coverage_signal_count());
+	}
+
+	// to be run on the binned coverage bitmap
+	pub fn print_bitmap(&self, bitmap: &[u8]) {
+		assert_eq!(bitmap.len(), self.size.coverage);
+
+		let mut table = Table::new();
+		table.add_row(row!["#T", "T", "#F", "F", "name", "expression", "source location"]);
+
+		for cov in self.data.coverage.iter() {
+			let byte_ii = (cov.index * 2) as usize;
+			let covd_true = bitmap[byte_ii];
+			let covd_false = bitmap[byte_ii+1];
+
+			let num_true = format!("{}/8", covd_true.count_zeros());
+			let bits_true = format!("{:b}", covd_true);
+			let num_false = format!("{}/8", covd_false.count_zeros());
+			let bits_false = format!("{:b}", covd_false);
+
+			let src = format!("{}:{}", cov.filename, cov.line);
+			table.add_row(row![num_true, bits_true, num_false, bits_false, cov.name, cov.human, src]);
+		}
+		table.printstd();
 	}
 }
 
@@ -181,9 +177,7 @@ struct General {
 #[derive(Debug, Deserialize)]
 struct Coverage {
 	name: String,
-	inverted: bool,
 	index: i32,
-	counterbits: i32,
 	filename: String,
 	line: i32,
 	column: i32,

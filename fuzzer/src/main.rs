@@ -144,14 +144,14 @@ fn main() {
 			println!("Achieved Coverage:");
 			let coverage = fuzz_one(&mut server, &entry.inputs, ii);
 			ii += 1;
-			config.print_coverage(&coverage, false);
+			config.print_test_coverage(&coverage);
 			println!("\n");
 		}
 	}
 
 	if args.flag_print_total_cov {
 		println!("Total Coverage:");
-		config.print_coverage(&bitmap, true);
+		config.print_bitmap(&bitmap);
 	}
 
 

@@ -57,6 +57,20 @@ fn hash_xx(input: &[u8]) -> u64 {
 	hasher.finish()
 }
 
+fn bin(count: u8) -> u8 {
+	match count {
+		0           => 0,
+		1           => (1 << 0),
+		2           => (1 << 1),
+		3           => (1 << 2),
+		4 ... 7     => (1 << 3),
+		8 ... 15    => (1 << 4),
+		16 ... 31   => (1 << 5),
+		32 ... 127  => (1 << 6),
+		_           => (1 << 7),
+	}
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum NewCoverage { None, BranchCount, Branch }
 
@@ -68,13 +82,15 @@ fn analyze_coverage(bitmap: &mut [u8], trace_bits: &[u8]) -> NewCoverage {
 		let old = bitmap[i];
 		let new_count = trace_bits[i];
 		if new_count != 0 {
-			let new = new_count;
+			let new = bin(new_count);
 			if (new & old) != 0 {
-				new_cov = NewCoverage::Branch;
+				if new_cov != NewCoverage::Branch {
+					new_cov = if old == 0xff { NewCoverage::Branch }
+					else { NewCoverage::BranchCount };
+				}
 				bitmap[i] &= !new; // delete new bits from the bitmap
 			}
 		}
 	}
 	new_cov
 }
-
