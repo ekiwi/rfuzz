@@ -51,8 +51,8 @@ struct TestBuffer <ChannelT : CommunicationChannel> {
 	coverage: ChannelT::BufferT,
 	token: ChannelT::TokenT,
 	test_count: u16,
-	max_test_count: u16,
-	cycle_count: u16,
+	/// number of cycles of all tests
+	total_cycles: u32,
 	id: u32,
 }
 
@@ -68,55 +68,43 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		let inputs = channel.alloc(input_buffer_size);
 		let coverage = channel.alloc(coverage_buffer_size);
 		let token = ChannelT::get_token(&inputs, &coverage);
-		TestBuffer { size, inputs, coverage, token,
-		             test_count: 0, max_test_count: 0, cycle_count: 0, id: 0 }
+		TestBuffer { size, inputs, coverage, token, test_count: 0,
+		             total_cycles: 0, id: 0 }
 	}
 	fn reset(&mut self, id: u32) {
-		self.max_test_count = 0;
-		self.cycle_count = 0;
 		self.test_count = 0;
+		self.total_cycles = 0;
 		self.id = id;
-	}
-	fn initialize(&mut self, cycle_count: u16) -> u16 {
-		let test_size = self.size.input as usize * cycle_count as usize;
-		let coverage_size = self.size.coverage as usize;
-		let input_buf_size = self.inputs.len() - TEST_HEADER_SIZE;
-		let max_inputs = input_buf_size / test_size;
-		let cov_buf_size = self.coverage.len() - COVERAGE_BUFFER_METADATA_SIZE;
-		let max_outputs = cov_buf_size / coverage_size;
-		self.max_test_count = std::cmp::min(max_inputs, max_outputs) as u16;
-		self.cycle_count = cycle_count;
-		self.test_count = 0;
 		// skip input buffer header for now
 		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
-		self.max_test_count
 	}
 	fn add_test(&mut self, inputs: &[u8]) -> Option<BufferSlot> {
-		if self.cycle_count == 0 {
-			let cycle_count = inputs.len() / self.size.input as usize;
-			// TODO: move this code to the caller
-			self.initialize(cycle_count as u16);
-		}
-		if self.test_count + 1 > self.max_test_count { None } else {
-			self.inputs.write_all(inputs).unwrap();
-			let slot = BufferSlot { id: self.id, offset: self.test_count };
-			self.test_count += 1;
-			Some(slot)
-		}
+		// try to write test, only increment test_count and total_cycles if it succeeds!
+		let cycle_count = inputs.len() / self.size.input as usize;
+		assert_eq!(cycle_count * self.size.input as usize, inputs.len());
+		if self.inputs.write_u16(cycle_count as u16).is_err() { return None; }
+		if self.inputs.write_all(inputs).is_err() { return None; }
+		// success!
+		let slot = BufferSlot { id: self.id, offset: self.test_count };
+		self.test_count += 1;
+		self.total_cycles += cycle_count as u32;
+		Some(slot)
 	}
 	fn write_header(&mut self) {
 		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
 		self.inputs.write_u32(MAGIC_HEADER).unwrap();
 		self.inputs.write_u32(self.id).unwrap();
 		self.inputs.write_u16(self.test_count).unwrap();
-		self.inputs.write_u16(self.cycle_count).unwrap();
-		let reserved = 0u32;
-		self.inputs.write_u32(reserved).unwrap();
+		let reserved = 0u16;
+		self.inputs.write_u16(reserved).unwrap();
+		self.inputs.write_u16(reserved).unwrap();
+		self.inputs.write_u16(reserved).unwrap();
 	}
 	fn try_run(&mut self, channel: &mut ChannelT) -> Result<(), ()> {
 		let test_count = self.test_count as usize;
-		let test_size = self.size.input * self.cycle_count as usize;
-		let tx_bytes = test_count * test_size + TEST_HEADER_SIZE;
+		let test_len_field_size = test_count * 2;
+		let test_data_size = self.total_cycles as usize * self.size.input;
+		let tx_bytes = test_len_field_size + test_data_size + TEST_HEADER_SIZE;
 		let rx_bytes = test_count * self.size.coverage + COVERAGE_BUFFER_METADATA_SIZE;
 		channel.try_send(self.token, tx_bytes, rx_bytes)
 	}
@@ -129,8 +117,9 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		assert_eq!(self.inputs.read_u32().unwrap(), MAGIC_HEADER);
 		assert_eq!(self.inputs.read_u32().unwrap(), self.id);
 		assert_eq!(self.inputs.read_u16().unwrap(), self.test_count);
-		assert_eq!(self.inputs.read_u16().unwrap(), self.cycle_count);
-		assert_eq!(self.inputs.read_u32().unwrap(), 0);
+		assert_eq!(self.inputs.read_u16().unwrap(), 0);
+		assert_eq!(self.inputs.read_u16().unwrap(), 0);
+		assert_eq!(self.inputs.read_u16().unwrap(), 0);
 		// coverage
 		self.coverage.seek(std::io::SeekFrom::Start(0)).unwrap();
 		let magic = self.coverage.read_u32().unwrap();
@@ -149,12 +138,20 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		} else { None }
 	}
 	fn get_test(&mut self, slot: BufferSlot) -> &[u8] {
-		assert_eq!(self.id, slot.id);
-		assert!(self.max_test_count >= slot.offset);
-		let test_size = self.size.input as usize * self.cycle_count as usize;
-		let pos = slot.offset as usize * test_size + TEST_HEADER_SIZE;
-		self.inputs.seek(std::io::SeekFrom::Start(pos as u64)).unwrap();
-		self.inputs.get_ref(test_size).unwrap()
+		assert!(self.contains(slot));
+		// skip to first test
+		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
+		let mut skip_count = slot.offset;
+		while skip_count > 0 {
+			let cycle_count = self.inputs.read_u16().unwrap() as usize;
+			let test_len = (cycle_count * self.size.input) as i64;
+			self.inputs.seek(std::io::SeekFrom::Current(test_len)).unwrap();
+			skip_count -= 1;
+		}
+		// found test!
+		let cycle_count = self.inputs.read_u16().unwrap() as usize;
+		let test_len = cycle_count * self.size.input;
+		self.inputs.get_ref(test_len).unwrap()
 	}
 	fn contains(&self, slot: BufferSlot) -> bool {
 		assert_eq!(self.id, slot.id, "contains called with slot for different buffer!");

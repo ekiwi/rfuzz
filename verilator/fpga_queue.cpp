@@ -121,8 +121,10 @@ void FPGAQueueFuzzer::parse_header() {
 	assert(magic_header == MagicTestInputHeader);
 	const auto buffer_id = change_endianess(read_from_test<uint32_t>());
 	tests_left = change_endianess(read_from_test<uint16_t>());
-	input_cycle_count = change_endianess(read_from_test<uint16_t>());
-	change_endianess(read_from_test<uint32_t>());
+	// read reserved values
+	change_endianess(read_from_test<uint16_t>());
+	change_endianess(read_from_test<uint16_t>());
+	change_endianess(read_from_test<uint16_t>());
 	//std::cout << "received " << tests_left << " new tests" << std::endl;
 	const auto CoverageSize = 8 + 8 + coverage_size * tests_left;
 	const bool enough_space_for_coverage_provided =
@@ -139,7 +141,7 @@ void FPGAQueueFuzzer::init(size_t coverage_size) {
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {
-		inputs_left = input_cycle_count;
+		inputs_left = change_endianess(read_from_test<uint16_t>());
 		tests_left -= 1;
 		return false;
 	} else {
@@ -147,7 +149,7 @@ bool FPGAQueueFuzzer::done() {
 		const bool done = !acquire_buffer();
 		if(!done) {
 			parse_header();
-			inputs_left = input_cycle_count;
+			inputs_left = change_endianess(read_from_test<uint16_t>());
 			tests_left -= 1;
 		} else {
 			unmap_shms();

@@ -16,12 +16,12 @@
 //     uint32_t MagicHeader = 0x19933991;
 //     uint32_t buffer_id;
 //     uint16_t test_count;
-//     uint16_t test_cycles;
-//     uint32_t reserved_control;
+//     uint16_t reserved_control[3];
 //     Test tests[test_count];
 // }
 // struct Test {
-//     Input inputs[input_count];
+//     uint16_t cycles;
+//     Input inputs[cycles];
 // }
 // sizeof(Input) = round_up_to_multiple_of_64(input_bits);
 //
@@ -89,7 +89,6 @@ private:
 
 	// current buffer
 	uint16_t tests_left = 0;
-	uint16_t input_cycle_count = 0;
 	/// keep up to N shared memory regions mapped at one time
 	static constexpr size_t MaxMappedShms = 100;
 	/// contains all shared memory regions that we have consumed
