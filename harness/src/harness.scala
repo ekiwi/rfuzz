@@ -245,6 +245,7 @@ class Harness(dut_conf: DUTConfig) extends Module {
 }
 
 object HarnessGenerator extends App {
+	require(args.length > 0, "Please provide the toml form the instrumentation pass as argument!")
 	val conf = Config.loadToml(args(0))
 	println(s"Conf: ${conf}")
 	chisel3.Driver.execute(args, () => new Harness(conf))

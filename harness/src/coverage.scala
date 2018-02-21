@@ -44,15 +44,9 @@ class Coverage(conf: DUTConfig) extends Module {
 	when(io.control.done_next) { collecting := false.B }
 
 	val connect_coverage = !collecting
-	val coverage = {
-		var left = conf.coverageCounters.size - 1
-		Cat(conf.coverageCounters.map{ case(n,w) => {
-			val counter = Module(new SaturatingCounter(w))
-			counter.io.enable := Mux(connect_coverage, io.coverage_signals(left), false.B)
-			left = left - 1
-			counter.io.value
-		}}.toSeq)
-	}
+	//val cov_gen = new TrueCounterGenerator(1)
+	val cov_gen = new TrueOrFalseLatchGenerator
+	val coverage = cov_gen.cover(connect_coverage, io.coverage_signals)
 
 	// axis
 	io.axis_valid := collecting
@@ -79,3 +73,32 @@ class Coverage(conf: DUTConfig) extends Module {
 	}
 }
 
+// Coverage Generators:
+// * given a set of cover points
+// * generate a set of 8bit counter outputs with TOML description
+
+class TrueCounterGenerator(counter_width: Int) {
+	def cover(connect: Bool, cover_points: UInt) : UInt = {
+		Cat(
+			for(ii <- (0 until cover_points.getWidth).reverse) yield {
+				val counter = Module(new SaturatingCounter(counter_width))
+				counter.io.enable := Mux(connect, cover_points(ii), false.B)
+				counter.io.value
+			})
+	}
+	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
+}
+
+class TrueOrFalseLatchGenerator {
+	def cover(connect: Bool, cover_points: UInt) : UInt = {
+		Cat({
+			for(ii <- (0 until cover_points.getWidth).reverse) yield {
+				val pos = Module(new SaturatingCounter(1))
+				pos.io.enable := Mux(connect, cover_points(ii), false.B)
+				val neg = Module(new SaturatingCounter(1))
+				neg.io.enable := Mux(connect, ~cover_points(ii), false.B)
+				Seq(0.U(7.W), pos.io.value, 0.U(7.W), neg.io.value)
+			}}.flatten)
+	}
+	def bits(cover_points: Int) : Int = cover_points * (2 * 8)
+}

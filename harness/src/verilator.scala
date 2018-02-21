@@ -15,12 +15,15 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 	def bits_to_words(bits: Int) = div2Ceil(div2Ceil(bits, 8), word_byte_count)
 	def normalize_to_bytes(bits: Int) = bits_to_words(bits) * word_byte_count
 
-	val coverage_bits = dut_conf.coverageCounters.map{ case(_,w) => w }.reduce(_+_)
-	val input_byte_count = normalize_to_bytes(dut_conf.inputBits)
-	val coverage_byte_count = normalize_to_bytes(coverage_bits)
+	// select coverage generator
+	//val cov_gen = new TrueCounterGenerator(1)
+	val cov_gen = new TrueOrFalseLatchGenerator
 
-	println(s"input_byte_count: $input_byte_count")
+	val coverage_bits = cov_gen.bits(dut_conf.coverageSignals)
+	val coverage_byte_count = normalize_to_bytes(coverage_bits)
+	val input_byte_count = normalize_to_bytes(dut_conf.inputBits)
 	println(s"coverage_byte_count: $coverage_byte_count")
+	println(s"input_byte_count: $input_byte_count")
 
 	val io = this.IO(new Bundle {
 		val input_bytes = Input(Vec(input_byte_count, UInt(8.W)))
@@ -34,21 +37,13 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 	dut.io.inputs := input_bytes(input_width-1, input_width - dut_conf.inputBits)
 
 	// coverage
-	val coverage = {
-		var left = dut_conf.coverageCounters.size - 1
-		Cat(dut_conf.coverageCounters.map{ case(_,w) => {
-			val counter = Module(new SaturatingCounter(w))
-			counter.io.enable := dut.io.coverage(left)
-			left = left - 1
-			counter.io.value
-		}}.toSeq)
-	}
-
-
+	val connect_coverage = true.B
+	val coverage = cov_gen.cover(connect_coverage, dut.io.coverage)
 	println(s"coverage width: ${coverage.getWidth}")
+	require(coverage.getWidth == coverage_bits)
 
 	// TODO: clean up code
-	var left = coverage_bits - 1
+	var left = coverage.getWidth - 1
 	io.coverage_bytes.map{ case(cov) =>
 		val right = left - 8 + 1
 		cov := { if(right >= 0) {        coverage(left, right)

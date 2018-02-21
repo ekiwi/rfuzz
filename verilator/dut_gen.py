@@ -61,7 +61,9 @@ if __name__ == '__main__':
 	conf = toml.loads(open(conf_toml).read())
 	input_bits = sum(ii['width'] for ii in conf['input'])
 	input_size = bits_to_size(input_bits)
-	cov_bits = sum(ii['counterbits'] for ii in conf['coverage'])
+	# TODO: extract coverage size from toml
+	cov_bits = (8 * 2) * len(conf['coverage'])
+	#cov_bits = sum(ii['counterbits'] for ii in conf['coverage'])
 	cov_size = bits_to_size(cov_bits)
 
 	i_line = "\ttop->io_input_bytes_{0: <3}  = input[{0: >3}];"
