@@ -22,6 +22,7 @@ impl Analysis {
 		}
 	}
 
+	#[inline(always)]
 	pub fn run(&mut self, trace_bits: &[u8]) -> bool {
 		// check coverage
 		let new_cov = analyze_coverage(self.bitmap.as_mut(), trace_bits);
@@ -51,12 +52,14 @@ impl Analysis {
 	}
 }
 
+#[inline(always)]
 fn hash_xx(input: &[u8]) -> u64 {
 	let mut hasher = XxHash::default();
 	hasher.write(input);
 	hasher.finish()
 }
 
+#[inline(always)]
 fn bin(count: u8) -> u8 {
 	match count {
 		0           => 0,
@@ -74,6 +77,7 @@ fn bin(count: u8) -> u8 {
 #[derive(Clone, Copy, PartialEq)]
 enum NewCoverage { None, BranchCount, Branch }
 
+#[inline(always)]
 fn analyze_coverage(bitmap: &mut [u8], trace_bits: &[u8]) -> NewCoverage {
 	assert_eq!(bitmap.len(), trace_bits.len());
 	let len = cmp::min(bitmap.len(), trace_bits.len());
