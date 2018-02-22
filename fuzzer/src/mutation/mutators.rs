@@ -427,6 +427,11 @@ unsafe fn copy_in_buf(buf: &mut[u8], src: u32, dst: u32, count: u32) {
 	               count as usize)
 }
 
+unsafe fn set_in_buf(buf: &mut[u8], start: u32, count: u32, value: u8) {
+	std::ptr::write_bytes(buf[(start as usize)..].as_mut_ptr(),
+	                      value, count as usize);
+}
+
 impl AflHavocMutator {
 	pub fn create(format: &InputFormat, inputs: &[u8], seed: Seed) -> Self {
 		let max = 1024;
@@ -552,15 +557,34 @@ impl AflHavocMutator {
 						output[self.rng.gen_range(0, len) as usize]
 					};
 
-					unsafe {
-						std::ptr::write_bytes(output[(clone_to as usize)..].as_mut_ptr(), value, clone_len as usize);
-					}
+					unsafe { set_in_buf(output, clone_to, clone_len, value) };
 
 					std::cmp::max(len, clone_to + clone_len)
 				}
 			},
+			HavocMutation::OverwriteBytes => {
+				if len >= 2 {
+					let copy_len = self.choose_block_len(len - 1);
+					let copy_to = self.rng.gen_range(0, len - copy_len + 1);
+					if self.rng.gen_weighted_bool(4) {
+						let copy_from = self.rng.gen_range(0, len - copy_len + 1);
+						if copy_from != copy_to {
+							unsafe {
+								copy_in_buf(output, copy_from, copy_to, copy_len);
+							}
+						}
+					} else {
+						let value = if self.rng.gen_weighted_bool(2) {
+							self.rng.gen::<u8>() } else {
+							output[self.rng.gen_range(0, len) as usize]
+						};
+						unsafe { set_in_buf(output, copy_to, copy_len, value) };
+					}
+				}
+				len
+			}
 			_ => {
-				//println!("TODO: implement {:?}", mutation);
+				println!("TODO: implement {:?}", mutation);
 				len
 			}
 		}
