@@ -3,7 +3,7 @@ mod mutators;
 
 use std::collections::{ HashMap, HashSet };
 use rand;
-use rand::{ SeedableRng, Rng };
+use rand::Rng;
 use self::format::InputFormat;
 use run::TestSize;
 

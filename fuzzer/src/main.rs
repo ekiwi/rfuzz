@@ -16,7 +16,6 @@ mod run;
 mod mutation;
 mod analysis;
 mod queue;
-use std::borrow::BorrowMut;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::FuzzServer;
 
@@ -76,7 +75,7 @@ fn main() {
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size);
-	let seed_coverage = fuzz_one(&mut server, &starting_seed, 0);
+	let seed_coverage = fuzz_one(&mut server, &starting_seed);
 	analysis.run(&seed_coverage);
 	// TODO: support multiple seeds
 
@@ -93,7 +92,7 @@ fn main() {
 	let max_children = 100000;
 	println!("fuzzing a maximum of {} queue entries", max_entries);
 
-	for entry_count in 0..max_entries {
+	for _ in 0..max_entries {
 		let active_test = q.get_next_test();
 		let mut history = active_test.mutation_history;
 		let mut new_runs : u64 = 0;
@@ -140,13 +139,11 @@ fn main() {
 		println!("\n");
 		println!("Formated Inputs and Coverage!");
 
-		let mut ii = 1u16;
 		for entry in q.entries() {
 			q.print_entry_summary(entry.id, &mutations);
 			config.print_inputs(&entry.inputs);
 			println!("Achieved Coverage:");
-			let coverage = fuzz_one(&mut server, &entry.inputs, ii);
-			ii += 1;
+			let coverage = fuzz_one(&mut server, &entry.inputs);
 			config.print_test_coverage(&coverage);
 			println!("\n");
 		}
@@ -168,7 +165,7 @@ fn main() {
 
 }
 
-fn fuzz_one(server: &mut FuzzServer, input: &[u8], ii: u16) -> Vec<u8> {
+fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
 	let mutator = mutation::identity(input);
 	server.run(mutator);
 	server.sync();

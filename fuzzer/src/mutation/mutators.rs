@@ -110,6 +110,7 @@ impl<M> Mutator for FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
 
 // helper macros to declare field structure aware mutators
 /// in the registry at the bottom of this submodule
+#[allow(unused_macros)]
 macro_rules! struct_mut {
 	($uid:expr, $name:expr, $version:expr, $mutator:ty) => {
 		MutatorEntry {
@@ -178,7 +179,7 @@ impl FieldAwareMutator for VerticalBitFlagPermuation {
 		let flag_width = ff.iter().filter(|f| f.bits <= max_flag_size).count() as u32;
 		let flag_pos = ff.iter().filter(|f| f.bits <= max_flag_size).next().map(|f| f.pos).unwrap_or(0);
 		let permuations = 2u32.pow(cycle_count);
-		let max = (flag_width * permuations);
+		let max = flag_width * permuations;
 		VerticalBitFlagPermuation { flag_width, flag_pos, max, permuations}
 	}
 	fn max(&self) -> u32 { self.max }
@@ -205,7 +206,7 @@ impl Mutator for IdentityMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: 0, seed: None } }
 	fn max(&self) -> u32 { 1 }
 	fn output_size(&self) -> Option<usize> { Some(self.inputs.len()) }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
+	fn apply(&mut self, _ii: u32, output: &mut [u8]) -> usize {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		//println!("IdMutator: out: {:?}", output);
@@ -581,10 +582,6 @@ impl AflHavocMutator {
 						unsafe { set_in_buf(output, copy_to, copy_len, value) };
 					}
 				}
-				len
-			}
-			_ => {
-				println!("TODO: implement {:?}", mutation);
 				len
 			}
 		}

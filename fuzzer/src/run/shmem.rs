@@ -180,7 +180,7 @@ impl SharedMemoryChannel {
 		self.send_id(id_tx); self.send_id(id_rx);
 	}
 
-	fn has_data(file: &fs::File, min_size: usize) -> bool {
+	fn has_data(file: &fs::File, _min_size: usize) -> bool {
 		let fd = file.as_raw_fd();
 		// TODO: we are currently not enforcing the `min_size`.
 		//       How could that be implemented?
