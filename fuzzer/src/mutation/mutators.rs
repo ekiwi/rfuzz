@@ -8,6 +8,7 @@ macro_rules! id { ($uid:expr, $version:expr) => {($uid as u64) << 32 | ($version
 
 use rand;
 use rand::{ SeedableRng, Rng };
+use std;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Random Mutators
@@ -410,10 +411,11 @@ fn int_32(ii: u32, input: &mut [u8]) {
 #[derive(Debug)]
 pub struct AflHavocMutator {
 	id: MutatorId,
+	havoc_blk_small : u32,
+	havoc_blk_medium : u32,
 	inputs: Vec<u8>,
 	rng: rand::XorShiftRng,
 	max: u32,
-	size_inc_max: usize,
 	last_ii: Option<u32>,
 }
 
@@ -424,11 +426,32 @@ impl AflHavocMutator {
 		let max = 1024;
 
 		let id = MutatorId { id: AFL_HAVOC_MUTATOR_ID, seed: Some(seed) };
+		let havoc_blk_small  = (format.size() * 1) as u32;
+		let havoc_blk_medium = (format.size() * 4) as u32;
 		let rng = rand::XorShiftRng::from_seed(seed);
-		// TODO: fix buffer bug and allow size extension!
-		let size_inc_max = 0; // format.size();
 		let last_ii = None;
-		AflHavocMutator { id, inputs: inputs.to_vec(), rng, max, size_inc_max, last_ii }
+		AflHavocMutator { id, havoc_blk_small, havoc_blk_medium,
+		                  inputs: inputs.to_vec(), rng, max, last_ii }
+	}
+
+	// based on AFL's choose_block_len function, but a bit less sophisticated
+	fn choose_block_len(&mut self, limit: u32) -> u32 {
+		// we ignore the time that we have been fuzzing for and the number of queue cycles
+		// instead we scale the block size in relation to our input size
+		// AFL uses 32 and 128 as BLK_SMALL and BLK_MEDIUM value, we will
+		// use size.input * 1/4 which gets us similar values assuming an input
+		// size of 40 bytes
+		assert!(limit > 0);
+
+		// While AFL gives equal probability to picking the small or medium
+		// block size after 10min of fuzzing, we will bias the selection
+		// towards the smaller size.
+		let (min_blk, max_blk) =
+			if(self.rng.gen_weighted_bool(4)) { (1, self.havoc_blk_small) }
+			else { (self.havoc_blk_small, self.havoc_blk_medium) };
+		let min = if min_blk < limit { min_blk } else { 1 };
+		let max = std::cmp::min(max_blk, limit);
+		self.rng.gen_range(min, max + 1)
 	}
 
 	fn apply_havoc_step(&mut self, mutation: HavocMutation, output: &mut [u8], len: u32) -> u32 {
@@ -444,13 +467,17 @@ impl AflHavocMutator {
 				len
 			},
 			HavocMutation::Interest16 => {
-				let ii = self.rng.gen_range(0, int_16_max(len));
-				int_16(ii, output);
+				if len >= 2 {
+					let ii = self.rng.gen_range(0, int_16_max(len));
+					int_16(ii, output);
+				}
 				len
 			},
 			HavocMutation::Interest32 => {
-				let ii = self.rng.gen_range(0, int_32_max(len));
-				int_32(ii, output);
+				if len >= 4 {
+					let ii = self.rng.gen_range(0, int_32_max(len));
+					int_32(ii, output);
+				}
 				len
 			},
 			HavocMutation::Arith8 => {
@@ -459,13 +486,17 @@ impl AflHavocMutator {
 				len
 			},
 			HavocMutation::Arith16 => {
-				let ii = self.rng.gen_range(0, arith_16_max(len));
-				arith_16(ii, output);
+				if len >= 2 {
+					let ii = self.rng.gen_range(0, arith_16_max(len));
+					arith_16(ii, output);
+				}
 				len
 			},
 			HavocMutation::Arith32 => {
-				let ii = self.rng.gen_range(0, arith_32_max(len));
-				arith_32(ii, output);
+				if len >= 4 {
+					let ii = self.rng.gen_range(0, arith_32_max(len));
+					arith_32(ii, output);
+				}
 				len
 			},
 			HavocMutation::Random8 => {
@@ -473,6 +504,21 @@ impl AflHavocMutator {
 				let flips : u8 = self.rng.gen_range(0, 255) + 1;
 				output[pos] ^= flips;
 				len
+			},
+			HavocMutation::DeleteBytes => {
+				if len >= 2 {
+					let del_len = self.choose_block_len(len - 1);
+					let del_from = self.rng.gen_range(0, len - del_len + 1);
+
+					let src = (del_from + del_len) as usize;
+					let dst = del_from as usize;
+					let count = (len - del_from - del_len) as usize;
+					unsafe {
+						std::ptr::copy(output[src..].as_ptr(), output[dst..].as_mut_ptr(), count);
+					}
+
+					len - del_len
+				} else { len }
 			},
 			_ => {
 				//println!("TODO: implement {:?}", mutation);
