@@ -20,7 +20,7 @@
 //     Test tests[test_count];
 // }
 // struct Test {
-//     uint16_t cycles;
+//     uint64_t cycles;
 //     Input inputs[cycles];
 // }
 // sizeof(Input) = round_up_to_multiple_of_64(input_bits);

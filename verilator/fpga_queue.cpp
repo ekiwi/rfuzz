@@ -141,7 +141,7 @@ void FPGAQueueFuzzer::init(size_t coverage_size) {
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {
-		inputs_left = change_endianess(read_from_test<uint16_t>());
+		inputs_left = change_endianess(read_from_test<uint64_t>());
 		tests_left -= 1;
 		return false;
 	} else {
@@ -149,7 +149,7 @@ bool FPGAQueueFuzzer::done() {
 		const bool done = !acquire_buffer();
 		if(!done) {
 			parse_header();
-			inputs_left = change_endianess(read_from_test<uint16_t>());
+			inputs_left = change_endianess(read_from_test<uint64_t>());
 			tests_left -= 1;
 		} else {
 			unmap_shms();

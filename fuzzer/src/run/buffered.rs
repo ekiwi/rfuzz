@@ -82,7 +82,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		// try to write test, only increment test_count and total_cycles if it succeeds!
 		let cycle_count = inputs.len() / self.size.input as usize;
 		assert_eq!(cycle_count * self.size.input as usize, inputs.len());
-		if self.inputs.write_u16(cycle_count as u16).is_err() { return None; }
+		if self.inputs.write_u64(cycle_count as u64).is_err() { return None; }
 		if self.inputs.write_all(inputs).is_err() { return None; }
 		// success!
 		let slot = BufferSlot { id: self.id, offset: self.test_count };
@@ -102,7 +102,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	}
 	fn try_run(&mut self, channel: &mut ChannelT) -> Result<(), ()> {
 		let test_count = self.test_count as usize;
-		let test_len_field_size = test_count * 2;
+		let test_len_field_size = test_count * 8;
 		let test_data_size = self.total_cycles as usize * self.size.input;
 		let tx_bytes = test_len_field_size + test_data_size + TEST_HEADER_SIZE;
 		let rx_bytes = test_count * self.size.coverage + COVERAGE_BUFFER_METADATA_SIZE;
@@ -143,13 +143,13 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
 		let mut skip_count = slot.offset;
 		while skip_count > 0 {
-			let cycle_count = self.inputs.read_u16().unwrap() as usize;
+			let cycle_count = self.inputs.read_u64().unwrap() as usize;
 			let test_len = (cycle_count * self.size.input) as i64;
 			self.inputs.seek(std::io::SeekFrom::Current(test_len)).unwrap();
 			skip_count -= 1;
 		}
 		// found test!
-		let cycle_count = self.inputs.read_u16().unwrap() as usize;
+		let cycle_count = self.inputs.read_u64().unwrap() as usize;
 		let test_len = cycle_count * self.size.input;
 		self.inputs.get_ref(test_len).unwrap()
 	}
