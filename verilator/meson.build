@@ -60,5 +60,5 @@ dut_hpp = custom_target('dut_hpp', output : 'dut.hpp', input : toml,
 
 sources = ['top.cpp', 'fpga_queue.cpp', dut_hpp]
 executable(exe, sources,
-           cpp_args: verilator_defines,
+           cpp_args: verilator_defines + ['-faligned-new'],
            dependencies: [libsim_dep, verilator])
