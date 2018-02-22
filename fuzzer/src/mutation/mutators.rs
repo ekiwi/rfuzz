@@ -421,6 +421,12 @@ pub struct AflHavocMutator {
 
 pub const AFL_HAVOC_MUTATOR_ID : u64 = id!(110, v!(0,1));
 
+unsafe fn copy_in_buf(buf: &mut[u8], src: u32, dst: u32, count: u32) {
+	std::ptr::copy(buf[(src as usize)..].as_ptr(),
+	               buf[(dst as usize)..].as_mut_ptr(),
+	               count as usize)
+}
+
 impl AflHavocMutator {
 	pub fn create(format: &InputFormat, inputs: &[u8], seed: Seed) -> Self {
 		let max = 1024;
@@ -447,7 +453,7 @@ impl AflHavocMutator {
 		// block size after 10min of fuzzing, we will bias the selection
 		// towards the smaller size.
 		let (min_blk, max_blk) =
-			if(self.rng.gen_weighted_bool(4)) { (1, self.havoc_blk_small) }
+			if !self.rng.gen_weighted_bool(4) { (1, self.havoc_blk_small) }
 			else { (self.havoc_blk_small, self.havoc_blk_medium) };
 		let min = if min_blk < limit { min_blk } else { 1 };
 		let max = std::cmp::min(max_blk, limit);
@@ -455,6 +461,7 @@ impl AflHavocMutator {
 	}
 
 	fn apply_havoc_step(&mut self, mutation: HavocMutation, output: &mut [u8], len: u32) -> u32 {
+		let max_len = output.len() as u32;
 		match mutation {
 			HavocMutation::FlipBit => {
 				let ii = self.rng.gen_range(0, bitflip_1_max(len));
@@ -510,15 +517,47 @@ impl AflHavocMutator {
 					let del_len = self.choose_block_len(len - 1);
 					let del_from = self.rng.gen_range(0, len - del_len + 1);
 
-					let src = (del_from + del_len) as usize;
-					let dst = del_from as usize;
-					let count = (len - del_from - del_len) as usize;
 					unsafe {
-						std::ptr::copy(output[src..].as_ptr(), output[dst..].as_mut_ptr(), count);
+						copy_in_buf(output, del_from + del_len,
+						            del_from, len - del_from - del_len);
 					}
 
 					len - del_len
 				} else { len }
+			},
+			HavocMutation::CloneBytes => {
+				let actually_clone = !self.rng.gen_weighted_bool(4);
+				if actually_clone {
+					let clone_len = self.choose_block_len(len);
+					let clone_from = self.rng.gen_range(0, len - clone_len + 1);
+
+					// TODO: optimize for non overlapping clone
+					let from = clone_from as usize;
+					let to   = (clone_from + clone_len) as usize;
+					let clone_data = output[from..to].to_vec();
+
+					let max_to = std::cmp::min(len, max_len - clone_len);
+					let clone_to = self.rng.gen_range(0, max_to);
+					let clone_end = clone_to + clone_len;
+
+					output[(clone_to as usize)..(clone_end as usize)].copy_from_slice(&clone_data);
+
+					std::cmp::max(len, clone_to + clone_len)
+				} else {
+					let clone_len = self.choose_block_len(max_len);
+					let max_to = std::cmp::min(len, max_len - clone_len);
+					let clone_to = self.rng.gen_range(0, max_to);
+					let value = if self.rng.gen_weighted_bool(2) {
+						self.rng.gen::<u8>() } else {
+						output[self.rng.gen_range(0, len) as usize]
+					};
+
+					unsafe {
+						std::ptr::write_bytes(output[(clone_to as usize)..].as_mut_ptr(), value, clone_len as usize);
+					}
+
+					std::cmp::max(len, clone_to + clone_len)
+				}
 			},
 			_ => {
 				//println!("TODO: implement {:?}", mutation);
