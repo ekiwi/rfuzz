@@ -90,10 +90,10 @@ pub trait Mutator {
 	fn id(&self) -> MutatorId;
 	/// number of different mutations that can be performed for this instance
 	fn max(&self) -> u32;
-	/// the number of bytes that *all* mutation results have
-	fn output_size(&self) -> usize;
+	/// the number of bytes that *all* mutation results have, None if the output size is variable
+	fn output_size(&self) -> Option<usize>;
 	/// apply mutation `ii` on input (`ii` in [0, max]) and write it to output
-	fn apply(&mut self, ii: u32, output: &mut [u8]);
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize;
 }
 
 pub(crate) type Seed = [u32; 4];

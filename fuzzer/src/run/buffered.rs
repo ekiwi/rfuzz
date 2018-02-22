@@ -163,6 +163,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 #[derive(Clone)]
 pub struct BufferedFuzzServerConfig {
 	pub test_size : TestSize,
+	pub max_cycles : u32,
 	pub test_buffer_size : usize,
 	pub coverage_buffer_size : usize,
 	pub buffer_count : usize,
@@ -170,6 +171,7 @@ pub struct BufferedFuzzServerConfig {
 
 pub struct BufferedFuzzServer <ChannelT : CommunicationChannel> {
 	conf: BufferedFuzzServerConfig,
+	max_test_size: usize,
 	com: ChannelT,
 	history: TestHistory,
 	active_in: TestBuffer<ChannelT>,
@@ -181,9 +183,17 @@ pub struct BufferedFuzzServer <ChannelT : CommunicationChannel> {
 	next_buffer_id: u32
 }
 
+fn determine_max_test_size(conf: &BufferedFuzzServerConfig) -> usize {
+	let max_cycles_bc_buffer =
+		(conf.test_buffer_size - TEST_HEADER_SIZE - 8) / conf.test_size.input;
+	let cycles = std::cmp::min(max_cycles_bc_buffer, conf.max_cycles as usize);
+	conf.test_size.input * cycles
+}
+
 impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	pub fn connect(mut com: ChannelT, conf: BufferedFuzzServerConfig) -> Self {
 		assert!(conf.buffer_count >= 1);
+		let max_test_size = determine_max_test_size(&conf);
 		let history = TestHistory::new();
 		let mut active_in = BufferedFuzzServer::make_buffer(&mut com, &conf);
 		let next_coverage_slot = BufferSlot { id: 0, offset: 0 };
@@ -197,7 +207,8 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		// first buffer gets id 0
 		active_in.reset(0);
 		let next_buffer_id = 1;
-		BufferedFuzzServer { conf, com, history, active_in, next_coverage_slot,
+		BufferedFuzzServer { conf, max_test_size, com, history, active_in,
+		                     next_coverage_slot,
 		                     active_out, free, used, send, next_buffer_id }
 	}
 
@@ -330,13 +341,27 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 		let mutator_id = mutator.id();
 		let max = mutator.max();
 		// output of the mutator aka input to our fuzz server
-		let mut output = vec![0u8; mutator.output_size()];
-		for ii in 0..max {
-			mutator.apply(ii, &mut output);
-			// TODO: inline push test, we could save a copy here!
-			self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
+		if let Some(output_size) = mutator.output_size() {
+			let mut output = vec![0u8; output_size];
+			for ii in 0..max {
+				mutator.apply(ii, &mut output);
+				// TODO: inline push test, we could save a copy here!
+				self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
+			}
+			max
+		} else {
+			// variable size output
+			let in_size = self.conf.test_size.input;
+			let mut output = vec![0u8; self.max_test_size];
+			for ii in 0..max {
+				let used = mutator.apply(ii, &mut output);
+				// make sure the output is a multiple of the single cycle input length
+				let len = ((used + in_size - 1) / in_size) * in_size;
+				// TODO: inline push test, we could save a copy here!
+				self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output[0..len]);
+			}
+			max
 		}
-		max
 	}
 
 	fn pop_coverage(&mut self) -> Option<BasicFeedback> {

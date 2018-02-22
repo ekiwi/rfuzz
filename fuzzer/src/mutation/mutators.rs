@@ -46,8 +46,8 @@ impl RandomBitflipMutator {
 impl Mutator for RandomBitflipMutator {
 	fn id(&self) -> MutatorId { self.id }
 	fn max(&self) -> u32 { self.max }
-	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+	fn output_size(&self) -> Option<usize> { Some(self.inputs.len()) }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
 		// parameters:
 		let max_flips = 200;
 		let min_flips = 1;
@@ -69,6 +69,7 @@ impl Mutator for RandomBitflipMutator {
 			let bit = self.rng.gen_range(0, self.bits_per_cycle);
 			self.test.field(bit, 1).unwrap().in_cycle(cycle).unwrap().flip(output, 1);
 		}
+		self.inputs.len()
 	}
 }
 
@@ -97,12 +98,12 @@ impl<M> FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
 impl<M> Mutator for FieldAwareMutatorWrapper<M> where M: FieldAwareMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: self.id, seed: None } }
 	fn max(&self) -> u32 { self.mutator.max() }
-	// TODO: allow change in seed size
-	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+	fn output_size(&self) -> Option<usize> { Some(self.inputs.len()) }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		self.mutator.apply(ii, &self.test, output);
+		self.inputs.len()
 	}
 }
 
@@ -202,11 +203,12 @@ impl IdentityMutator {
 impl Mutator for IdentityMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: 0, seed: None } }
 	fn max(&self) -> u32 { 1 }
-	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+	fn output_size(&self) -> Option<usize> { Some(self.inputs.len()) }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		//println!("IdMutator: out: {:?}", output);
+		self.inputs.len()
 	}
 }
 
@@ -224,11 +226,12 @@ struct AflStyleConstLengthMutator {
 impl Mutator for AflStyleConstLengthMutator {
 	fn id(&self) -> MutatorId { MutatorId { id: self.id, seed: None } }
 	fn max(&self) -> u32 { (self.max_fn)(self.inputs.len() as u32) }
-	fn output_size(&self) -> usize { self.inputs.len() }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) {
+	fn output_size(&self) -> Option<usize> { Some(self.inputs.len()) }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
 		assert_eq!(self.inputs.len(), output.len());
 		output.copy_from_slice(&self.inputs);
 		(self.mutate)(ii, output);
+		self.inputs.len()
 	}
 }
 
@@ -488,27 +491,19 @@ enum HavocMutation {
 impl Mutator for AflHavocMutator {
 	fn id(&self) -> MutatorId { self.id }
 	fn max(&self) -> u32 { self.max }
-	fn output_size(&self) -> usize { self.inputs.len() + self.size_inc_max }
-	fn apply(&mut self, ii: u32, output: &mut [u8]) {
-		// TODO: remove debug print
-		// if ii == 0 { println!("{:?}", self); }
-
+	fn output_size(&self) -> Option<usize> { None }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
 		// checks
-		let output_size = self.output_size();
-		assert_eq!(output_size, output.len());
+		assert!(output.len() >= self.inputs.len());
 		if let Some(last) = self.last_ii {
 			assert_eq!(last + 1, ii);
 		}
 		self.last_ii = Some(ii);
 
 
-		// copy input to output and set padding at the end to zero
+		// copy input to output
 		let orig_len = self.inputs.len();
-		let padding_len = self.output_size() - orig_len;
 		output[..orig_len].copy_from_slice(&self.inputs);
-		for ii in orig_len..output_size {
-			output[ii] = 0;
-		}
 
 		// pick the number of stacked mutations
 		let use_stacking = *self.rng.choose(&[2,4,8,16,32,64,128]).unwrap();
@@ -532,6 +527,7 @@ impl Mutator for AflHavocMutator {
 			]).unwrap();
 			len = self.apply_havoc_step(*mutation, output, len);
 		}
+	len as usize
 	}
 }
 

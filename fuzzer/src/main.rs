@@ -55,6 +55,7 @@ fn main() {
 	// test runner
 	let srv_config = BufferedFuzzServerConfig {
 		test_size : test_size,
+		max_cycles : 200,
 		test_buffer_size : 64 * 1024,
 		coverage_buffer_size : 64 * 1024,
 		buffer_count: 3,
