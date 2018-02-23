@@ -52,6 +52,30 @@ class WithCoverage extends Config((site, here, up) => {
   case PropertyLibrary => new PrintfPropertyLibrary
 })
 ```
+## Non-blocking Data Cache
+
+**NonBlockingDCache.fir**
+
+Generated from `rocket-chip @ 8799508b` (last commit Fri Jan 12) with the
+following config:
+
+```.scala
+class WithNonBlockingDCache extends Config((site, here, up) => {
+  case RocketTilesKey => up(RocketTilesKey) map (tile => tile.copy(
+    dcache = tile.dcache map (_.copy(
+      nSets = 64,
+      nWays = 4,
+      nMSHRs = 2 // should be > 0
+    ))
+  ))
+})
+```
+
+Note that the non-blocking data cache is a multi-module design.
+Using [another Donggyu's commit in project-template](https://github.com/ucb-bar/project-template/commit/86da7216e814ce0ab181bf6e99e1b77fedadb42e),
+we ran `make chirrtl` in the `verisim` directory and take all the modules from
+`module WritebackUnit` to `module NonBlockingDCache_dcache`(cropped from
+Line 133232 to Line 145035 in `example.TestHarness.DefaultExampleConfig.fir`).
 
 ## gcd
 
