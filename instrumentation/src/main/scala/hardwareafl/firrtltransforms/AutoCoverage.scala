@@ -130,7 +130,6 @@ object TomlGenerator {
     // heuristic
     id.matches(raw"(_?(:?(:?T)|(:?GEN))_\d+(:?_\d+)?)")
   }
-  var definitions: Map[String, IsDeclaration] = Map()
   def getHumanReadableExpression(decl: IsDeclaration) : String = {
     decl match {
       case d: DefNode => getHumanReadableExpression(d.value)
@@ -145,13 +144,13 @@ object TomlGenerator {
       }
     }
   }
-  def getHumanReadableExpression(cond: Expression) : String = {
+  def getHumanReadableExpression(definitions: Map[String, IsDeclaration])(cond: Expression) : String = {
     // this is a *heuristic*
     // TODO: minimize expressions ....
     cond match {
       case ref: WRef => {
         if(isGeneratedIdentifier(ref.name)) {
-          this.definitions.get(ref.name) match {
+          definitions.get(ref.name) match {
             case Some(d) => getHumanReadableExpression(d)
             case None => ref.name
           }
@@ -209,7 +208,7 @@ object TomlGenerator {
     }
   }
   def apply(mod: Module, coverage: Seq[(WRef,Statement)]) = {
-    this.definitions = getDefinitions(mod)
+    val definitions = getDefinitions(mod)
 
     val output = s"${mod.name}.toml"
     val out = new java.io.PrintWriter(output)
@@ -238,7 +237,7 @@ object TomlGenerator {
     for((cond, stmt) <- coverage) {
       val name = cond.serialize
       val dbg = getDebugInfo(stmt)
-      val human = getHumanReadableExpression(cond)
+      val human = getHumanReadableExpression(definitions)(cond)
       out.println(s"""[[coverage]]""")
       out.println(s"""name = "${name}$q""")
       out.println(s"""index = ${index}""")
