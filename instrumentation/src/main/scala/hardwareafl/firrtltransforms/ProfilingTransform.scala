@@ -27,6 +27,29 @@ class ProfilingTransform extends Transform {
       val processStmt: PartialFunction[Statement, (Statement, Seq[Expression])]
   )
 
+  def containsMux(stmt: Statement): Boolean = {
+    var muxFound = false
+    def containsMux(expr: Expression): Expression = expr.map(containsMux) match {
+      case m: Mux =>
+        muxFound = true
+        m
+      case other => other
+    }
+    stmt.map(containsMux)
+    muxFound
+  }
+  def extractMuxConditions(stmt: Statement): Seq[Expression] = {
+    val conds = mutable.ArrayBuffer.empty[Expression]
+    def onExpr(expr: Expression): Expression = expr.map(onExpr) match {
+      case mux @ Mux(cond, _,_,_) =>
+        conds += cond
+        mux
+      case other => other
+    }
+    stmt.map(onExpr)
+    conds
+  }
+
   val coverageConfig = ProfileConfig("func_cover_out") {
     case Print(_, slit, Seq(pred), _, en) if slit.string.startsWith("COVER:") =>
       (EmptyStmt, Seq(And(pred, en)))
@@ -36,9 +59,13 @@ class ProfilingTransform extends Transform {
       (EmptyStmt, Seq(en))
     case _: Stop => (EmptyStmt, Seq.empty) // Remove stops
   }
+  val autoCoverageConfig = ProfileConfig("auto_cover_out") {
+    case stmt if containsMux(stmt) => (stmt, extractMuxConditions(stmt))
+  }
   val configs = Seq(
     coverageConfig,
-    assertConfig
+    assertConfig,
+    autoCoverageConfig
   )
 
   // Hardwired constants

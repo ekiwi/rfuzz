@@ -32,10 +32,9 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 COMMA := ,
 FIRRTL_TRANSFORMS := \
+	hardwareafl.firrtltransforms.SplitMuxConditions \
 	hardwareafl.firrtltransforms.ProfilingTransform \
-	firrtl.passes.wiring.WiringTransform \
-	hardwareafl.firrtltransforms.AutoCoverage \
-	hardwareafl.firrtltransforms.SplitMuxConditions
+	firrtl.passes.wiring.WiringTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 
