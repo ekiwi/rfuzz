@@ -6,45 +6,72 @@ use std::cmp;
 use run::TestSize;
 
 
+pub struct Range {
+	/// start index in the coverage map/feedback
+	pub start : usize,
+	pub stop : usize,
+	/// should the coverage value be scaled by the cycle count?
+	pub do_scale : bool,
+}
+
+impl Range {
+	fn len(&self) -> usize { self.stop - self.start }
+}
+
 pub struct Analysis {
 	path_hashes : HashSet<u64>,
 	bitmap: Vec<u8>,
-	new_inputs : usize
+	new_inputs : usize,
+	ranges : Vec<Range>,
 
 }
 /// analyses the coverage assuming packed 1-bit coverage counters
 impl Analysis {
-	pub fn new(test_size: TestSize) -> Analysis {
+	pub fn new(test_size: TestSize, ranges: Vec<Range>) -> Analysis {
+		Analysis::check_ranges(test_size.coverage, &ranges);
 		Analysis {
 			path_hashes: HashSet::new(),
 			bitmap: vec![0xff; test_size.coverage],
 			new_inputs: 0,
+			ranges: ranges,
 		}
 	}
 
+	fn check_ranges(coverage_size: usize, ranges: &[Range]) {
+		let mut start = 0;
+		for rr in ranges {
+			assert_eq!(rr.start, start, "Ranges are not continuus!");
+			start = rr.stop;
+		}
+		assert_eq!(start, coverage_size, "Ranges do not cover all of the coverage!");
+	}
+
 	#[inline(always)]
-	pub fn run(&mut self, trace_bits: &[u8]) -> bool {
+	pub fn run(&mut self, cycles: u16, trace_bits: &[u8]) -> bool {
+		let cc = cycles as u8;
 		// check coverage
-		let new_cov = analyze_coverage(self.bitmap.as_mut(), trace_bits);
-		let is_interesting =
-		match new_cov {
+		let mut new_cov = NewCoverage::None;
+		for rr in self.ranges.iter() {
+			new_cov = new_cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
+		}
+
+		// decide whether we found something interesting
+		let is_interesting = match new_cov {
 			NewCoverage::Branch => { println!("New branch covered!"); true },
 			NewCoverage::BranchCount => { println!("New branch count discovered!"); true},
 			_ => false
 		};
 		self.new_inputs += if new_cov != NewCoverage::None {1} else {0};
+
 		// check path
 		let new_hash = hash_xx(trace_bits);
 		if !self.path_hashes.contains(&new_hash) {
 			self.path_hashes.insert(new_hash);
 		}
+
 		is_interesting
 	}
 
-	/// returns the number of coverage points that have been covered at least once
-	pub fn coverage_count(&self) -> usize {
-		self.bitmap.iter().map(|&x| x.count_zeros() as usize).sum()
-	}
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
 	pub fn new_inputs_count(&self) -> usize { self.new_inputs }
 	pub fn get_bitmap(&self) -> Vec<u8> {
@@ -74,17 +101,49 @@ fn bin(count: u8) -> u8 {
 	}
 }
 
+#[inline(always)]
+fn scale(cycles: u8, count: u8) -> u8 {
+	((count as u32) * (u8::max_value() as u32) / (cycles as u32)) as u8
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum NewCoverage { None, BranchCount, Branch }
 
+impl NewCoverage {
+	fn combine(self, other: Self) -> Self {
+		match self {
+			NewCoverage::None => other,
+			NewCoverage::Branch => self,
+			NewCoverage::BranchCount => match other {
+				NewCoverage::Branch => other,
+				_ => self
+			}
+		}
+	}
+}
+
 #[inline(always)]
-fn analyze_coverage(bitmap: &mut [u8], trace_bits: &[u8]) -> NewCoverage {
+fn analyze_range(range: &Range, cycles: u8, bitmap: &mut[u8], trace_bits: &[u8]) -> NewCoverage {
+	let bmp = &mut bitmap[range.start..range.stop];
+	let cov = &trace_bits[range.start..range.stop];
+
+	if range.do_scale {
+		analyze_coverage(bmp, cov, |x| scale(cycles, x))
+	} else {
+		analyze_coverage(bmp, cov, |x| x)
+	}
+}
+
+#[inline(always)]
+fn analyze_coverage<P>(bitmap: &mut [u8], trace_bits: &[u8], preprocess: P)
+	-> NewCoverage
+	where P: Fn(u8) -> u8 {
 	assert_eq!(bitmap.len(), trace_bits.len());
 	let len = cmp::min(bitmap.len(), trace_bits.len());
 	let mut new_cov = NewCoverage::None;
 	for i in 0..len {
 		let old = bitmap[i];
-		let new_count = trace_bits[i];
+		let new_count = preprocess(trace_bits[i]);
 		if new_count != 0 {
 			let new = bin(new_count);
 			if (new & old) != 0 {

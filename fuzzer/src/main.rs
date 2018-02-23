@@ -74,9 +74,10 @@ fn main() {
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
-	let mut analysis = analysis::Analysis::new(test_size);
+	let ranges = vec![analysis::Range{start: 0, stop: test_size.coverage, do_scale: false}];
+	let mut analysis = analysis::Analysis::new(test_size, ranges);
 	let seed_coverage = fuzz_one(&mut server, &starting_seed);
-	analysis.run(&seed_coverage);
+	analysis.run(start_cycles as u16, &seed_coverage);
 	// TODO: support multiple seeds
 
 	// mutation
@@ -102,7 +103,7 @@ fn main() {
 			new_runs += server.run(mutator) as u64;
 
 			while let Some(feedback) = server.pop_coverage() {
-				let is_interesting = analysis.run(&feedback.data);
+				let is_interesting = analysis.run(feedback.cycles, &feedback.data);
 				if is_interesting {
 					let (info, interesting_input) = server.get_info(feedback.id);
 					q.add_new_test(interesting_input, info);
@@ -124,7 +125,7 @@ fn main() {
 
 	server.sync();
 	while let Some(feedback) = server.pop_coverage() {
-		let is_interesting = analysis.run(&feedback.data);
+		let is_interesting = analysis.run(feedback.cycles, &feedback.data);
 		if is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
 			q.add_new_test(interesting_input, info);
