@@ -77,6 +77,8 @@ we ran `make chirrtl` in the `verisim` directory and take all the modules from
 `module WritebackUnit` to `module NonBlockingDCache_dcache`(cropped from
 Line 133232 to Line 145035 in `example.TestHarness.DefaultExampleConfig.fir`).
 
+<img src="http://www.lowrisc.org/docs/untether-v0.2/figures/dcache.png" width="640">
+
 ## gcd
 
 This is the small circuit that we originally used for testing the basic system.
