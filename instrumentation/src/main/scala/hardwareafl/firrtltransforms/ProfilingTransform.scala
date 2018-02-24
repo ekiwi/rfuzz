@@ -12,6 +12,14 @@ import firrtl.Utils.{BoolType, get_info}
 
 import scala.collection.mutable
 
+object ProfilingTransform {
+  case class ProfileConfig(topPortName: String)(
+      // Returns the optionally mutated input statement and any expressions
+      // that should be extracted to the top for profiling
+      val processStmt: PartialFunction[Statement, (Statement, Seq[Expression])]
+  )
+}
+
 /** Uses Firrtl's Wiring Transform to wire profiling signals in rocket-chip to the top
   *
   * Cover points are expected to be of the form: printf(..., "COVER:..." signal)
@@ -21,11 +29,7 @@ class ProfilingTransform extends Transform {
   def inputForm = MidForm
   def outputForm = MidForm
 
-  case class ProfileConfig(topPortName: String)(
-      // Returns the optionally mutated input statement and any expressions
-      // that should be extracted to the top for profiling
-      val processStmt: PartialFunction[Statement, (Statement, Seq[Expression])]
-  )
+  import ProfilingTransform._
 
   def containsMux(stmt: Statement): Boolean = {
     var muxFound = false
@@ -181,6 +185,8 @@ class ProfilingTransform extends Transform {
 
     val circuitx = state.circuit.copy(modules = newTop +: otherMods)
     val annosx = state.annotations.getOrElse(AnnotationMap(Seq.empty)).annotations ++ fullAnnos
+
+    TomlGenerator(circuitx, profiledSignals)
 
     state.copy(circuit = circuitx, annotations = Some(AnnotationMap(annosx)))
   }
