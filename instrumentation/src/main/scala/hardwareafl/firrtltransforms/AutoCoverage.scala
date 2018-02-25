@@ -150,6 +150,14 @@ object TomlGenerator {
     // this is a *heuristic*
     // TODO: minimize expressions ....
     cond match {
+      case ref: Reference => {
+        if(isGeneratedIdentifier(ref.name)) {
+          definitions.get(ref.name) match {
+            case Some(d) => getHumanReadableExpression(definitions, d)
+            case None => ref.name
+          }
+        } else { ref.name }
+      }
       case ref: WRef => {
         if(isGeneratedIdentifier(ref.name)) {
           definitions.get(ref.name) match {
