@@ -207,25 +207,41 @@ object TomlGenerator {
     }
     out.println()
 
+    val muxConds = mutable.LinkedHashSet.empty[Expression]
     for ((config, annos) <- profiledSignals) {
       for ((anno, index) <- annos.zipWithIndex) {
         val (mname, cond) = (anno.target: @unchecked) match {
           case ComponentName(cname, ModuleName(mname, _)) => (mname, AnnotationUtils.toExp(cname))
         }
-        val name = cond.serialize
+
         val definitions = moduleDefinitions(mname)
+        val name = cond.serialize
         val decl = definitions(name)
-        val dbg = getDebugInfo(decl.asInstanceOf[Statement])
-        val human = getHumanReadableExpression(definitions, cond)
-        out.println(s"""[[coverage]]""")
-        out.println(s"""port = "${config.topPortName}$q""")
-        out.println(s"""name = "$name$q""")
-        out.println(s"""index = $index""")
-        out.println(s"""filename = "${dbg.filename}$q""")
-        out.println(s"""line = ${dbg.line}""")
-        out.println(s"""column = ${dbg.col}""")
-        out.println(s"""human = "$human$q""")
-        out.println()
+
+        // Very hacky way to get the original mux condition
+        // (instead of the node pointing to it)
+        // This will break soon, but (hopefully) not tonight!
+        val origMuxCond = decl.asInstanceOf[DefNode].value
+
+        // skip reset, as it is not fuzzed at the moment
+        val skip = origMuxCond.serialize == "reset" ||
+        // also skip duplicate conditions
+          (muxConds contains origMuxCond)
+
+        if(!skip) {
+          muxConds += origMuxCond
+          val dbg = getDebugInfo(decl.asInstanceOf[Statement])
+          val human = getHumanReadableExpression(definitions, cond)
+          out.println(s"""[[coverage]]""")
+          out.println(s"""port = "${config.topPortName}$q""")
+          out.println(s"""name = "$name$q""")
+          out.println(s"""index = $index""")
+          out.println(s"""filename = "${dbg.filename}$q""")
+          out.println(s"""line = ${dbg.line}""")
+          out.println(s"""column = ${dbg.col}""")
+          out.println(s"""human = "$human$q""")
+          out.println()
+        }
       }
     }
     out.close
