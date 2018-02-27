@@ -43,8 +43,8 @@ object Config {
 		new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8)
 	}
 	def loadToml(filename: String) : DUTConfig = {
-		case class General(filename: String, module: String, instrumented: String, timestamp: OffsetDateTime)
-		case class Coverage(name: String, index: Int, filename: String, line: Int, column: Int, human: String)
+		case class General(filename: String, instrumented: String, top: String, timestamp: OffsetDateTime)
+		case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)
 		case class Input(name: String, width: Int)
 		case class Test(general: General, coverage: List[Coverage], input: List[Input])
 		val Right(toml) = Toml.parseAs[Test](loadFileContent(filename))
@@ -57,7 +57,7 @@ object Config {
 		// }
 		// extract relevant values
 		val src = toml.general.instrumented
-		val name = toml.general.module
+		val name = toml.general.top
 		val input = toml.input.map{ case inp: Input => (inp.name, inp.width) }
 		val inputBits = input.map{ case (_,w) => w }.reduce(_+_)
 		val coverageSignals = toml.coverage.size
