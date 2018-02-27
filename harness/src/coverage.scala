@@ -24,27 +24,23 @@ class CoverageControl extends Bundle {
 // * generate a set of 8bit counter outputs with TOML description
 
 class TrueCounterGenerator(counter_width: Int) {
-	def cover(connect: Bool, cover_points: UInt) : UInt = {
-		Cat(
-			for(ii <- (0 until cover_points.getWidth).reverse) yield {
-				val counter = Module(new SaturatingCounter(counter_width))
-				counter.io.enable := Mux(connect, cover_points(ii), false.B)
-				counter.io.value
-			})
+	def cover(connect: Bool, cover_point: UInt) : Seq[UInt] = {
+		val counter = Module(new SaturatingCounter(counter_width))
+		counter.io.enable := Mux(connect, cover_point, false.B)
+		Seq(counter.io.value)
 	}
 	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
 }
 
 class TrueOrFalseLatchGenerator {
-	def cover(connect: Bool, cover_points: UInt) : UInt = {
-		Cat({
-			for(ii <- (0 until cover_points.getWidth).reverse) yield {
-				val pos = Module(new SaturatingCounter(1))
-				pos.io.enable := Mux(connect, cover_points(ii), false.B)
-				val neg = Module(new SaturatingCounter(1))
-				neg.io.enable := Mux(connect, ~cover_points(ii), false.B)
-				Seq(0.U(7.W), pos.io.value, 0.U(7.W), neg.io.value)
-			}}.flatten)
+	def cover(connect: Bool, cover_point: UInt) : Seq[UInt] = {
+		val pos = Module(new SaturatingCounter(1))
+		pos.io.enable := Mux(connect, cover_point, false.B)
+		val pos_count = Cat(0.U(7.W), pos.io.value)
+		val neg = Module(new SaturatingCounter(1))
+		neg.io.enable := Mux(connect, ~cover_point, false.B)
+		val neg_count = Cat(0.U(7.W), neg.io.value)
+		Seq(pos_count, neg_count)
 	}
 	def bits(cover_points: Int) : Int = cover_points * (2 * 8)
 }

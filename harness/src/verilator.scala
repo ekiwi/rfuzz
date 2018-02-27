@@ -19,7 +19,7 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 	//val cov_gen = new TrueCounterGenerator(1)
 	val cov_gen = new TrueOrFalseLatchGenerator
 
-	val coverage_bits = cov_gen.bits(dut_conf.coverageSignals)
+	val coverage_bits = cov_gen.bits(dut_conf.coverageSignals.size)
 	val coverage_byte_count = normalize_to_bytes(coverage_bits)
 	val input_byte_count = normalize_to_bytes(dut_conf.inputBits)
 	println(s"coverage_byte_count: $coverage_byte_count")
@@ -38,18 +38,15 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 
 	// coverage
 	val connect_coverage = true.B
-	val coverage = cov_gen.cover(connect_coverage, dut.io.coverage)
-	println(s"coverage width: ${coverage.getWidth}")
-	require(coverage.getWidth == coverage_bits)
-
-	// TODO: clean up code
-	var left = coverage.getWidth - 1
-	io.coverage_bytes.map{ case(cov) =>
-		val right = left - 8 + 1
-		cov := { if(right >= 0) {        coverage(left, right)
-		} else if(7 + right >= 0) {  Cat(coverage(left, 0), 0.U((-right).W))
-		} else {                         0.U
-		}}
-		left = left - 8
+	val coverage = (dut_conf.coverageSignals zip dut.io.coverage).flatMap {
+	case (cov, sig) => {
+		// TODO: generate TOML
+		cov_gen.cover(connect_coverage, sig)
 	}
+	}
+	require(coverage.forall(_.getWidth == 8))
+	val coverageWidth = coverage.map(cov => cov.getWidth).reduce(_+_)
+	println(s"coverage width: ${coverageWidth}")
+	require(coverageWidth == coverage_bits)
+	io.coverage_bytes := coverage
 }

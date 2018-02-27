@@ -21,8 +21,8 @@ class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 	override def desiredName = conf.name
 	val io = this.IO(ListBundle( {
 		ListMap("clock" -> Input(Clock()), "reset" -> Input(Bool())) ++
-		conf.input.map{ case(n,w) => n -> Input(UInt(w.W)) } ++
-		ListMap("coverageOut" -> Output(UInt(conf.coverageSignals.W)))
+		conf.input.map{ case inp => inp.name -> Input(UInt(inp.width.W)) } ++
+		conf.coveragePorts.map{ case port => port.name -> Output(UInt(port.width.W)) }
 		// TODO: is it ok to just ignore the output?
 	}))
 	setInline(conf.src,
@@ -30,10 +30,9 @@ class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 }
 
 class DUT(conf: DUTConfig) extends Module {
-	val coverage_bits = conf.coverageSignals
 	val io = this.IO(new Bundle {
 		val inputs = Input(UInt(conf.inputBits.W))
-		val coverage = Output(UInt(coverage_bits.W))
+		val coverage = Output(Vec(conf.coverageBits, Bool()))
 	})
 	val bb = Module(new DUTBlackBox(conf))
 	val pins = bb.io.elements
@@ -44,10 +43,18 @@ class DUT(conf: DUTConfig) extends Module {
 
 	// extract inputs
 	var left = conf.inputBits - 1
-	conf.input.map{ case(n,w) =>
+	conf.input.map{ case Config.Input(n,w) =>
 		pins(n) := io.inputs(left, left - w + 1)
 		left = left - w
 	}
+
 	// connect coverage
-	io.coverage := pins("coverageOut")
+	val coverage = for(sig <- conf.coverageSignals) yield {
+		val port = pins(sig.port)
+		val bit = port.getWidth - 1 - sig.index
+		port.asInstanceOf[UInt](bit)
+	}
+	for((cov, ii) <- coverage.zipWithIndex) {
+		io.coverage(ii) := cov
+	}
 }

@@ -5,9 +5,12 @@ import scala.collection.immutable.ListMap
 // this file contains code to load our TOML config files and
 // extract the information needed to generate the harness
 
-case class DUTConfig(src: String, name: String, input: Seq[(String, Int)],
-                     inputBits: Int, coverageSignals: Int,
-                     coverageCounters: Seq[(String, Int)])
+case class DUTConfig(src: String, name: String,
+                     input: Seq[Config.Input], inputBits: Int,
+                     coveragePorts: Seq[Config.Port],
+                     coverageSignals: Seq[Config.Coverage], coverageBits: Int)
+
+
 
 object Config {
 	import java.time.OffsetDateTime
@@ -15,6 +18,12 @@ object Config {
 	import java.nio.charset.StandardCharsets
 	import toml._
 	import toml.Codecs._
+
+	case class General(filename: String, instrumented: String, top: String, timestamp: OffsetDateTime)
+	case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)
+	case class Input(name: String, width: Int)
+	case class Port(name: String, width: Int)
+	case class Test(general: General, coverage: List[Coverage], input: List[Input], port: List[Port])
 
 	implicit val booleanCodec: toml.Codec[Boolean] = toml.Codec[Boolean]( {
 		case toml.Value.Bool(value) => Right(value)
@@ -43,11 +52,6 @@ object Config {
 		new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8)
 	}
 	def loadToml(filename: String) : DUTConfig = {
-		case class General(filename: String, instrumented: String, top: String, timestamp: OffsetDateTime)
-		case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)
-		case class Input(name: String, width: Int)
-		case class Port(name: String, width: Int)
-		case class Test(general: General, coverage: List[Coverage], input: List[Input], port: List[Port])
 		val Right(toml) = Toml.parseAs[Test](loadFileContent(filename))
 		// DEBUG print
 		// println(s"Module: ${toml.general.module}")
@@ -59,10 +63,11 @@ object Config {
 		// extract relevant values
 		val src = toml.general.instrumented
 		val name = toml.general.top
-		val input = toml.input.map{ case inp: Input => (inp.name, inp.width) }
-		val inputBits = input.map{ case (_,w) => w }.reduce(_+_)
-		val coverageSignals = toml.coverage.size
-		val coverageCounters = toml.coverage.map{ case cov: Coverage => (cov.name -> 1) }
-		new DUTConfig(src, name, input, inputBits, coverageSignals, coverageCounters)
+		val input = toml.input
+		val inputBits = input.map{ case input: Input => input.width }.reduce(_+_)
+		val coveragePorts = toml.port
+		val coverageSignals = toml.coverage
+		val coverageBits = coverageSignals.size
+		new DUTConfig(src, name, input, inputBits, coveragePorts, coverageSignals, coverageBits)
 	}
 }
