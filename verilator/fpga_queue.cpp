@@ -135,22 +135,28 @@ void FPGAQueueFuzzer::parse_header() {
 	write_to_coverage(change_endianess(buffer_id));
 }
 
+void FPGAQueueFuzzer::start_test() {
+	inputs_left = change_endianess(read_from_test<uint64_t>());
+	tests_left -= 1;
+	const auto cycles = static_cast<uint16_t>(inputs_left);
+	//std::cout << "cycles: " << cycles << "" << std::endl;
+	write_to_coverage(change_endianess(cycles));
+}
+
 void FPGAQueueFuzzer::init(size_t coverage_size) {
 	Fuzzer::init(coverage_size);
 	command_pipe = std:: make_unique<NamedPipe>("0");
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {
-		inputs_left = change_endianess(read_from_test<uint64_t>());
-		tests_left -= 1;
+		start_test();
 		return false;
 	} else {
 		release_buffer();
 		const bool done = !acquire_buffer();
 		if(!done) {
 			parse_header();
-			inputs_left = change_endianess(read_from_test<uint64_t>());
-			tests_left -= 1;
+			start_test();
 		} else {
 			unmap_shms();
 		}

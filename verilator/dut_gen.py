@@ -64,7 +64,8 @@ if __name__ == '__main__':
 	# TODO: extract coverage size from toml
 	cov_bits = (8 * 2) * len(conf['coverage'])
 	#cov_bits = sum(ii['counterbits'] for ii in conf['coverage'])
-	cov_size = bits_to_size(cov_bits)
+	# the cycles count in front of the coverage feedback takes 16bit
+	cov_size = bits_to_size(cov_bits + 2 * 8) - 2
 
 	i_line = "\ttop->io_input_bytes_{0: <3}  = input[{0: >3}];"
 	c_line = "\tcoverage[{0: >3}] = top->io_coverage_bytes_{0};"

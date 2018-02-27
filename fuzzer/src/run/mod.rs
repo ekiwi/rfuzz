@@ -22,17 +22,8 @@ pub struct TestSize {
 	pub input: usize,
 }
 
-impl TestSize {
-	pub fn new(coverage_size: usize, input_size: usize) -> Self {
-		assert_eq!(coverage_size % 8, 0);
-		assert_eq!(input_size % 8, 0);
-		TestSize { coverage: coverage_size, input: input_size }
-	}
-}
-
-
 // TODO: return reference to coverage instead of copy
-pub struct BasicFeedback { pub id: TestId, pub data: Vec<u8> }
+pub struct BasicFeedback { pub id: TestId, pub cycles: u16, pub data: Vec<u8> }
 
 pub trait FuzzServer {
 	/// shedule test input for execution

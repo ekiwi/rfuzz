@@ -42,7 +42,10 @@ impl Config {
 		let input_bits : usize = data.input_bits() as usize;
 		let coverage_bits : usize = data.coverage.len() * BITS_PER_COVER_POINT;
 
-		TestSize { input: to_bytes(input_bits), coverage: to_bytes(coverage_bits) }
+		// the cycles count in front of every coverage entry takes 16bit
+		let coverage = to_bytes(coverage_bits + 2 * 8) - 2;
+
+		TestSize { input: to_bytes(input_bits), coverage }
 	}
 
 	fn validate(&self) {

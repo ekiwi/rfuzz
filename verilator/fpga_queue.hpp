@@ -33,6 +33,11 @@
 //     Coverage coverage[test_count];
 //     uint64_t reserved_status;
 // }
+// struct Coverage {
+//     uint16_t cycles;
+//     uint8_t counters[...];
+// }
+//
 // sizeof(Coverage) = round_up_to_multiple_of_64(coverage_bits);
 //
 // Every data item is 64bit word aligned!
@@ -127,6 +132,7 @@ private:
 	bool acquire_buffer();
 	void release_buffer();
 	void parse_header();
+	void start_test();
 public:
 	void init(size_t coverage_size) override;
 	bool done() override;

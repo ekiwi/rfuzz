@@ -130,11 +130,15 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		let _status = self.coverage.read_u64().unwrap();
 		// TODO: use status
 	}
-	fn get_coverage(&mut self, slot: BufferSlot) -> Option<&[u8]> {
+	fn get_coverage(&mut self, slot: BufferSlot) -> Option<(u16, &[u8])> {
 		if self.contains(slot) {
-			let pos = slot.offset as usize * self.size.coverage as usize + COVERAGE_HEADER_SIZE;
+			let cov_item_size = self.size.coverage as usize + 2;
+			let pos = slot.offset as usize * cov_item_size + COVERAGE_HEADER_SIZE;
 			self.coverage.seek(std::io::SeekFrom::Start(pos as u64)).unwrap();
-			Some(self.coverage.get_ref(self.size.coverage).unwrap())
+			let cycles = self.coverage.read_u16().unwrap();
+			let data = self.coverage.get_ref(self.size.coverage).unwrap();
+			//println!("cycles: {}", cycles);
+			Some((cycles, data))
 		} else { None }
 	}
 	fn get_test(&mut self, slot: BufferSlot) -> &[u8] {
@@ -308,10 +312,10 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	fn pop_available_coverage(&mut self) -> Option<BasicFeedback> {
 		while self.active_out.len() > 0 {
 			if let Some(oldest) = self.active_out.front_mut() {
-				if let Some(data) = oldest.get_coverage(self.next_coverage_slot) {
+				if let Some((cycles, data)) = oldest.get_coverage(self.next_coverage_slot) {
 					let id = self.history.get_id_for_slot(self.next_coverage_slot);
 					self.next_coverage_slot = self.next_coverage_slot.next();
-					return Some(BasicFeedback { id, data: data.to_vec() } );
+					return Some(BasicFeedback { id, cycles, data: data.to_vec() } );
 				}
 			}
 			self.free_oldest_out();
