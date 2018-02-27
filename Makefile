@@ -7,7 +7,6 @@ INPUT := benchmarks/$(FIR)
 INSTRUMENTED := $(BUILD)/$(DUT).v
 TOML := $(BUILD)/$(DUT).toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
-FPGA_HARNESS := $(BUILD)/$(DUT)_FPGAHarness.v
 FUZZ_SERVER := $(BUILD)/$(DUT)_server
 
 
@@ -49,11 +48,10 @@ $(INSTRUMENTED) $(TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 HARNESS_SRC := $(shell find harness/src -name '*.scala')
 HARNESS_TEST := $(shell find harness/test -name '*.scala')
 
-$(VERILATOR_HARNESS) $(FPGA_HARNESS): $(TOML) $(HARNESS_SRC)
+$(VERILATOR_HARNESS): $(TOML) $(HARNESS_SRC)
 	cd harness ;\
 	sbt "run ../$(TOML)"
 	mv harness/VerilatorHarness.v $(VERILATOR_HARNESS)
-	mv harness/Harness.v $(FPGA_HARNESS)
 
 
 ################################################################################
