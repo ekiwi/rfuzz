@@ -1,1 +1,6 @@
 build/
+
+# toplevel log files are ignored
+# move them to doc or fuzzer/log
+# if you want to commit them
+/*.log
