@@ -209,6 +209,14 @@ object TomlGenerator {
 
     val muxConds = mutable.LinkedHashSet.empty[Expression]
     for ((config, annos) <- profiledSignals) {
+      // this information helps us integrate the DUT as a BlackBox in the harness
+      val portWidth = annos.size
+      val portName = config.topPortName
+      out.println(s"""[[port]]""")
+      out.println(s"""name = "$portName$q""")
+      out.println(s"""width = $portWidth""")
+      out.println()
+
       for ((anno, index) <- annos.zipWithIndex) {
         val (mname, cond) = (anno.target: @unchecked) match {
           case ComponentName(cname, ModuleName(mname, _)) => (mname, AnnotationUtils.toExp(cname))

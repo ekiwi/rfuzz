@@ -46,7 +46,8 @@ object Config {
 		case class General(filename: String, instrumented: String, top: String, timestamp: OffsetDateTime)
 		case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)
 		case class Input(name: String, width: Int)
-		case class Test(general: General, coverage: List[Coverage], input: List[Input])
+		case class Port(name: String, width: Int)
+		case class Test(general: General, coverage: List[Coverage], input: List[Input], port: List[Port])
 		val Right(toml) = Toml.parseAs[Test](loadFileContent(filename))
 		// DEBUG print
 		// println(s"Module: ${toml.general.module}")
