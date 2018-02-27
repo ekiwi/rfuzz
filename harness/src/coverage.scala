@@ -31,7 +31,7 @@ class TrueCounterGenerator(counter_width: Int) {
 	}
 	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
 	def meta(signal_index: Int) : Seq[Config.Counter] = {
-		Seq(Config.Counter("True", 255, true, signal_index, signal_index))
+		Seq(Config.Counter("True", counter_width, 255, true, signal_index, signal_index))
 	}
 }
 
@@ -48,7 +48,7 @@ class TrueOrFalseLatchGenerator {
 	def bits(cover_points: Int) : Int = cover_points * (2 * 8)
 	def meta(signal_index: Int) : Seq[Config.Counter] = {
 		val ii = signal_index * 2
-		Seq(Config.Counter("True",  1, false,   ii, signal_index),
-		    Config.Counter("False", 1, false, ii+1, signal_index))
+		Seq(Config.Counter("True",  8, 1, false,   ii, signal_index),
+		    Config.Counter("False", 8, 1, false, ii+1, signal_index))
 	}
 }
