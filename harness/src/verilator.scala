@@ -50,7 +50,8 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 	val coverageWidth = coverage.map(cov => cov.getWidth).reduce(_+_)
 	println(s"coverage width: ${coverageWidth}")
 	require(coverageWidth == coverage_bits)
-	io.coverage_bytes := coverage
+	val zero_bytes = io.coverage_bytes.length - coverage.size
+	io.coverage_bytes := coverage ++ (0 until zero_bytes).map(_ => 0.U(8.W))
 
 	// coverage counter metadata
 	val counter_info = dut_conf.coverageSignals.zipWithIndex.flatMap {
@@ -58,6 +59,7 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 			cov_gen.meta(ii)
 		}
 	}
+	require(counter_info.forall(_.width == 8))
 	require(coverage.size == counter_info.size)
 	counters ++= counter_info
 }
