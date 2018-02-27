@@ -26,7 +26,7 @@ object ProfilingTransform {
   * Assertions are expected to be of the form: printf(..., "Assertion...")
   */
 class ProfilingTransform extends Transform {
-  def inputForm = MidForm
+  def inputForm = LowForm
   def outputForm = MidForm
 
   import ProfilingTransform._
@@ -168,6 +168,10 @@ class ProfilingTransform extends Transform {
     (modx, annos.flatten.toSeq)
   }
 
+  def cleanupTransforms = Seq(
+    new FixupOps // https://github.com/freechipsproject/firrtl/issues/498
+  )
+
   def execute(state: CircuitState): CircuitState = {
 
     val top = state.circuit.modules.find(_.name == state.circuit.main).get
@@ -188,6 +192,9 @@ class ProfilingTransform extends Transform {
 
     TomlGenerator(circuitx, profiledSignals)
 
-    state.copy(circuit = circuitx, annotations = Some(AnnotationMap(annosx)))
+    val result = state.copy(circuit = circuitx, annotations = Some(AnnotationMap(annosx)))
+    cleanupTransforms.foldLeft(result) {
+      case (state, transform) => transform.runTransform(state)
+    }
   }
 }

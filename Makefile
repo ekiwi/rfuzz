@@ -40,7 +40,7 @@ INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 $(INSTRUMENTED) $(TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
-	sbt "runMain firrtl.Driver -i ../$< -o ../$(INSTRUMENTED) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
+	sbt "runMain hardwareafl.firrtltransforms.CustomTop -i ../$< -o ../$(INSTRUMENTED) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
 	mv instrumentation/$(DUT).toml $(TOML)
 
 ################################################################################
