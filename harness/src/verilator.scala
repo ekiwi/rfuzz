@@ -3,13 +3,15 @@ package pynq
 import chisel3._
 import chisel3.util._
 
+import scala.collection.mutable
+
 // This file contains an adaptor to interface the DUT with our
 // C++ verilator testbench.
 // The adaptor works on a byte level and thus keeps us sane by not
 // having to reason about endianess in the C++ toplevel.
 
 
-class VerilatorHarness(dut_conf: DUTConfig) extends Module {
+class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBuffer[Config.Counter]) extends Module {
 	// 64bit alignment
 	val word_byte_count = 8
 	def bits_to_words(bits: Int) = div2Ceil(div2Ceil(bits, 8), word_byte_count)
@@ -39,14 +41,22 @@ class VerilatorHarness(dut_conf: DUTConfig) extends Module {
 	// coverage
 	val connect_coverage = true.B
 	val coverage = (dut_conf.coverageSignals zip dut.io.coverage).flatMap {
-	case (cov, sig) => {
-		// TODO: generate TOML
-		cov_gen.cover(connect_coverage, sig)
-	}
+		case (cov, sig) => {
+			cov_gen.cover(connect_coverage, sig)
+		}
 	}
 	require(coverage.forall(_.getWidth == 8))
 	val coverageWidth = coverage.map(cov => cov.getWidth).reduce(_+_)
 	println(s"coverage width: ${coverageWidth}")
 	require(coverageWidth == coverage_bits)
 	io.coverage_bytes := coverage
+
+	// coverage counter metadata
+	val counter_info = dut_conf.coverageSignals.zipWithIndex.flatMap {
+		case (_, ii) => {
+			cov_gen.meta(ii)
+		}
+	}
+	require(coverage.size == counter_info.size)
+	counters ++= counter_info
 }

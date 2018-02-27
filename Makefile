@@ -5,6 +5,7 @@ DUT := ICache
 BUILD := build
 INPUT := benchmarks/$(FIR)
 INSTRUMENTED := $(BUILD)/$(DUT).v
+INSTRUMENTATION_TOML := $(BUILD)/$(DUT)_InstrumentationInfo.toml
 TOML := $(BUILD)/$(DUT).toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
 FUZZ_SERVER := $(BUILD)/$(DUT)_server
@@ -37,10 +38,10 @@ FIRRTL_TRANSFORMS := \
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 
-$(INSTRUMENTED) $(TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
+$(INSTRUMENTED) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
 	sbt "runMain hardwareafl.firrtltransforms.CustomTop -i ../$< -o ../$(INSTRUMENTED) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
-	mv instrumentation/$(DUT).toml $(TOML)
+	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
 
 ################################################################################
 # harness rules
@@ -48,9 +49,9 @@ $(INSTRUMENTED) $(TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 HARNESS_SRC := $(shell find harness/src -name '*.scala')
 HARNESS_TEST := $(shell find harness/test -name '*.scala')
 
-$(VERILATOR_HARNESS): $(TOML) $(HARNESS_SRC)
+$(VERILATOR_HARNESS) $(TOML): $(INSTRUMENTATION_TOML) $(HARNESS_SRC)
 	cd harness ;\
-	sbt "run ../$(TOML)"
+	sbt "run ../$(INSTRUMENTATION_TOML) ../$(TOML)"
 	mv harness/VerilatorHarness.v $(VERILATOR_HARNESS)
 
 

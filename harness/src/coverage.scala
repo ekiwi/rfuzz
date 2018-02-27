@@ -24,16 +24,19 @@ class CoverageControl extends Bundle {
 // * generate a set of 8bit counter outputs with TOML description
 
 class TrueCounterGenerator(counter_width: Int) {
-	def cover(connect: Bool, cover_point: UInt) : Seq[UInt] = {
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
 		val counter = Module(new SaturatingCounter(counter_width))
 		counter.io.enable := Mux(connect, cover_point, false.B)
 		Seq(counter.io.value)
 	}
 	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		Seq(Config.Counter("True", 255, true, signal_index, signal_index))
+	}
 }
 
 class TrueOrFalseLatchGenerator {
-	def cover(connect: Bool, cover_point: UInt) : Seq[UInt] = {
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
 		val pos = Module(new SaturatingCounter(1))
 		pos.io.enable := Mux(connect, cover_point, false.B)
 		val pos_count = Cat(0.U(7.W), pos.io.value)
@@ -43,4 +46,9 @@ class TrueOrFalseLatchGenerator {
 		Seq(pos_count, neg_count)
 	}
 	def bits(cover_points: Int) : Int = cover_points * (2 * 8)
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		val ii = signal_index * 2
+		Seq(Config.Counter("True",  1, false,   ii, signal_index),
+		    Config.Counter("False", 1, false, ii+1, signal_index))
+	}
 }

@@ -5,6 +5,7 @@ import chisel3.util._
 import chisel3.experimental.withReset
 
 import scala.collection.immutable.ListMap
+import scala.collection.mutable
 
 // WARN: all circuts designed with 64bit AXIS interface in mind
 
@@ -51,9 +52,14 @@ object Convert64BitEndianess {
 }
 
 object HarnessGenerator extends App {
-	require(args.length > 0, "Please provide the toml form the instrumentation pass as argument!")
-	val conf = Config.loadToml(args(0))
+	require(args.length > 1, "Please provide the toml form the instrumentation pass as well as the output toml as argumenst!")
+	val inToml = args(0)
+	val outToml = args(1)
+	val conf = Config.loadToml(inToml)
 	println(s"Conf: ${conf}")
-	chisel3.Driver.execute(args, () => new VerilatorHarness(conf))
+	// super hacky "out parameter" to get list of counters from Harness design
+	val counters = collection.mutable.ArrayBuffer[Config.Counter]()
+	chisel3.Driver.execute(args, () => new VerilatorHarness(conf, counters))
+	Config.writeAugmentedToml(inToml, outToml, counters.toSeq)
 }
 
