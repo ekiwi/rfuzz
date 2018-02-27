@@ -15,13 +15,12 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use run::TestSize;
+use analysis;
 
 pub struct Config {
 	size: TestSize,
 	data: ConfigData,
 }
-
-const BITS_PER_COVER_POINT : usize = 2 * 8;
 
 impl Config {
 	pub fn from_file(word_size: usize, filename: &str) -> Self {
@@ -32,6 +31,7 @@ impl Config {
 		let size = Config::determine_test_size(word_size, &data);
 		let config = Config { size, data };
 		config.validate();
+		// TODO: generate ranges for the anlysis!
 		config
 	}
 
@@ -40,7 +40,7 @@ impl Config {
 		let to_bytes = |b| div_2_ceil(div_2_ceil(b, 8), word_size) * word_size;
 
 		let input_bits : usize = data.input_bits() as usize;
-		let coverage_bits : usize = data.coverage.len() * BITS_PER_COVER_POINT;
+		let coverage_bits : usize = data.counter.iter().map(|c| c.width as usize).sum();
 
 		// the cycles count in front of every coverage entry takes 16bit
 		let coverage = to_bytes(coverage_bits + 2 * 8) - 2;
@@ -52,7 +52,7 @@ impl Config {
 		// make sure the size is large enough to hold coverage and inputs
 		let input_bits : usize = self.data.input_bits() as usize;
 		assert!(input_bits <= self.size.input * 8);
-		let coverage_bits : usize = self.data.coverage.len() * BITS_PER_COVER_POINT;
+		let coverage_bits : usize = self.data.counter.iter().map(|c| c.width as usize).sum();
 		assert!(coverage_bits <= self.size.coverage * 8);
 	}
 
@@ -71,7 +71,7 @@ impl Config {
 	}
 
 	pub fn print_header(&self) {
-		println!("Fuzzing {}", self.data.general.module.bold());
+		println!("Fuzzing {}", self.data.general.top.bold());
 		println!("Instrumented on:   {}", self.data.general.timestamp);
 		println!("Coverage Signals:  {}", self.coverage_signal_count());
 		println!("Input Fields:      {}", self.data.input.len());
@@ -134,14 +134,13 @@ impl Config {
 		assert_eq!(coverage.len(), self.size.coverage);
 
 		let mut table = Table::new();
-		table.add_row(row!["True", "False", "name", "expression", "source location"]);
+		table.add_row(row!["count", "name", "type", "signal", "expression", "source location"]);
 
-		for cov in self.data.coverage.iter() {
-			let byte_ii = (cov.index * 2) as usize;
-			let count_true = coverage[byte_ii];
-			let count_false = coverage[byte_ii+1];
-			let src = format!("{}:{}", cov.filename, cov.line);
-			table.add_row(row![count_true, count_false, cov.name, cov.human, src]);
+		for counter in self.data.counter.iter() {
+			let count = coverage[counter.index as usize];
+			let signal = &self.data.coverage[counter.signal as usize];
+			let src = format!("{}:{}", signal.filename, signal.line);
+			table.add_row(row![count, counter.name, signal.port, signal.name, signal.human, src]);
 		}
 		table.printstd();
 	}
@@ -151,20 +150,19 @@ impl Config {
 		assert_eq!(bitmap.len(), self.size.coverage);
 
 		let mut table = Table::new();
-		table.add_row(row!["#T", "T", "#F", "F", "name", "expression", "source location"]);
+		table.add_row(row!["count", "bits", "name", "type", "signal", "expression", "source location"]);
 
-		for cov in self.data.coverage.iter() {
-			let byte_ii = (cov.index * 2) as usize;
-			let covd_true = bitmap[byte_ii];
-			let covd_false = bitmap[byte_ii+1];
+		for counter in self.data.counter.iter() {
+			let covd = bitmap[counter.index as usize];
+			let signal = &self.data.coverage[counter.signal as usize];
 
-			let num_true = format!("{}/8", covd_true.count_zeros());
-			let bits_true = format!("{:b}", covd_true);
-			let num_false = format!("{}/8", covd_false.count_zeros());
-			let bits_false = format!("{:b}", covd_false);
+			let max = 8 - analysis::bin(counter.max as u8).leading_zeros();
+			let num = format!("{}/{}", covd.count_zeros(), max);
+			let mask = ((1 << max) - 1) as u8;
+			let bits = format!("{:b}", (!covd) & mask);
 
-			let src = format!("{}:{}", cov.filename, cov.line);
-			table.add_row(row![num_true, bits_true, num_false, bits_false, cov.name, cov.human, src]);
+			let src = format!("{}:{}", signal.filename, signal.line);
+			table.add_row(row![num, bits, counter.name, signal.port, signal.name, signal.human, src]);
 		}
 		table.printstd();
 	}
@@ -174,11 +172,12 @@ impl Config {
 struct General {
 	filename: String,
 	instrumented: String,
-	module: String,
+	top: String,
 	timestamp: Datetime
 }
 #[derive(Debug, Deserialize)]
 struct Coverage {
+	port: String,
 	name: String,
 	index: i32,
 	filename: String,
@@ -191,13 +190,22 @@ struct Input {
 	name: String,
 	width: u32,
 }
-
+#[derive(Debug, Deserialize)]
+struct Counter {
+	name: String,
+	width: i32,
+	max: i32,
+	scale: bool,
+	index : i32,
+	signal: i32
+}
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigData {
 	general: General,
 	coverage: Vec<Coverage>,
 	input: Vec<Input>,
+	counter: Vec<Counter>,
 }
 
 impl ConfigData {

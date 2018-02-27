@@ -87,7 +87,7 @@ fn hash_xx(input: &[u8]) -> u64 {
 }
 
 #[inline(always)]
-fn bin(count: u8) -> u8 {
+pub fn bin(count: u8) -> u8 {
 	match count {
 		0           => 0,
 		1           => (1 << 0),
