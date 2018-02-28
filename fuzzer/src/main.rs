@@ -81,7 +81,7 @@ fn main() {
 
 	// mutation
 	let mut_config = mutation::MutationScheduleConfig {
-		skip_deterministic: true, skip_non_deterministic: false };
+		skip_deterministic: false, skip_non_deterministic: false };
 	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics
