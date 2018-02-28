@@ -37,16 +37,61 @@ class TrueCounterGenerator(counter_width: Int) {
 
 class ChangeCounterGenerator(counter_width: Int) {
 	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
-		val counter = Module(new SaturatingCounter(counter_width))
+		// the counter input is only valid after one cycle!
+		val valid = RegInit(false.B)
+		valid := connect
+
 		val last = RegInit(false.B)
 		last := cover_point
+
+		val counter = Module(new SaturatingCounter(counter_width))
 		val change = cover_point =/= last
-		counter.io.enable := Mux(connect, change, false.B)
+		counter.io.enable := Mux(valid, change, false.B)
 		Seq(counter.io.value)
 	}
 	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
 	def meta(signal_index: Int) : Seq[Config.Counter] = {
 		Seq(Config.Counter("Change", counter_width, 255, true, signal_index, signal_index))
+	}
+}
+
+class NGramCounterGenerator(N: Int, counter_width: Int) {
+	require(N > 1)
+
+	def delay_chain(cycles: Int, sig: Bool) : Seq[Bool] = {
+		require(cycles > 0)
+		val regs = for(_ <- 0 until cycles) yield { RegInit(false.B) }
+		regs.head := sig
+		for(ii <- 1 until cycles) {
+			regs(ii) := regs(ii-1)
+		}
+		Seq(sig) ++ regs
+	}
+
+	def delay(cycles: Int, sig: Bool) : Bool = {
+		delay_chain(cycles, sig).last
+	}
+
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
+		val valid = delay(N-1, connect)
+
+		val signal = Cat(delay_chain(N-1, cover_point))
+		require(signal.getWidth == N)
+		val counters = for(ii <- 0 until (1 << N)) yield {
+			val counter = Module(new SaturatingCounter(counter_width))
+			val cmp = (ii.U === signal)
+			counter.io.enable := Mux(valid, cmp, false.B)
+			counter.io.value
+		}
+
+		counters
+	}
+	def bits(cover_points: Int) : Int = cover_points * ((1 << N) * 8)
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		val base_i = signal_index * (1 << N)
+		for(ii <- 0 until (1 << N)) yield {
+			Config.Counter(s"$ii",  counter_width, 255, true, base_i+ii, signal_index)
+		}
 	}
 }
 
