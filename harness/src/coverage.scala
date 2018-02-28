@@ -35,6 +35,21 @@ class TrueCounterGenerator(counter_width: Int) {
 	}
 }
 
+class ChangeCounterGenerator(counter_width: Int) {
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
+		val counter = Module(new SaturatingCounter(counter_width))
+		val last = RegInit(false.B)
+		last := cover_point
+		val change = cover_point =/= last
+		counter.io.enable := Mux(connect, change, false.B)
+		Seq(counter.io.value)
+	}
+	def bits(cover_points: Int) : Int = cover_points * (1 * 8)
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		Seq(Config.Counter("Change", counter_width, 255, true, signal_index, signal_index))
+	}
+}
+
 class TrueOrFalseLatchGenerator {
 	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
 		val pos = Module(new SaturatingCounter(1))
