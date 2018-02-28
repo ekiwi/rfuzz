@@ -18,8 +18,8 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 	def normalize_to_bytes(bits: Int) = bits_to_words(bits) * word_byte_count
 
 	// select coverage generator
-	//val cov_gen = new TrueCounterGenerator(1)
-	val cov_gen = new TrueOrFalseLatchGenerator
+	val cov_gen = new TrueCounterGenerator(8)
+	//val cov_gen = new TrueOrFalseLatchGenerator
 
 	val coverage_bits = cov_gen.bits(dut_conf.coverageSignals.size)
 	// the cycles count in front of every coverage item takes 16bit
