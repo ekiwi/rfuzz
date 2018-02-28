@@ -74,8 +74,7 @@ fn main() {
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
 	// analysis
-	let ranges = vec![analysis::Range{start: 0, stop: test_size.coverage, do_scale: false}];
-	let mut analysis = analysis::Analysis::new(test_size, ranges);
+	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
 	let seed_coverage = fuzz_one(&mut server, &starting_seed);
 	analysis.run(start_cycles as u16, &seed_coverage);
 	// TODO: support multiple seeds

@@ -5,7 +5,7 @@ use self::twox_hash::XxHash;
 use std::cmp;
 use run::TestSize;
 
-
+#[derive(Clone, Debug)]
 pub struct Range {
 	/// start index in the coverage map/feedback
 	pub start : usize,

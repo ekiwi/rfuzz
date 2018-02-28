@@ -35,6 +35,31 @@ impl Config {
 		config
 	}
 
+	pub fn gen_ranges(&self) -> Vec<analysis::Range> {
+		assert!(self.data.counter.iter().all(|c| c.width == 8));
+		let do_scale_first = self.data.counter[0].scale;
+
+		let changes = self.data.counter.iter()
+			.scan(do_scale_first, |s, c| {
+				let change = *s != c.scale;
+				*s = c.scale;
+				Some((change, c.index))})
+			.filter(|x| x.0)
+			.map(|x| x.1 as usize);
+
+		let mut ranges = Vec::new();
+		let mut range = analysis::Range{start: 0, stop: 0, do_scale: do_scale_first};
+		for ii in changes {
+			range.stop = ii;
+			ranges.push(range.clone());
+			range.start = ii;
+			range.do_scale = !range.do_scale;
+		}
+		range.stop = self.size.coverage;
+		ranges.push(range.clone());
+		ranges
+	}
+
 	fn determine_test_size(word_size: usize, data: &ConfigData) -> TestSize {
 		let div_2_ceil = |a, b| (a + (b - 1)) / b;
 		let to_bytes = |b| div_2_ceil(div_2_ceil(b, 8), word_size) * word_size;
