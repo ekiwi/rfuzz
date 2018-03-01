@@ -17,7 +17,7 @@ mod mutation;
 mod analysis;
 mod queue;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
-use run::FuzzServer;
+use run::{ FuzzServer, Run };
 
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
@@ -60,6 +60,7 @@ fn main() {
 		test_buffer_size : 64 * 1024 * 16,
 		coverage_buffer_size : 64 * 1024 * 16,
 		buffer_count: 3,
+		max_runs: 1024 * 16,
 	};
 
 	println!("Test Buffer:     {} KiB", srv_config.test_buffer_size / 1024);
@@ -97,21 +98,23 @@ fn main() {
 		let mut history = active_test.mutation_history;
 		let mut new_runs : u64 = 0;
 		q.print_entry_summary(active_test.id, &mutations);
-		while let Some(mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
+		while let Some(mut mutator) = mutations.get_mutator(&mut history, &active_test.inputs) {
 			// println!("running {} mutation", mutations.get_name(mutator.id()));
-			new_runs += server.run(mutator) as u64;
-
-			while let Some(feedback) = server.pop_coverage() {
-				let is_interesting = analysis.run(feedback.cycles, &feedback.data);
-				if is_interesting {
-					let (info, interesting_input) = server.get_info(feedback.id);
-					q.add_new_test(interesting_input, info);
-					//println!("New Interesting Input: {:?}", feedback.id);
-					//println!("input:  {:?}", interesting_input);
-					//println!("-> cov: {:?}", feedback.data);
+			let mut done = false;
+			let mut start = 0;
+			while !done {
+				match server.run(&mut mutator, start) {
+					Run::Done(runs) => { new_runs += runs as u64; done = true; }
+					Run::Yield(ii) => { start = ii; }
+				}
+				while let Some(feedback) = server.pop_coverage() {
+					let is_interesting = analysis.run(feedback.cycles, &feedback.data);
+					if is_interesting {
+						let (info, interesting_input) = server.get_info(feedback.id);
+						q.add_new_test(interesting_input, info);
+					}
 				}
 			}
-
 			if new_runs >= max_children { break; }
 		}
 		runs += new_runs;
@@ -166,8 +169,10 @@ fn main() {
 }
 
 fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
-	let mutator = mutation::identity(input);
-	server.run(mutator);
+	let mut mutator = mutation::identity(input);
+	if let Run::Done(count) = server.run(&mut mutator, 0) {
+		assert_eq!(count, 1);
+	} else { assert!(false); }
 	server.sync();
 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
 	feedback.data.to_vec()

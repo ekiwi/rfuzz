@@ -25,9 +25,11 @@ pub struct TestSize {
 // TODO: return reference to coverage instead of copy
 pub struct BasicFeedback { pub id: TestId, pub cycles: u16, pub data: Vec<u8> }
 
+pub enum Run { Done(u32), Yield(u32) }
+
 pub trait FuzzServer {
 	/// shedule test input for execution
-	fn run(&mut self, mutator: Box<Mutator>) -> u32;
+	fn run(&mut self, mutator: &mut Box<Mutator>, start: u32) -> Run;
 	/// get a copy of the coverage information from a test
 	/// the TestId can be used to retrieve further info if needed
 	fn pop_coverage(&mut self) -> Option<BasicFeedback>;

@@ -3,7 +3,7 @@ extern crate libc;
 use std;
 use std::io::{Write, Seek};
 use std::mem;
-use super::{ TestId, BasicFeedback, FuzzServer, TestSize };
+use super::{ TestId, BasicFeedback, FuzzServer, TestSize, Run };
 use super::super::mutation::{ MutationInfo, Mutator };
 use super::rwint::{ReadIntsBigEndian, WriteIntsBigEndian};
 use std::collections::VecDeque;
@@ -171,6 +171,7 @@ pub struct BufferedFuzzServerConfig {
 	pub test_buffer_size : usize,
 	pub coverage_buffer_size : usize,
 	pub buffer_count : usize,
+	pub max_runs: u32,
 }
 
 pub struct BufferedFuzzServer <ChannelT : CommunicationChannel> {
@@ -345,31 +346,35 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 
 impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<ChannelT> {
 	/// shedule test input for execution
-	fn run(&mut self, mut mutator: Box<Mutator>) -> u32 {
+	fn run(&mut self, mutator: &mut Box<Mutator>, start: u32) -> Run {
 		let mutator_id = mutator.id();
-		let max = mutator.max();
+		let mutator_max = mutator.max();
+		let max = std::cmp::min(mutator_max, self.conf.max_runs + start);
 		//println!("Mutator.max: {}", max);
 		// output of the mutator aka input to our fuzz server
 		if let Some(output_size) = mutator.output_size() {
 			let mut output = vec![0u8; output_size];
-			for ii in 0..max {
+			for ii in start..max {
 				mutator.apply(ii, &mut output);
 				// TODO: inline push test, we could save a copy here!
 				self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
 			}
-			max
 		} else {
 			// variable size output
 			let in_size = self.conf.test_size.input;
 			let mut output = vec![0u8; self.max_test_size];
-			for ii in 0..max {
+			for ii in start..max {
 				let used = mutator.apply(ii, &mut output);
 				// make sure the output is a multiple of the single cycle input length
 				let len = ((used + in_size - 1) / in_size) * in_size;
 				// TODO: inline push test, we could save a copy here!
-				self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output[0..len]);
+				self.push_test(&MutationInfo { mutator: mutator_id, ii  }, &output[0..len]);
 			}
-			max
+		}
+		if max == mutator_max {
+			Run::Done(mutator_max)
+		} else {
+			Run::Yield(max)
 		}
 	}
 
