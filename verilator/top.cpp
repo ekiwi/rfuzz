@@ -67,15 +67,13 @@ static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
 	fuzzer.push(coverage, CoverageSize);
 }
 
-Simulation global_sim;
-// Called by $time in Verilog converts to double, to match what SystemC does
-double sc_time_stamp () { return global_sim.main_time; }
+double sc_time_stamp () { throw std::logic_error("calling sc_time_stamp is not supported!"); }
 int main(int argc, char** argv) {
 	ActiveFuzzer fuzzer;
 	fuzzer.init(CoverageSize);
 
 	Verilated::commandArgs(argc, argv);
-	Simulation& sim = global_sim;
+	Simulation sim;
 	sim.top = new TOP_TYPE;
 
 	// If verilator was invoked with --trace
