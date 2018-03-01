@@ -184,7 +184,7 @@ impl Config {
 			let max = 8 - analysis::bin(counter.max as u8).leading_zeros();
 			let num = format!("{}/{}", covd.count_zeros(), max);
 			let mask = ((1 << max) - 1) as u8;
-			let bits = format!("{:b}", (!covd) & mask);
+			let bits = format!("{:08b}", (!covd) & mask);
 
 			let src = format!("{}:{}", signal.filename, signal.line);
 			table.add_row(row![num, bits, counter.name, signal.port, signal.name, signal.human, src]);

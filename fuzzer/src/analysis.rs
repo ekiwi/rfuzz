@@ -101,9 +101,14 @@ pub fn bin(count: u8) -> u8 {
 	}
 }
 
+/// scale and bin linearly
 #[inline(always)]
 fn scale(cycles: u8, count: u8) -> u8 {
-	((count as u32) * (u8::max_value() as u32) / (cycles as u32)) as u8
+	// assert!(count <= cycles);
+	if count == 0 { 0 } else {
+		let bin_nr = (count as u32) * 8 / (cycles as u32);
+		1u8 << bin_nr
+	}
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -130,29 +135,26 @@ fn analyze_range(range: &Range, cycles: u8, bitmap: &mut[u8], trace_bits: &[u8])
 	if range.do_scale {
 		analyze_coverage(bmp, cov, |x| scale(cycles, x))
 	} else {
-		analyze_coverage(bmp, cov, |x| x)
+		analyze_coverage(bmp, cov, |x| bin(x))
 	}
 }
 
 #[inline(always)]
-fn analyze_coverage<P>(bitmap: &mut [u8], trace_bits: &[u8], preprocess: P)
+fn analyze_coverage<B>(bitmap: &mut [u8], trace_bits: &[u8], bin: B)
 	-> NewCoverage
-	where P: Fn(u8) -> u8 {
+	where B: Fn(u8) -> u8 {
 	assert_eq!(bitmap.len(), trace_bits.len());
 	let len = cmp::min(bitmap.len(), trace_bits.len());
 	let mut new_cov = NewCoverage::None;
 	for i in 0..len {
 		let old = bitmap[i];
-		let new_count = preprocess(trace_bits[i]);
-		if new_count != 0 {
-			let new = bin(new_count);
-			if (new & old) != 0 {
-				if new_cov != NewCoverage::Branch {
-					new_cov = if old == 0xff { NewCoverage::Branch }
-					else { NewCoverage::BranchCount };
-				}
-				bitmap[i] &= !new; // delete new bits from the bitmap
+		let new = bin(trace_bits[i]);
+		if (new & old) != 0 {
+			if new_cov != NewCoverage::Branch {
+				new_cov = if old == 0xff { NewCoverage::Branch }
+				else { NewCoverage::BranchCount };
 			}
+			bitmap[i] &= !new; // delete new bits from the bitmap
 		}
 	}
 	new_cov
