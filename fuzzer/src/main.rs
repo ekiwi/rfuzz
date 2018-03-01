@@ -8,6 +8,9 @@ extern crate toml;
 extern crate colored;
 #[macro_use] extern crate prettytable;
 extern crate ctrlc;
+extern crate clap;
+use clap::{Arg, App, SubCommand};
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -19,6 +22,9 @@ mod queue;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::{ FuzzServer, Run };
 
+const APP_NAME: &'static str = env!("CARGO_PKG_NAME");
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const AUTHOR: &'static str = env!("CARGO_PKG_AUTHORS");
 const FPGA_DIR: &'static str = "/tmp/fpga";
 const WORD_SIZE : usize = 8;
 
@@ -35,6 +41,12 @@ impl Default for Args {
 }
 
 fn main() {
+	let matches = App::new(APP_NAME).version(VERSION).author(AUTHOR)
+		.about("AFL-style fuzzer specialized for fuzzing RTL circuits.")
+		//.arg(Arg::with_name(
+		.get_matches();
+
+
 	let canceled = Arc::new(AtomicBool::new(false));
 	let c = canceled.clone();
 	ctrlc::set_handler(move || { c.store(true, Ordering::SeqCst); })
