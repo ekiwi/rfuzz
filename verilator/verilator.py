@@ -14,8 +14,8 @@ DefaultFlags = ['--assert', '-Wno-fatal', '-Wno-WIDTH', '-Wno-STMTDLY',
 VerilatorIncluder = os.path.join('bin', 'verilator_includer')
 # File Prediction Settings
 GeneratedFiles = ['V{}_classes.mk', 'V{}.cpp', 'V{}.h', 'V{}.mk',
-                  'V{}__Inlines.h',
                   'V{}__Syms.cpp', 'V{}__Syms.h', 'V{}__ver.d', 'V{}__verFiles.dat']
+MaybeGeneratedFiles = ['V{}__Inlines.h']
 GeneratedTraceFiles = ['V{}__Trace.cpp', 'V{}__Trace__Slow.cpp']
 # Some Magic Library Files
 VerilatorLibPath = 'include'
@@ -31,7 +31,8 @@ def check_file_predictions(toplevel, trace, out):
 	if len(missing) > 0:
 		sys.stderr.write("expected files were not generated: {}\n".format(missing))
 		sys.exit(1)
-	not_expected = produced - expected
+	maybe_expexted = { ff.format(toplevel) for ff in MaybeGeneratedFiles }
+	not_expected = produced - (expected | maybe_expexted)
 	if len(not_expected) > 0:
 		sys.stderr.write("unexpected files were generated: {}\n".format(not_expected))
 		sys.exit(1)
