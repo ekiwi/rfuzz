@@ -10,7 +10,7 @@ use run::TestSize;
 /// saved with each entry in the queue
 /// this is used so that we don't repeat history
 /// (and thus not waste any cycles)
-#[derive(Default,Debug,Clone)]
+#[derive(Default,Debug,Clone,Serialize,Deserialize)]
 pub struct MutationHistory {
 	finished: HashSet<u64>
 }
@@ -98,13 +98,13 @@ pub trait Mutator {
 
 pub(crate) type Seed = [u32; 4];
 
-#[derive(Hash,Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+#[derive(Hash,Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Serialize,Deserialize)]
 pub struct MutatorId {
 	id: u64,
 	seed: Option<Seed>,
 }
 
-#[derive(Copy,Clone,Debug,PartialEq,PartialOrd)]
+#[derive(Copy,Clone,Debug,PartialEq,PartialOrd,Serialize,Deserialize)]
 pub struct MutationInfo {
 	pub mutator: MutatorId,
 	pub ii: u32,

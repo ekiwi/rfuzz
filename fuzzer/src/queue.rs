@@ -20,16 +20,16 @@ impl Entry {
 	}
 }
 
-#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EntryId(u32);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Lineage {
 	parent: EntryId,
 	mutation: MutationInfo
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct InternalEntry {
 	// const
 	id: EntryId,	// always equivalent to position in vector!
