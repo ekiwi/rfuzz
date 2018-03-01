@@ -43,7 +43,29 @@ impl Default for Args {
 fn main() {
 	let matches = App::new(APP_NAME).version(VERSION).author(AUTHOR)
 		.about("AFL-style fuzzer specialized for fuzzing RTL circuits.")
-		//.arg(Arg::with_name(
+		.version_short("v")
+		.arg(Arg::with_name("TOML")
+			.help("TOML file describing the circuit being fuzzed")
+			.required(true).index(1))
+		.arg(Arg::with_name("print_queue")
+			.long("print-queue").short("q")
+			.help("Prints queue content at the end of a fuzzing run."))
+		.arg(Arg::with_name("print_total_cov")
+			.long("print-total-cov").short("c")
+			.help("Prints the union coverage at the end of a fuzzing run."))
+		.arg(Arg::with_name("skip_deterministic")
+			.long("skip-deterministic").short("d")
+			.help("Skip all deterministic mutation strategies."))
+		.arg(Arg::with_name("skip_non_deterministic")
+			.long("skip-non-deterministic").short("n")
+			.help("Skip all non-deterministic mutation strategies."))
+		.arg(Arg::with_name("input_directory")
+			.long("input-directory").short("i")
+			.help("The output directory of a previous run from which to resume."))
+		.arg(Arg::with_name("output_directory")
+			.long("output-directory").short("o")
+			.help("Used to log this session. Must be empty!")
+			.required(true))
 		.get_matches();
 
 
