@@ -227,6 +227,9 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 			if let Some(buf) = self.free.pop() { buf }
 			else { BufferedFuzzServer::make_buffer(&mut self.com, &self.conf) };
 		buf.reset(self.next_buffer_id);
+		//println!("get_new_buffer() -> {}", self.next_buffer_id);
+		//println!("active_out: {}, free: {}, used: {}, send: {}",
+		//	self.active_out.len(), self.free.len(), self.used.len(), self.send.len());
 		self.next_buffer_id += 1;
 		buf
 	}
@@ -310,6 +313,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 	/// tries to pop coverage without receiving new buffers from the
 	/// fuzz server
 	fn pop_available_coverage(&mut self) -> Option<BasicFeedback> {
+		//println!("pop_coverage, up to: {}", self.active_out.len());
 		while self.active_out.len() > 0 {
 			if let Some(oldest) = self.active_out.front_mut() {
 				if let Some((cycles, data)) = oldest.get_coverage(self.next_coverage_slot) {
@@ -344,6 +348,7 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 	fn run(&mut self, mut mutator: Box<Mutator>) -> u32 {
 		let mutator_id = mutator.id();
 		let max = mutator.max();
+		//println!("Mutator.max: {}", max);
 		// output of the mutator aka input to our fuzz server
 		if let Some(output_size) = mutator.output_size() {
 			let mut output = vec![0u8; output_size];
