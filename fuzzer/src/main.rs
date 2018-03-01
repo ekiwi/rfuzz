@@ -30,14 +30,13 @@ const WORD_SIZE : usize = 8;
 
 #[derive(Debug)]
 struct Args {
-	flag_print_queue: bool,
-	flag_print_total_cov: bool
-}
-
-impl Default for Args {
-	fn default() -> Self {
-		Args { flag_print_queue: true, flag_print_total_cov: true }
-	}
+	toml_config: String,
+	print_queue: bool,
+	print_total_cov: bool,
+	skip_deterministic: bool,
+	skip_non_deterministic: bool,
+	input_directory: Option<String>,
+	output_directory: String,
 }
 
 fn main() {
@@ -60,30 +59,34 @@ fn main() {
 			.long("skip-non-deterministic").short("n")
 			.help("Skip all non-deterministic mutation strategies."))
 		.arg(Arg::with_name("input_directory")
-			.long("input-directory").short("i")
+			.long("input-directory").short("i").value_name("DIR")
+			.takes_value(true)
 			.help("The output directory of a previous run from which to resume."))
 		.arg(Arg::with_name("output_directory")
-			.long("output-directory").short("o")
+			.long("output-directory").short("o").value_name("DIR")
+			.takes_value(true)
 			.help("Used to log this session. Must be empty!")
 			.required(true))
 		.get_matches();
 
+	let args = Args {
+		toml_config: matches.value_of("TOML").unwrap().to_string(),
+		print_queue: matches.is_present("print_queue"),
+		print_total_cov: matches.is_present("print_total_cov"),
+		skip_deterministic: matches.is_present("skip_deterministic"),
+		skip_non_deterministic: matches.is_present("skip_non_deterministic"),
+		input_directory: matches.value_of("input_directory").map(|s| s.to_string()),
+		output_directory: matches.value_of("output_directory").unwrap().to_string(),
+	};
 
+	// "Ctrl + C" handling
 	let canceled = Arc::new(AtomicBool::new(false));
 	let c = canceled.clone();
 	ctrlc::set_handler(move || { c.store(true, Ordering::SeqCst); })
 		.expect("Error setting Ctrl-C handler");
 
-	let s_args: Vec<_> = std::env::args().collect();
-	assert!(s_args.len() >= 2, "Please specify the config TOML file!");
-
-	// TODO: actually parse command line args, e.g. with:
-	// https://github.com/docopt/docopt.rs or https://clap.rs
-	let args = Args::default();
-
 	// load test config
-	let test_config_file = &s_args[1];//"../hardware-afl/ICache.toml";
-	let config = config::Config::from_file(WORD_SIZE, test_config_file);
+	let config = config::Config::from_file(WORD_SIZE, &args.toml_config);
 	let test_size = config.get_test_size();
 	config.print_header();
 
@@ -116,7 +119,9 @@ fn main() {
 
 	// mutation
 	let mut_config = mutation::MutationScheduleConfig {
-		skip_deterministic: false, skip_non_deterministic: false };
+		skip_deterministic: args.skip_deterministic,
+		skip_non_deterministic: args.skip_non_deterministic
+	};
 	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics
@@ -172,7 +177,7 @@ fn main() {
 	let bitmap = analysis.get_bitmap();
 
 	// print inputs from queue
-	if args.flag_print_queue {
+	if args.print_queue {
 		println!("\n");
 		println!("Formated Inputs and Coverage!");
 
@@ -186,7 +191,7 @@ fn main() {
 		}
 	}
 
-	if args.flag_print_total_cov {
+	if args.print_total_cov {
 		println!("Total Coverage:");
 		config.print_bitmap(&bitmap);
 	}
