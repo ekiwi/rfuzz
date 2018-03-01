@@ -66,7 +66,7 @@ $(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
 	mkdir -p $(VERILATOR_BUILD)
 	cd $(VERILATOR_BUILD) ;\
 	meson ../../verilator --buildtype=release && \
-	meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)' && \
+	meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)' -Db_sanitize=address && \
 	ninja
 	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
 
