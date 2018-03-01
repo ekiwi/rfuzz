@@ -63,7 +63,7 @@ pub struct Queue {
 	/// currently only one, could become multiple once we go multi threaded
 	active_entry: Option<EntryId>,
 	/// used to save entries
-	working_dir: path::PathBuf,
+	//working_dir: path::PathBuf,
 	/// used to chose the next test
 	last_fuzzed_entry: Option<EntryId>,
 }
@@ -72,9 +72,9 @@ impl Queue {
 	/// create queue with one initial seed
 	pub fn create(working_dir: &str, seed: &[u8]) -> Self {
 		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed);
-		let working_dir = Queue::check_working_dir(working_dir);
+		//let working_dir = Queue::check_working_dir(working_dir);
 		let last_fuzzed_entry = None;
-		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry }
+		Queue { entries: vec![entry], active_entry: None, /*working_dir,*/ last_fuzzed_entry }
 	}
 
 	fn choose_next_test(&mut self) -> EntryId {
