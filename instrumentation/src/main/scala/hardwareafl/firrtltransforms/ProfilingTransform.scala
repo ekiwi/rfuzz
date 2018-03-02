@@ -100,9 +100,9 @@ class ProfilingTransform extends Transform {
     mod: Module,
     top: String,
     namespace: Namespace
-  ): (Module, Map[ProfileConfig, Seq[Annotation]]) = {
+  ): (Module, Map[ProfileConfig, Seq[SourceAnnotation]]) = {
     // We record Annotations for each profiled signal for each profiling configuration
-    val profiledSignals = Map(configs.map(c => c -> mutable.ArrayBuffer.empty[Annotation]): _*)
+    val profiledSignals = Map(configs.map(c => c -> mutable.ArrayBuffer.empty[SourceAnnotation]): _*)
     val localNS = Namespace(mod)
 
     def onStmt(stmt: Statement): Statement = {
@@ -179,7 +179,7 @@ class ProfilingTransform extends Transform {
 
     val (modsx, profiledSignalMaps) = (state.circuit.modules.map {
       case mod: Module => onModule(mod, top.name, topNameS)
-      case ext: ExtModule => (ext, Map.empty[ProfileConfig, Seq[Annotation]])
+      case ext: ExtModule => (ext, Map.empty[ProfileConfig, Seq[SourceAnnotation]])
     }).unzip
     val profiledSignals =
       configs.map(c => c -> profiledSignalMaps.map(_.apply(c)).reduce(_ ++ _)).toMap
@@ -188,11 +188,11 @@ class ProfilingTransform extends Transform {
     val (newTop, fullAnnos) = onTop(topx, profiledSignals)
 
     val circuitx = state.circuit.copy(modules = newTop +: otherMods)
-    val annosx = state.annotations.getOrElse(AnnotationMap(Seq.empty)).annotations ++ fullAnnos
+    val annosx = state.annotations ++ fullAnnos
 
     TomlGenerator(circuitx, profiledSignals)
 
-    val result = state.copy(circuit = circuitx, annotations = Some(AnnotationMap(annosx)))
+    val result = state.copy(circuit = circuitx, annotations = annosx)
     cleanupTransforms.foldLeft(result) {
       case (state, transform) => transform.runTransform(state)
     }

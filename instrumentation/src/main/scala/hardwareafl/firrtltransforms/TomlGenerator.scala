@@ -5,6 +5,7 @@ package firrtltransforms
 import firrtl._
 import firrtl.ir._
 import firrtl.annotations._
+import firrtl.passes.wiring.SourceAnnotation
 import firrtl.Mappers._
 import firrtl.PrimOps._
 import firrtl.Utils.{BoolType, get_info}
@@ -176,7 +177,7 @@ object TomlGenerator {
       }
     }
   }
-  def apply(circuit: Circuit, profiledSignals: Map[ProfileConfig, Seq[Annotation]]) = {
+  def apply(circuit: Circuit, profiledSignals: Map[ProfileConfig, Seq[SourceAnnotation]]) = {
   //def apply(mod: Module, coverage: Seq[(WRef,Statement)]) = {
     val top = circuit.modules.find(_.name == circuit.main).get
     val moduleDefinitions = circuit.modules.collect {

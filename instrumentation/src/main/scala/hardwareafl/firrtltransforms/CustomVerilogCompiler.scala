@@ -57,7 +57,7 @@ object CustomTop {
           }
       }
 
-      val annos = Driver.loadAnnotations(optionsManager)
+      val annos = Driver.getAnnotations(optionsManager)
 
       val parsedInput = Parser.parse(firrtlSource, firrtlConfig.infoMode)
 
@@ -68,7 +68,7 @@ object CustomTop {
       val finalState = compiler.compile(
         CircuitState(parsedInput,
                      ChirrtlForm,
-                     Some(AnnotationMap(annos))),
+                     annos),
         firrtlConfig.customTransforms
       )
 
@@ -100,9 +100,7 @@ object CustomTop {
         case file =>
           val filename = optionsManager.getBuildFileName("anno", file)
           val outputFile = new java.io.PrintWriter(filename)
-          finalState.annotations.foreach {
-            finalAnnos => outputFile.write(finalAnnos.annotations.toYaml.prettyPrint)
-          }
+          outputFile.write(JsonProtocol.serialize(finalState.annotations))
           outputFile.close()
       }
     }
