@@ -32,6 +32,7 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 COMMA := ,
 FIRRTL_TRANSFORMS := \
+	hardwareafl.firrtltransforms.NoDedupTransform \
 	hardwareafl.firrtltransforms.SplitMuxConditions \
 	hardwareafl.firrtltransforms.ProfilingTransform \
 	firrtl.passes.wiring.WiringTransform
