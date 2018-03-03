@@ -75,12 +75,18 @@ class ProfilingTransform extends Transform {
   // Hardwired constants
   val profilePinPrefix = "profilePin"
 
-  //// Helper functions that probably should be in Firrtl itself
-  private def Cat(exprs: Expression*) = {
+  // Helper functions that probably should be in Firrtl itself
+  // Returns a statement because deeply-nested Expressions cause problems
+  private def Cat(namespace: Namespace, exprs: Expression*): (Expression, Seq[DefNode]) = {
+    def wref(n: DefNode) = WRef(n.name, n.value.tpe, NodeKind)
     require(exprs.size > 0)
-    exprs.tail.foldLeft(exprs.head) { case (next, acc) =>
-      DoPrim(PrimOps.Cat, List(next, acc), List.empty, CatTypes(next.tpe, acc.tpe))
+    val first = DefNode(NoInfo, namespace.newTemp, exprs.head)
+    val (ref, revnodes) = exprs.tail.foldLeft((wref(first), List(first))) { case ((prev, stmts), next) =>
+      val cat = DoPrim(PrimOps.Cat, List(prev, next), List.empty, CatTypes(prev.tpe, next.tpe))
+      val node = DefNode(NoInfo, namespace.newTemp, cat)
+      (wref(node), node +: stmts) // prepend because List but need to reverse
     }
+    (ref, revnodes.reverse)
   }
   private def CatTypes(tpe1: Type, tpe2: Type): Type = (tpe1, tpe2) match {
     case (UIntType(w1), UIntType(w2)) => UIntType(w1 + w2)
@@ -152,11 +158,9 @@ class ProfilingTransform extends Transform {
       val numPoints = wires.size
       if (numPoints > 0) {
         val port = Port(NoInfo, config.topPortName, Output, UIntType(IntWidth(numPoints)))
-        val connect = Connect(NoInfo,
-          WRef(port.name, port.tpe, PortKind, MALE),
-          Cat(wires.map(w => WRef(w.name, BoolType, NodeKind, MALE)): _*)
-        )
-        Some((port, wires :+ connect, sourceAnnos ++ sinkAnnos))
+        val (catref, catstmts) = Cat(namespace, wires.map(w => WRef(w.name, BoolType, NodeKind, MALE)): _*)
+        val connect = Connect(NoInfo, WRef(port.name, port.tpe, PortKind, MALE), catref)
+        Some((port, wires ++ catstmts :+ connect, sourceAnnos ++ sinkAnnos))
       } else {
         None
       }
