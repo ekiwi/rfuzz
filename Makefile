@@ -35,7 +35,7 @@ FIRRTL_TRANSFORMS := \
 	hardwareafl.firrtltransforms.NoDedupTransform \
 	hardwareafl.firrtltransforms.SplitMuxConditions \
 	hardwareafl.firrtltransforms.ProfilingTransform \
-	firrtl.passes.wiring.WiringTransform
+	hardwareafl.firrtltransforms.WrappedWiringTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 
