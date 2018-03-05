@@ -2,7 +2,7 @@ name := "harness"
 
 version := "0.1"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.11.12"
 
 scalacOptions := Seq("-deprecation")
 
