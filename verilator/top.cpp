@@ -67,8 +67,16 @@ static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
 	fuzzer.push(coverage, CoverageSize);
 }
 
+static inline void print_header() {
+	std::cout << "Fuzz Server for \033[1m" << TOPLEVEL_STR << "\033[0m" << std::endl;
+	std::cout << "Allocated Bytes per Input:    " << InputSize << std::endl;
+	std::cout << "Allocated Bytes per Coverage: " << CoverageSize << std::endl;
+}
+
 double sc_time_stamp () { throw std::logic_error("calling sc_time_stamp is not supported!"); }
 int main(int argc, char** argv) {
+	print_header();
+
 	ActiveFuzzer fuzzer;
 	fuzzer.init(CoverageSize);
 

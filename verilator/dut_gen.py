@@ -19,6 +19,8 @@ template = """
 #include <V{toplevel}_VHarness.h>
 #define TOP_TYPE V{toplevel}_VHarness
 
+#define TOPLEVEL_STR "{toplevel}"
+
 static constexpr size_t CoverageSize = {cov_size};
 static constexpr size_t InputSize    = {input_size};
 
