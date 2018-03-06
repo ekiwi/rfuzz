@@ -129,6 +129,12 @@ void FPGAQueueFuzzer::parse_header() {
 	const auto CoverageSize = 8 + 8 + (coverage_size + 2) * tests_left;
 	const bool enough_space_for_coverage_provided =
 		get_size_of_shm(coverage_out_id) >= CoverageSize;
+	if(!enough_space_for_coverage_provided) {
+		std::cout << "Space needed for " << tests_left << " coverage entries: "
+		          << CoverageSize << " bytes" << std::endl;
+		std::cout << "Space available on provided buffer: "
+		          << get_size_of_shm(coverage_out_id) << " bytes" << std::endl;
+	}
 	assert(enough_space_for_coverage_provided);
 	// write coverage header
 	write_to_coverage(change_endianess(MagicCoverageOutputHeader));

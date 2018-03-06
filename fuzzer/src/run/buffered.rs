@@ -105,7 +105,11 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		let test_len_field_size = test_count * 8;
 		let test_data_size = self.total_cycles as usize * self.size.input;
 		let tx_bytes = test_len_field_size + test_data_size + TEST_HEADER_SIZE;
-		let rx_bytes = test_count * self.size.coverage + COVERAGE_BUFFER_METADATA_SIZE;
+		let cov_item_size = self.size.coverage as usize + 2;
+		let rx_bytes = test_count * cov_item_size + COVERAGE_BUFFER_METADATA_SIZE;
+		// make sure there is actually enough space on the buffers
+		assert!(self.inputs.len() >= tx_bytes, "Not enought space on inputs buffer!");
+		assert!(self.coverage.len() >= rx_bytes, "Not enought space on coverage buffer!");
 		channel.try_send(self.token, tx_bytes, rx_bytes)
 	}
 	fn is(&self, token: ChannelT::TokenT) -> bool{
