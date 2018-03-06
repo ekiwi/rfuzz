@@ -51,6 +51,8 @@ struct TestBuffer <ChannelT : CommunicationChannel> {
 	coverage: ChannelT::BufferT,
 	token: ChannelT::TokenT,
 	test_count: u16,
+	/// maximum number of tests, restricted by the size of the coverage buffer
+	max_test_count: u16,
 	/// number of cycles of all tests
 	total_cycles: u32,
 	id: u32,
@@ -67,8 +69,12 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 	         coverage_buffer_size: usize) -> Self {
 		let inputs = channel.alloc(input_buffer_size);
 		let coverage = channel.alloc(coverage_buffer_size);
+		let cov_item_size = size.coverage as usize + 2;
+		let max_test_count =
+			(coverage_buffer_size - COVERAGE_BUFFER_METADATA_SIZE) / cov_item_size;
 		let token = ChannelT::get_token(&inputs, &coverage);
 		TestBuffer { size, inputs, coverage, token, test_count: 0,
+		             max_test_count: max_test_count as u16,
 		             total_cycles: 0, id: 0 }
 	}
 	fn reset(&mut self, id: u32) {
@@ -79,6 +85,8 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
 	}
 	fn add_test(&mut self, inputs: &[u8]) -> Option<BufferSlot> {
+		// check to see if we are limited by the available coverage space
+		if self.test_count >= self.max_test_count { return None; }
 		// try to write test, only increment test_count and total_cycles if it succeeds!
 		let cycle_count = inputs.len() / self.size.input as usize;
 		assert_eq!(cycle_count * self.size.input as usize, inputs.len());
