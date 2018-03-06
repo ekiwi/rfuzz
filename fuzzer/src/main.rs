@@ -19,6 +19,7 @@ mod run;
 mod mutation;
 mod analysis;
 mod queue;
+mod test;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::{ FuzzServer, Run };
 
@@ -37,6 +38,7 @@ struct Args {
 	skip_non_deterministic: bool,
 	input_directory: Option<String>,
 	output_directory: String,
+	test_mode: bool,
 }
 
 fn main() {
@@ -67,6 +69,9 @@ fn main() {
 			.takes_value(true)
 			.help("Used to log this session. Must be empty!")
 			.required(true))
+		.arg(Arg::with_name("test_mode")
+			.long("test-mode").short("t")
+			.help("Test the fuzz server with known input/coverage pairs."))
 		.get_matches();
 
 	let args = Args {
@@ -77,6 +82,7 @@ fn main() {
 		skip_non_deterministic: matches.is_present("skip_non_deterministic"),
 		input_directory: matches.value_of("input_directory").map(|s| s.to_string()),
 		output_directory: matches.value_of("output_directory").unwrap().to_string(),
+		test_mode: matches.is_present("test_mode"),
 	};
 
 	// "Ctrl + C" handling
@@ -106,6 +112,20 @@ fn main() {
 
 	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
 
+	if args.test_mode {
+		test_mode(&mut server);
+	} else {
+		fuzzer(args, canceled, config, test_size, &mut server);
+	}
+}
+
+fn test_mode(server: &mut FuzzServer) {
+	println!("⚠️ Test mode selected! ⚠️");
+	test::test_fuzz_server(server);
+}
+
+fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
+          test_size: run::TestSize, server: &mut FuzzServer) {
 	// queue
 	let start_cycles = 15;
 	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
@@ -113,7 +133,7 @@ fn main() {
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
-	let seed_coverage = fuzz_one(&mut server, &starting_seed);
+	let seed_coverage = fuzz_one(server, &starting_seed);
 	analysis.run(start_cycles as u16, &seed_coverage);
 	// TODO: support multiple seeds
 
@@ -185,7 +205,7 @@ fn main() {
 			q.print_entry_summary(entry.id, &mutations);
 			config.print_inputs(&entry.inputs);
 			println!("Achieved Coverage:");
-			let coverage = fuzz_one(&mut server, &entry.inputs);
+			let coverage = fuzz_one(server, &entry.inputs);
 			config.print_test_coverage(&coverage);
 			println!("\n");
 		}
