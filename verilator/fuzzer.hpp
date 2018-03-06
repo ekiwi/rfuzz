@@ -8,7 +8,7 @@
 #include <cstring>
 struct Fuzzer {
 	/// called before the simulation is initialized
-	virtual void init(size_t coverage_size) { coverage_size = coverage_size; }
+	virtual void init(size_t coverage_size) { this->coverage_size = coverage_size; }
 	/// called inbetween tests to check if there is more data availabel
 	virtual bool done() { return true; }
 	/// returns false on last input of a single test
