@@ -126,7 +126,7 @@ void FPGAQueueFuzzer::parse_header() {
 	change_endianess(read_from_test<uint16_t>());
 	change_endianess(read_from_test<uint16_t>());
 	//std::cout << "received " << tests_left << " new tests" << std::endl;
-	const auto CoverageSize = 8 + 8 + coverage_size * tests_left;
+	const auto CoverageSize = 8 + 8 + (coverage_size + 2) * tests_left;
 	const bool enough_space_for_coverage_provided =
 		get_size_of_shm(coverage_out_id) >= CoverageSize;
 	assert(enough_space_for_coverage_provided);
@@ -145,6 +145,7 @@ void FPGAQueueFuzzer::start_test() {
 
 void FPGAQueueFuzzer::init(size_t coverage_size) {
 	Fuzzer::init(coverage_size);
+	assert((this->coverage_size + 2) % 8 == 0);
 	command_pipe = std:: make_unique<NamedPipe>("0");
 }
 bool FPGAQueueFuzzer::done() {
@@ -175,6 +176,7 @@ bool FPGAQueueFuzzer::pop(uint8_t* input, size_t len) {
 }
 void FPGAQueueFuzzer::push(const uint8_t* coverage, size_t len) {
 	assert(inputs_left == 0);
+	assert(len == this->coverage_size);
 	write_to_coverage(coverage, len);
 }
 
