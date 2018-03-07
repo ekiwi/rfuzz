@@ -67,8 +67,8 @@ fn write_bitstream_data(buf : &[u8]) {
 // To use the DMA, we don't use the kernel but write to physical memory directly.
 
 // from `drivers/staging/apf/xlnk-ioctl.h`
-const XLNK_IOCALLOCBUF : libc::c_ulong = 0xc0045802;
-const XLNK_IOCFREEBUF  : libc::c_ulong = 0xc0045803;
+const XLNK_IOCALLOCBUF : libc::c_long = 0xc0045802 as libc::c_long;
+const XLNK_IOCFREEBUF  : libc::c_long = 0xc0045803 as libc::c_long;
 
 // from `drivers/staging/apf/xlnk.h`
 #[repr(C)]
@@ -104,7 +104,7 @@ impl Xlnk {
 		let mm = libc::mmap(std::ptr::null_mut(), length,
 		                    libc::PROT_READ | libc::PROT_WRITE,
 		                    libc::MAP_SHARED | libc::MAP_LOCKED,
-		                    self.fd, offset as libc::c_long);
+		                    self.fd, offset as i64);
 		assert!(mm != libc::MAP_FAILED, "Failed to mmap DMA buffer.");
 		mm
 	}
@@ -269,7 +269,7 @@ impl MemoryMappedIO {
 			assert!(fd > -1, "Failed to open /dev/mem. Are we root?");
 			let mm = libc::mmap(std::ptr::null_mut(), words * 4,
 			                    libc::PROT_READ | libc::PROT_WRITE,
-			                    libc::MAP_SHARED, fd, phys_addr as libc::c_long);
+			                    libc::MAP_SHARED, fd, phys_addr as i64);
 			assert!(mm != libc::MAP_FAILED, "Failed to mmap physical memory.");
 			assert!(libc::close(fd) == 0, "Failed to close /dev/mem.");
 			mm as *mut u32
