@@ -10,3 +10,6 @@
 [submodule "midas/barstools"]
 	path = midas/barstools
 	url = git@github.com:ucb-bar/barstools.git
+[submodule "midas/platforms/zynq"]
+	path = midas/platforms/zynq
+	url = git@github.com:ucb-bar/midas-zynq.git
