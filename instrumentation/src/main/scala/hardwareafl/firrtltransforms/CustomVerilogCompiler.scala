@@ -64,13 +64,18 @@ object CustomTop {
       // Does this need to be before calling compiler?
       optionsManager.makeTargetDir()
 
-      val compiler = new CustomVerilogCompiler
-      val finalState = compiler.compile(
+      val lowFirrtl = (new CustomCompiler).compile(
         CircuitState(parsedInput,
                      ChirrtlForm,
                      annos),
         firrtlConfig.customTransforms
       )
+
+      val lowFirrtlFile = new java.io.FileWriter(s"${lowFirrtl.circuit.main}.lo.fir")
+      lowFirrtlFile.write(lowFirrtl.circuit.serialize)
+      lowFirrtlFile.close()
+
+      val finalState = (new CustomVerilogCompiler).compile(lowFirrtl, Nil)
 
       // Do emission
       // Note: Single emission target assumption is baked in here
@@ -103,6 +108,8 @@ object CustomTop {
           outputFile.write(JsonProtocol.serialize(finalState.annotations))
           outputFile.close()
       }
+
+      lowFirrtl
     }
   }
 }
@@ -110,11 +117,13 @@ object CustomTop {
 class CustomLowFirrtlOpt extends LowFirrtlOptimization {
   override def transforms: Seq[Transform] = {
     // Lets do this programmatically
-    super.transforms.filterNot(_ == passes.memlib.VerilogMemDelays)
+    super.transforms.filterNot(t =>
+      t == passes.memlib.VerilogMemDelays ||
+      t == passes.PadWidths)
   }
 }
 
-class CustomVerilogCompiler extends VerilogCompiler {
+class CustomCompiler extends VerilogCompiler {
   override def transforms: Seq[Transform] = {
     // Lets do this programmatically
     super.transforms.map {
@@ -134,8 +143,7 @@ class CustomVerilogCompiler extends VerilogCompiler {
 
   // We ensure VerilogMemDelays only runs at the very end
   override def compile(state: CircuitState, customTransforms: Seq[Transform]): CircuitState = {
-    val allTransforms = CompilerUtils.mergeTransforms(transforms, customTransforms) ++ 
-      Seq(new LowFirrtlOptimization, emitter)
+    val allTransforms = CompilerUtils.mergeTransforms(transforms, customTransforms) 
 
     logger.warn("Running transforms:" + allTransforms.map(_.name).mkString("\n  ", "\n  ", ""))
 
@@ -147,4 +155,9 @@ class CustomVerilogCompiler extends VerilogCompiler {
 
     finalState
   }
+}
+
+class CustomVerilogCompiler extends CustomCompiler {
+  override def transforms =
+    Seq(new LowFirrtlOptimization, emitter)
 }

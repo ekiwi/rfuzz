@@ -4,7 +4,8 @@ DUT := ICache
 
 BUILD := build
 INPUT := benchmarks/$(FIR)
-INSTRUMENTED := $(BUILD)/$(DUT).v
+INSTRUMENTED_V := $(BUILD)/$(DUT).v
+INSTRUMENTED_FIR := $(BUILD)/$(DUT).lo.fir
 INSTRUMENTATION_TOML := $(BUILD)/$(DUT)_InstrumentationInfo.toml
 TOML := $(BUILD)/$(DUT).toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
@@ -39,10 +40,13 @@ FIRRTL_TRANSFORMS := \
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 
 
-$(INSTRUMENTED) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
+$(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
-	sbt "runMain hardwareafl.firrtltransforms.CustomTop -i ../$< -o ../$(INSTRUMENTED) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
+	sbt "runMain hardwareafl.firrtltransforms.CustomTop -i ../$< -o ../$(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
 	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
+	mv instrumentation/$(DUT).lo.fir $(INSTRUMENTED_FIR)
+
+instrumentation: $(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML)
 
 ################################################################################
 # harness rules
@@ -79,3 +83,5 @@ run: $(FUZZ_SERVER)
 	rm -rf /tmp/fpga
 	mkdir /tmp/fpga
 	./$(FUZZ_SERVER)
+
+.PHONY: instrumentation run
