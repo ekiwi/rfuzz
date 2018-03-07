@@ -3,6 +3,11 @@ name = "kfuzz"
 version = "0.1.0"
 authors = ["Kevin Laeufer <ekiwi@berkeley.edu>"]
 
+[features]
+default = ["shmem"]
+shmem = []
+dma = []
+
 [dependencies]
 libc = "0.2.21"
 time = "0.1"

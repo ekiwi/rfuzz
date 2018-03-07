@@ -8,11 +8,11 @@ use super::super::mutation::{ MutationInfo, Mutator };
 use super::rwint::{ReadIntsBigEndian, WriteIntsBigEndian};
 use std::collections::VecDeque;
 use super::history::TestHistory;
-#[cfg(not(target_arch = "arm"))]
+#[cfg(feature = "shmem")]
 use super::shmem::SharedMemoryChannel;
-#[cfg(target_arch = "arm")]
+#[cfg(feature = "dma")]
 use super::pynqchannel::DmaChannel;
-#[cfg(target_arch = "arm")]
+#[cfg(feature = "dma")]
 use super::pynq;
 
 
@@ -417,7 +417,7 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 	}
 }
 
-#[cfg(not(target_arch = "arm"))]
+#[cfg(feature = "shmem")]
 pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<SharedMemoryChannel>> {
 	let paths = std::fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
 	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
@@ -430,7 +430,7 @@ pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) ->
 	None
 }
 
-#[cfg(target_arch = "arm")]
+#[cfg(feature = "dma")]
 pub fn find_one_fuzz_server(_: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<DmaChannel>> {
 	// TODO: move somewhere else
 	pynq::load_bitstream("system.bit", &[pynq::Clock{ div0: 5, div1: 2 }]).unwrap();
