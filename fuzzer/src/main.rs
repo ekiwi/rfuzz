@@ -148,8 +148,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mut runs : u64 = 0;
 	let start = time::PreciseTime::now();
 
-	let max_entries = 1000;
-	let max_children = 100000;
+	let max_entries = 1_000_000;
+	let max_children = 100_000;	// TODO: better mechanism to determine length of the havoc stage
 	println!("fuzzing a maximum of {} queue entries", max_entries);
 
 	for _ in 0..max_entries {
