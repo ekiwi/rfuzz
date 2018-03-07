@@ -1,4 +1,4 @@
-project('fuzz-server', 'cpp', default_options : ['cpp_std=c++14'], version: '0.0.1')
+project('fuzz-server', 'cpp', default_options : ['cpp_std=c++11'], version: '0.0.1')
 
 
 # generate verilator

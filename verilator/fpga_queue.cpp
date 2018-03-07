@@ -152,7 +152,7 @@ void FPGAQueueFuzzer::start_test() {
 void FPGAQueueFuzzer::init(size_t coverage_size) {
 	Fuzzer::init(coverage_size);
 	assert((this->coverage_size + 2) % 8 == 0);
-	command_pipe = std:: make_unique<NamedPipe>("0");
+	command_pipe = std::unique_ptr<NamedPipe>(new NamedPipe("0"));
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {
