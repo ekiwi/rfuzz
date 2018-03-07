@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
+#include <chrono>
+#include <locale>
 
 #include "dut.hpp"
 
@@ -73,6 +75,61 @@ static inline void print_header() {
 	std::cout << "Allocated Bytes per Coverage: " << CoverageSize << std::endl;
 }
 
+#define CLR_LINES(n) "\033[" #n "F\033[0J"
+class StatusDisplay {
+	using Clock = std::chrono::high_resolution_clock;
+	using TimePoint = Clock::time_point;
+	using Duration = Clock::duration;
+	const TimePoint begin = Clock::now();
+	TimePoint last_status = Clock::now();
+	uint64_t test_count = 0;
+	bool first = true;
+
+	template<typename D>
+	static constexpr std::chrono::milliseconds
+	Milliseconds(const D& duration) {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+	}
+	template<typename D>
+	static constexpr std::chrono::seconds
+	Seconds(const D& duration) {
+		return std::chrono::duration_cast<std::chrono::seconds>(duration);
+	}
+
+	inline void print(const uint64_t cycles) {
+		const auto now = Clock::now();
+		const auto delta_t = now - begin;
+		const auto ms = Milliseconds(delta_t).count();
+		const auto sec = Seconds(delta_t).count();
+
+		if(sec < 1) return;
+		if(first) { first = false; }
+		else { std::cout << CLR_LINES(5); }
+
+		const auto tests_per_second = test_count / sec;
+		std::cout << "Test/s:   " << tests_per_second << std::endl;
+		const auto cycles_per_second = cycles / sec;
+		std::cout << "Cycles/s: " << cycles_per_second << std::endl;
+		const auto khz = cycles_per_second / 1000.0;
+		std::cout << "kHz:      " << khz << std::endl;
+		const auto Mhz = cycles_per_second / 1000000.0;
+		std::cout << "MHz:      " << Mhz << std::endl;
+		std::cout << "Runtime:  " << sec << " s" << std::endl;
+	}
+
+public:
+	inline void update(const uint64_t cycles, const uint64_t new_tests) {
+		this->test_count += new_tests;
+		const auto now = Clock::now();
+		const auto ms_last_print = Milliseconds(now - last_status).count();
+		if(ms_last_print > 500) {
+			this->last_status = now;
+			this->print(cycles);
+		}
+	}
+
+};
+
 double sc_time_stamp () { throw std::logic_error("calling sc_time_stamp is not supported!"); }
 int main(int argc, char** argv) {
 	print_header();
@@ -92,8 +149,10 @@ int main(int argc, char** argv) {
 	sim.tfp->open ("dump.vcd");
 #endif
 
+	StatusDisplay status;
 	while(!fuzzer.done()) {
 		run_test(sim, fuzzer);
+		status.update(sim.cycles(), 1);
 	}
 
 	cout << "Simulation completed after " << sim.cycles() << " cycles" << endl;
