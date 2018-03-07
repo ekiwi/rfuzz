@@ -39,15 +39,13 @@ lazy val barstools = (project in file("barstools/macros"))
 // import rocketchip
 lazy val lib = project
   .settings(commonSettings)
-lazy val firrtl = RootProject(file("../firrtl"))
 lazy val midas = project
   .settings(commonSettings)
-  .dependsOn(lib, barstools, firrtl)
+  .dependsOn(lib, barstools)
 
-lazy val instrumentation = RootProject(file("../instrumentation"))
 lazy val harness = RootProject(file("../harness"))
 lazy val root = (project in file("."))
   .settings(commonSettings ++ Seq(
     name := "rfuzz",
     version := "0.1"))
-  .dependsOn(midas, instrumentation, harness)
+  .dependsOn(midas, harness)

@@ -37,26 +37,25 @@ class CustomVerilogCompiler extends Compiler {
 }
 
 object MidasGenerator extends App {
-  require(args.length == 4, "[usage] <DUT prefix> <build dir> <benchmark file> <output toml>")
-  val dut = args(0)
-  val dir = args(1)
-  val benchmark = args(2)
+  require(args.length == 4, "[usage] <build dir> <firrtl> <input toml> <output toml>")
+  val dir = args(0)
+  val benchmark = args(1)
+  val inToml = args(2)
   val outToml = args(3)
 
-  val ir = Parser.parse(
-    io.Source.fromFile(benchmark).getLines,
-    Parser.AppendInfo(benchmark))
-  val xforms = Seq(
-    new hardwareafl.firrtltransforms.SplitMuxConditions,
-    new hardwareafl.firrtltransforms.ProfilingTransform,
-    new firrtl.passes.wiring.WiringTransform)
-  val state = (new LowFirrtlCompiler).compile(CircuitState(ir, ChirrtlForm), xforms)
+  /*
+  val state = hardwareafl.firrtltransforms.CustomTop.compile(Array(
+    "-i", benchmark,
+    "-o", (new File(dir, s"${dut}.v")).toString,
+    "-X", "verilog",
+    "-ll", "info",
+    "-fct", Seq(
+      "hardwareafl.firrtltransforms.SplitMuxConditions",
+      "hardwareafl.firrtltransforms.ProfilingTransform",
+      "firrtl.passes.wiring.WiringTransform") mkString ","))
+  */
 
-  val verilog = new FileWriter(new File(dir, s"${dut}.v"))
-  (new CustomVerilogCompiler).compile(state, verilog)
-  verilog.close
-
-  val inToml = (new File(s"${dut}.toml")).toString
+  val ir = Parser.parse(io.Source.fromFile(benchmark).getLines)
   val conf = Config.loadToml(inToml)
   println(s"Conf: ${conf}")
   // super hacky "out parameter" to get list of counters from Harness design
@@ -64,7 +63,7 @@ object MidasGenerator extends App {
   MidasCompiler(
     new VerilatorHarness(conf, counters),
     new File(dir),
-    customTransforms = Seq(new FuzzTransforms(state.circuit)))(
+    customTransforms = Seq(new FuzzTransforms(ir)))(
     Parameters.root(new midas.ZynqConfig))
   Config.writeAugmentedToml(inToml, outToml, counters.toSeq)
 }

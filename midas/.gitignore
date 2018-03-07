@@ -1,2 +1,4 @@
 target
-*.toml
+*.log
+*.vcd
+*.tmp
