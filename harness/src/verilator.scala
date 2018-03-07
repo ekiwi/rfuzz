@@ -10,6 +10,13 @@ import scala.collection.mutable
 // The adaptor works on a byte level and thus keeps us sane by not
 // having to reason about endianess in the C++ toplevel.
 
+class VerilatorHarnessIO(input_byte_count: Int, coverage_byte_count: Int) extends Bundle {
+	val input_bytes = Input(Vec(input_byte_count, UInt(8.W)))
+	val coverage_bytes = Output(Vec(coverage_byte_count, UInt(8.W)))
+	// FIXME: remove cloneType with new chisel
+	override def cloneType =
+          new VerilatorHarnessIO(input_byte_count, coverage_byte_count).asInstanceOf[this.type]
+}
 
 class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBuffer[Config.Counter]) extends Module {
 	// 64bit alignment
@@ -30,10 +37,7 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 	println(s"coverage_byte_count: $coverage_byte_count")
 	println(s"input_byte_count: $input_byte_count")
 
-	val io = this.IO(new Bundle {
-		val input_bytes = Input(Vec(input_byte_count, UInt(8.W)))
-		val coverage_bytes = Output(Vec(coverage_byte_count, UInt(8.W)))
-	})
+	val io = this.IO(new VerilatorHarnessIO(input_byte_count, coverage_byte_count))
 	val dut = Module(new DUT(dut_conf))
 
 	// inputs
