@@ -84,3 +84,30 @@ Line 133232 to Line 145035 in `example.TestHarness.DefaultExampleConfig.fir`).
 This is the small circuit that we originally used for testing the basic system.
 No one remembers the exact origin, but the file definitely has been edited
 by hand to make all registers have resets (including `x` and `y`).
+
+
+## Sodor
+
+### 1 Stage
+
+from: https://github.com/ekiwi/riscv-sodor @
+[3da97a0c6e8ec10d508c8034334ffa46eb76f727](https://github.com/ekiwi/riscv-sodor/commit/3da97a0c6e8ec10d508c8034334ffa46eb76f727)
+
+Generated like this:
+
+```
+$ ./configure
+$ sbt
+$ project rv32_1stage
+$ run -chnrf
+```
+
+Then copy the generated `Sodor1Stage.fir` to the benchmarks directory.
+
+Build the fuzz server like this:
+```
+make DUT=Sodor1Stage FIR=Sodor1Stage.fir run
+```
+
+You will also need to copy `vsrc/AsyncReadMem.sv` from `riscv-sodor` into
+the build directory (`build/vSodor1Stage`).
