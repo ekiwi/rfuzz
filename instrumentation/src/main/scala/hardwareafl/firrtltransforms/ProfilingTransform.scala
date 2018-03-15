@@ -186,7 +186,12 @@ class ProfilingTransform extends Transform {
       case ext: ExtModule => (ext, Map.empty[ProfileConfig, Seq[SourceAnnotation]])
     }).unzip
     val profiledSignals =
-      configs.map(c => c -> profiledSignalMaps.map(_.apply(c)).reduce(_ ++ _)).toMap
+      configs.map(
+        c => c -> profiledSignalMaps
+          .filter(!_.isEmpty)
+          .map(_.apply(c))
+          .reduce(_ ++ _))
+          .toMap
 
     val (Seq(topx: Module), otherMods) = modsx.partition(_.name == state.circuit.main)
     val (newTop, fullAnnos) = onTop(topx, profiledSignals)
