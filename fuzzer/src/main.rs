@@ -127,7 +127,7 @@ fn test_mode(server: &mut FuzzServer) {
 fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
           test_size: run::TestSize, server: &mut FuzzServer) {
 	// queue
-	let start_cycles = 15;
+	let start_cycles = 5;
 	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
 	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
 
