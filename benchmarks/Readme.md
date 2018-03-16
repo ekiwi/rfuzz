@@ -116,3 +116,11 @@ the build directory (`build/vSodor1Stage`).
 
 Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 [9cb98a26c5f7742ba4647229b07ad7c7dfb1da0d](https://github.com/ekiwi/riscv-sodor/commit/9cb98a26c5f7742ba4647229b07ad7c7dfb1da0d)
+
+### 3 Stage
+
+Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
+[4b518e8f1800d5146bbaa70ff33d81fc5d7d2292](https://github.com/ekiwi/riscv-sodor/commit/4b518e8f1800d5146bbaa70ff33d81fc5d7d2292)
+
+**Note**: You will also need to copy `vsrc/SyncMem.sv` from `riscv-sodor` into
+the build directory (`build/vSodor3Stage`).
