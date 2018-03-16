@@ -115,4 +115,4 @@ the build directory (`build/vSodor1Stage`).
 ### 2 Stage
 
 Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
-[866f1422a38897abe64938445e0645f7fd6812fd](https://github.com/ekiwi/riscv-sodor/commit/866f1422a38897abe64938445e0645f7fd6812fd)
+[9cb98a26c5f7742ba4647229b07ad7c7dfb1da0d](https://github.com/ekiwi/riscv-sodor/commit/9cb98a26c5f7742ba4647229b07ad7c7dfb1da0d)
