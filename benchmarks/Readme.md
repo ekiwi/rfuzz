@@ -111,3 +111,8 @@ make DUT=Sodor1Stage FIR=Sodor1Stage.fir run
 
 You will also need to copy `vsrc/AsyncReadMem.sv` from `riscv-sodor` into
 the build directory (`build/vSodor1Stage`).
+
+### 2 Stage
+
+Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
+[866f1422a38897abe64938445e0645f7fd6812fd](https://github.com/ekiwi/riscv-sodor/commit/866f1422a38897abe64938445e0645f7fd6812fd)
