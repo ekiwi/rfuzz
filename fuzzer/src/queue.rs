@@ -38,7 +38,6 @@ struct InternalEntry {
 	creation_time: i64,
 	// variable
 	mutation_history: MutationHistory,
-	is_being_fuzzed: bool,
 }
 
 impl InternalEntry {
@@ -46,15 +45,13 @@ impl InternalEntry {
 		let creation_time = time::get_time().sec;
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage: None, creation_time,
-		                mutation_history: MutationHistory::default(),
-		                is_being_fuzzed: false }
+		                mutation_history: MutationHistory::default() }
 	}
 	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>) -> Self {
 		let creation_time = time::get_time().sec;
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage, creation_time,
-		                mutation_history: MutationHistory::default(),
-		                is_being_fuzzed: false }
+		                mutation_history: MutationHistory::default() }
 	}
 }
 
@@ -103,7 +100,6 @@ impl Queue {
 		assert_eq!(Some(id), self.active_entry);
 		let entry = self.entries.get_mut(id.0 as usize).expect("invalid entry id");
 		entry.mutation_history = mutation_history;
-		entry.is_being_fuzzed = false;
 		self.active_entry = None;
 	}
 	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo) {
