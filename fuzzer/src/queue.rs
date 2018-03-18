@@ -36,22 +36,27 @@ struct InternalEntry {
 	id: EntryId,	// always equivalent to position in vector!
 	inputs: Vec<u8>,
 	lineage: Option<Lineage>,
-	creation_time: i64,
+	creation_time_sec:  i64,
+	creation_time_nsec: i32,
 	// variable
 	mutation_history: MutationHistory,
 }
 
 impl InternalEntry {
 	fn from_raw_inputs(id: EntryId, inputs: &[u8]) -> Self {
-		let creation_time = time::get_time().sec;
+		let creation_time = time::get_time();
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage: None, creation_time,
+		InternalEntry { id, inputs, lineage: None,
+		                creation_time_sec:  creation_time.sec,
+		                creation_time_nsec: creation_time.nsec,
 		                mutation_history: MutationHistory::default() }
 	}
 	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>) -> Self {
-		let creation_time = time::get_time().sec;
+		let creation_time = time::get_time();
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage, creation_time,
+		InternalEntry { id, inputs, lineage,
+		                creation_time_sec:  creation_time.sec,
+		                creation_time_nsec: creation_time.nsec,
 		                mutation_history: MutationHistory::default() }
 	}
 }
@@ -61,7 +66,7 @@ pub struct Queue {
 	/// currently only one, could become multiple once we go multi threaded
 	active_entry: Option<EntryId>,
 	/// used to save entries
-	//working_dir: path::PathBuf,
+	working_dir: path::PathBuf,
 	/// used to chose the next test
 	last_fuzzed_entry: Option<EntryId>,
 }
@@ -72,7 +77,7 @@ impl Queue {
 		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed);
 		let working_dir = Queue::check_working_dir(working_dir);
 		let last_fuzzed_entry = None;
-		Queue { entries: vec![entry], active_entry: None, /*working_dir,*/ last_fuzzed_entry }
+		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry }
 	}
 
 	fn choose_next_test(&mut self) -> EntryId {
