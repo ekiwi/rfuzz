@@ -20,6 +20,7 @@ mod mutation;
 mod analysis;
 mod queue;
 mod test;
+mod stats;
 use run::buffered::{ find_one_fuzz_server, BufferedFuzzServerConfig };
 use run::{ FuzzServer, Run };
 
