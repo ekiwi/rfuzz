@@ -1,5 +1,6 @@
 extern crate time;
 
+use std::time::Duration;
 use std::fs;
 use std::path;
 use std::clone::Clone;
@@ -36,27 +37,27 @@ struct InternalEntry {
 	id: EntryId,	// always equivalent to position in vector!
 	inputs: Vec<u8>,
 	lineage: Option<Lineage>,
-	creation_time_sec:  i64,
-	creation_time_nsec: i32,
+	creation_time: Duration,
 	// variable
 	mutation_history: MutationHistory,
 }
 
+fn get_time() -> Duration {
+	let raw = time::get_time();
+	Duration::new(raw.sec as u64, raw.nsec as u32)
+}
+
 impl InternalEntry {
 	fn from_raw_inputs(id: EntryId, inputs: &[u8]) -> Self {
-		let creation_time = time::get_time();
+		let creation_time = get_time();
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage: None,
-		                creation_time_sec:  creation_time.sec,
-		                creation_time_nsec: creation_time.nsec,
+		InternalEntry { id, inputs, lineage: None, creation_time:  creation_time,
 		                mutation_history: MutationHistory::default() }
 	}
 	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>) -> Self {
-		let creation_time = time::get_time();
+		let creation_time = get_time();
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage,
-		                creation_time_sec:  creation_time.sec,
-		                creation_time_nsec: creation_time.nsec,
+		InternalEntry { id, inputs, lineage, creation_time:  creation_time,
 		                mutation_history: MutationHistory::default() }
 	}
 }
