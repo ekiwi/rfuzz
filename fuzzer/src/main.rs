@@ -129,7 +129,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	// queue
 	let start_cycles = 5;
 	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
-	let mut q = queue::Queue::create("/home/kevin/hfuzz/kfuzz/out", &starting_seed);
+	let mut q = queue::Queue::create(&args.output_directory, &starting_seed);
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());

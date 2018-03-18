@@ -3,6 +3,7 @@ extern crate time;
 use std::fs;
 use std::path;
 use std::clone::Clone;
+use std::env;
 use mutation::{MutationInfo, MutationHistory, MutationSchedule};
 
 #[derive(Debug)]
@@ -69,7 +70,7 @@ impl Queue {
 	/// create queue with one initial seed
 	pub fn create(working_dir: &str, seed: &[u8]) -> Self {
 		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed);
-		//let working_dir = Queue::check_working_dir(working_dir);
+		let working_dir = Queue::check_working_dir(working_dir);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, /*working_dir,*/ last_fuzzed_entry }
 	}
@@ -130,7 +131,10 @@ impl Queue {
 	/// checks wheather the parent of the working dir exists
 	/// and weather it is empty
 	fn check_working_dir(working_dir: &str) -> path::PathBuf {
-		let dir_path = path::Path::new(working_dir);
+		println!("check_working_dir({})", working_dir);
+		let raw_path = path::Path::new(working_dir);
+		let cwd_rel_path = env::current_dir().unwrap().join(raw_path);
+		let dir_path = if raw_path.is_relative() { &cwd_rel_path } else { raw_path };
 		let parent = dir_path.parent().unwrap();
 		assert!(parent.exists(), "working dir path does not exist!");
 		assert!(parent.is_dir());
