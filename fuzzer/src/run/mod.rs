@@ -25,7 +25,7 @@ pub struct TestSize {
 // TODO: return reference to coverage instead of copy
 pub struct BasicFeedback { pub id: TestId, pub cycles: u16, pub data: Vec<u8> }
 
-pub enum Run { Done(u32), Yield(u32) }
+pub enum Run { Done(u32, u32), Yield(u32) }
 
 pub trait FuzzServer {
 	/// shedule test input for execution

@@ -36,7 +36,7 @@ pub fn test_fuzz_server(server: &mut FuzzServer) {
 	println!("Fuzzing all provided tests (sort of) at once...");
 	for &(inputs, _) in TESTS {
 		let mut mutator = mutation::identity(inputs);
-		if let Run::Done(count) = server.run(&mut mutator, 0) {
+		if let Run::Done(count, _) = server.run(&mut mutator, 0) {
 			assert_eq!(count, 1);
 		} else { assert!(false); }
 	}

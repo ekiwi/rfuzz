@@ -130,7 +130,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	// queue
 	let start_cycles = 5;
 	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
-	let mut q = queue::Queue::create(&args.output_directory, &starting_seed);
+	let mut q = queue::Queue::create(&args.output_directory, &starting_seed, get_time());
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
@@ -146,8 +146,9 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics
-	let mut runs : u64 = 0;
-	let start = time::PreciseTime::now();
+	let mut statistics = stats::Stats::new(mutations.get_names(), get_time());
+	//let mut runs : u64 = 0;
+	//let start = time::PreciseTime::now();
 
 	let max_entries = 1_000_000;
 	let max_children = 100_000;	// TODO: better mechanism to determine length of the havoc stage
@@ -164,20 +165,25 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 			let mut start = 0;
 			while !done {
 				match server.run(&mut mutator, start) {
-					Run::Done(runs) => { new_runs += runs as u64; done = true; }
+					Run::Done(runs, cycles) => {
+						statistics.update_test_count(mutator.id().id, runs as u64, cycles);
+						new_runs += runs as u64;
+						done = true;
+					}
 					Run::Yield(ii) => { start = ii; }
 				}
 				while let Some(feedback) = server.pop_coverage() {
 					let is_interesting = analysis.run(feedback.cycles, &feedback.data);
 					if is_interesting {
 						let (info, interesting_input) = server.get_info(feedback.id);
-						q.add_new_test(interesting_input, info);
+						let now = get_time();
+						q.add_new_test(interesting_input, info, now);
+						statistics.update_new_discovery(info.mutator.id, now);
 					}
 				}
 			}
 			if new_runs >= max_children { break; }
 		}
-		runs += new_runs;
 		q.return_test(active_test.id, history);
 		if canceled.load(Ordering::SeqCst) {
 			println!("User interrupted fuzzing. Going to shut down....");
@@ -190,9 +196,14 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 		let is_interesting = analysis.run(feedback.cycles, &feedback.data);
 		if is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
-			q.add_new_test(interesting_input, info);
+			let now = get_time();
+			q.add_new_test(interesting_input, info, now);
+			statistics.update_new_discovery(info.mutator.id, now);
 		}
 	}
+
+	// done with the main fuzzing part
+	statistics.done();
 
 	// final bitmap
 	let bitmap = analysis.get_bitmap();
@@ -219,21 +230,22 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 
 
 	// print statistics
-	let duration = start.to(time::PreciseTime::now()).num_microseconds().unwrap();
-	let runs_per_second = (runs * 1000 * 1000) as f64 / duration as f64;
-	println!("{:.1} runs/s ({} tests total)", runs_per_second, runs);
-	println!("Discovered {} new paths.", analysis.path_count());
-	println!("Discovered {} new inputs.", analysis.new_inputs_count());
+	print!("{}", statistics.get_final_snapshot().unwrap());
 	println!("Bitmap: {:?}", bitmap);
 
 }
 
 fn fuzz_one(server: &mut FuzzServer, input: &[u8]) -> Vec<u8> {
 	let mut mutator = mutation::identity(input);
-	if let Run::Done(count) = server.run(&mut mutator, 0) {
+	if let Run::Done(count, _) = server.run(&mut mutator, 0) {
 		assert_eq!(count, 1);
 	} else { assert!(false); }
 	server.sync();
 	let feedback = server.pop_coverage().expect("should get exactly one coverage back!");
 	feedback.data.to_vec()
+}
+
+fn get_time() -> std::time::Duration {
+	let raw = time::get_time();
+	std::time::Duration::new(raw.sec as u64, raw.nsec as u32)
 }

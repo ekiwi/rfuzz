@@ -71,6 +71,10 @@ impl MutationSchedule {
 	pub fn get_name(&self, id: MutatorId) -> &str {
 		&self.mutator_id_to_name[&id.id]
 	}
+
+	pub fn get_names(&self) -> Vec<(String, u64)> {
+		self.mutator_id_to_name.iter().map(|(id, name)| (name.clone(), *id)).collect()
+	}
 }
 
 pub fn identity(seed: &[u8]) -> Box<Mutator> {
@@ -100,7 +104,7 @@ pub(crate) type Seed = [u32; 4];
 
 #[derive(Hash,Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Serialize,Deserialize)]
 pub struct MutatorId {
-	id: u64,
+	pub id: u64,
 	seed: Option<Seed>,
 }
 

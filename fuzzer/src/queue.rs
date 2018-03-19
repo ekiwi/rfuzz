@@ -42,22 +42,15 @@ struct InternalEntry {
 	mutation_history: MutationHistory,
 }
 
-fn get_time() -> Duration {
-	let raw = time::get_time();
-	Duration::new(raw.sec as u64, raw.nsec as u32)
-}
-
 impl InternalEntry {
-	fn from_raw_inputs(id: EntryId, inputs: &[u8]) -> Self {
-		let creation_time = get_time();
+	fn from_raw_inputs(id: EntryId, inputs: &[u8], ts: Duration) -> Self {
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage: None, creation_time:  creation_time,
+		InternalEntry { id, inputs, lineage: None, creation_time:  ts,
 		                mutation_history: MutationHistory::default() }
 	}
-	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>) -> Self {
-		let creation_time = get_time();
+	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>, ts: Duration) -> Self {
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage, creation_time:  creation_time,
+		InternalEntry { id, inputs, lineage, creation_time:  ts,
 		                mutation_history: MutationHistory::default() }
 	}
 }
@@ -74,8 +67,8 @@ pub struct Queue {
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8]) -> Self {
-		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed);
+	pub fn create(working_dir: &str, seed: &[u8], start: Duration) -> Self {
+		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, start);
 		let working_dir = Queue::check_working_dir(working_dir);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry }
@@ -109,12 +102,12 @@ impl Queue {
 		entry.mutation_history = mutation_history;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation }) } else { None };
-		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage))
+		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage, ts))
 	}
 	pub fn debug_print_entry(&self, id: EntryId) {
 		if let Some(ee) = self.entries.get(id.0 as usize) {

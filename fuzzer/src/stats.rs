@@ -4,30 +4,42 @@
 // This file contains a struct to collect various statistics about the
 // fuzzing run.
 
-use mutation::{MutatorId};
 use std::default::Default;
 use std::time::Duration;
-
+use time;
+use std::fmt;
 
 
 #[derive(Serialize,Deserialize)]
-pub struct GlobalSnapshot {
+pub struct Snapshot {
 	mutators: Vec<MutatorSnapshot>,
-	// tests_per_second: AverageRatioSnapshot<f64>,
-	// cycles_per_test: AverageRatioSnapshot<f64>,
-	// cycles_per_second: AverageRatioSnapshot<f64>
 	tests_per_second: AverageRatioSnapshot,
 	cycles_per_test: AverageRatioSnapshot,
-	cycles_per_second: AverageRatioSnapshot
+	cycles_per_second: AverageRatioSnapshot,
+	runtime: Duration,
 }
 
 #[derive(Serialize,Deserialize)]
 pub struct MutatorSnapshot {
 	name: String,
-	id: MutatorId,
+	id: u64,
 	test_count: u64,
-	// tests_per_second: AverageRatioSnapshot<f64>,
+	discovery_count: u64,
+	last_discovery_after: Option<Duration>,
 	tests_per_second: AverageRatioSnapshot,
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// pretty print
+
+impl fmt::Display for Snapshot {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let runs_sec = self.tests_per_second.global;
+		let total_runs = self.tests_per_second.global_numerator as u64;
+		let discovery_count = self.mutators.iter().map(|ref m| m.discovery_count).sum::<u64>();
+		writeln!(f, "{:.1} runs/s ({} tests total)", runs_sec, total_runs).and_then(|()|
+		writeln!(f, "Discovered {} new inputs.", discovery_count))
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,29 +47,31 @@ pub struct MutatorSnapshot {
 
 struct MutatorStats {
 	name: String,
-	id: MutatorId,
+	id: u64,
 	test_count: u64,
 	discovery_count: u64,
-	last_discovery_at: Duration,
-	// tests_per_second: AverageRatio<f64>,
+	last_discovery_at: Option<Duration>,
 	tests_per_second: AverageRatio,
 }
 
 impl MutatorStats {
-	fn new(name: String, id: MutatorId) -> Self {
+	fn new(name: String, id: u64) -> Self {
 		MutatorStats {
 			name, id,
 			test_count: 0,
 			discovery_count: 0,
-			last_discovery_at: Duration::default(),
+			last_discovery_at: None,
 			tests_per_second: AverageRatio::default(),
 		}
 	}
 
-	fn take_snapshot(&self) -> MutatorSnapshot {
+	fn take_snapshot(&self, start_ts: Duration) -> MutatorSnapshot {
+		let last_discovery_after = self.last_discovery_at.map(|d| d - start_ts);
 		MutatorSnapshot {
 			name: self.name.clone(), id: self.id,
 			test_count: self.test_count,
+			discovery_count: self.discovery_count,
+			last_discovery_after,
 			tests_per_second: self.tests_per_second.take_snapshot()
 		}
 	}
@@ -69,48 +83,66 @@ impl MutatorStats {
 
 	fn update_new_discovery(&mut self, ts: Duration) {
 		self.discovery_count += 1;
-		self.last_discovery_at = ts;
+		self.last_discovery_at = Some(ts);
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Global Statistics
+// Statistics
 
-struct GlobalStats {
+pub struct Stats {
 	mutators: Vec<MutatorStats>,
-	// tests_per_second: AverageRatio<f64>,
-	// cycles_per_test: AverageRatio<f64>,
-	// cycles_per_second: AverageRatio<f64>
 	tests_per_second: AverageRatio,
 	cycles_per_test: AverageRatio,
-	cycles_per_second: AverageRatio
+	cycles_per_second: AverageRatio,
+	// PreciseTime is used for calculating delta time, Duration is used for
+	// absolute time stamps.
+	// We are doing this for now, but it does not seem to be a very clean
+	// solution ... keeping time is complicated...
+	start_ts: Duration,
+	start: time::PreciseTime,
+	mutator_start: time::PreciseTime,
+	final_snapshot: Option<Snapshot>,
 }
 
-impl GlobalStats {
-	fn new(mutator_info: Vec<(String, MutatorId)>) -> Self {
+impl Stats {
+	pub fn new(mutator_info: Vec<(String, u64)>, ts: Duration) -> Self {
 		let mutators = mutator_info.into_iter()
 			.map(|ii| MutatorStats::new(ii.0, ii.1)).collect();
 
-		GlobalStats {
+		Stats {
 			mutators,
 			tests_per_second:  AverageRatio::default(),
 			cycles_per_test:   AverageRatio::default(),
 			cycles_per_second: AverageRatio::default(),
+			start_ts: ts,
+			start: time::PreciseTime::now(),
+			mutator_start: time::PreciseTime::now(),
+			final_snapshot: None,
 		}
 	}
 
-	fn take_snapshot(&self) -> GlobalSnapshot {
+	pub fn take_snapshot(&self) -> Snapshot {
+		let start_ts = self.start_ts;
 		let mutators = self.mutators.iter()
-			.map(|m| m.take_snapshot()).collect();
-		GlobalSnapshot {
+			.map(|m| m.take_snapshot(start_ts)).collect();
+		let now = time::PreciseTime::now();
+		let runtime = self.start.to(now).to_std().unwrap();
+		Snapshot {
 			mutators,
 			tests_per_second:  self.tests_per_second.take_snapshot(),
 			cycles_per_test:   self.cycles_per_test.take_snapshot(),
 			cycles_per_second: self.cycles_per_second.take_snapshot(),
+			runtime
 		}
 	}
 
-	fn update_test_count(&mut self, mutator_id: MutatorId, runs: u64, cycles: u64, seconds: f64) {
+	pub fn update_test_count(&mut self, mutator_id: u64, runs: u64, cycles: u32) {
+		let now = time::PreciseTime::now();
+		let delta_t = self.mutator_start.to(now).to_std().unwrap();
+		let seconds =
+			delta_t.as_secs() as f64 +
+			delta_t.subsec_nanos() as f64 * 1e-9;
 		assert_eq!(self.mutators.iter_mut()
 			.filter(|m| m.id == mutator_id).take(1)
 			.map(|m| m.update_test_count(runs, seconds))
@@ -118,13 +150,26 @@ impl GlobalStats {
 		self.tests_per_second.update(runs as f64, seconds);
 		self.cycles_per_test.update(cycles as f64, runs as f64);
 		self.cycles_per_second.update(cycles as f64, seconds);
+		self.mutator_start = now;
 	}
 
-	fn update_new_discovery(&mut self, mutator_id: MutatorId, ts: Duration) {
+	pub fn update_new_discovery(&mut self, mutator_id: u64, ts: Duration) {
 		assert_eq!(self.mutators.iter_mut()
 			.filter(|m| m.id == mutator_id).take(1)
 			.map(|m| m.update_new_discovery(ts))
 			.count(), 1);
+	}
+
+	pub fn done(&mut self) {
+		self.final_snapshot = Some(self.take_snapshot());
+	}
+
+	pub fn get_final_snapshot(&self) -> Option<&Snapshot> {
+		if let Some(ref snapshot) = self.final_snapshot {
+			Some(&snapshot)
+		} else {
+			None
+		}
 	}
 }
 
@@ -133,16 +178,15 @@ impl GlobalStats {
 // AverageRatio
 
 // used for things like tests/time or cycles/tests
-// TODO: make generic over underlying type T (instead of hard coding for f64)
 
 #[derive(Serialize,Deserialize)]
 pub struct AverageRatioSnapshot {
-	global: f64,
-	global_numerator: f64,
-	global_denominator: f64,
-	local: f64,
-	local_numerator: f64,
-	local_denominator: f64,
+	pub global: f64,
+	pub global_numerator: f64,
+	pub global_denominator: f64,
+	pub local: f64,
+	pub local_numerator: f64,
+	pub local_denominator: f64,
 }
 
 #[derive(Default)]

@@ -84,7 +84,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		// skip input buffer header for now
 		self.inputs.seek(std::io::SeekFrom::Start(TEST_HEADER_SIZE as u64)).unwrap();
 	}
-	fn add_test(&mut self, inputs: &[u8]) -> Option<BufferSlot> {
+	fn add_test(&mut self, inputs: &[u8]) -> Option<(BufferSlot, u32)> {
 		// check to see if we are limited by the available coverage space
 		if self.test_count >= self.max_test_count { return None; }
 		// try to write test, only increment test_count and total_cycles if it succeeds!
@@ -96,7 +96,7 @@ impl <ChannelT : CommunicationChannel> TestBuffer<ChannelT> {
 		let slot = BufferSlot { id: self.id, offset: self.test_count };
 		self.test_count += 1;
 		self.total_cycles += cycle_count as u32;
-		Some(slot)
+		Some((slot, cycle_count as u32))
 	}
 	fn write_header(&mut self) {
 		self.inputs.seek(std::io::SeekFrom::Start(0)).unwrap();
@@ -340,10 +340,10 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 		None
 	}
 
-	fn push_test(&mut self, info: &MutationInfo, input : &[u8]) {
-		let slot =
-			if let Some(slot) = self.active_in.add_test(input) {
-				slot
+	fn push_test(&mut self, info: &MutationInfo, input : &[u8]) -> u32 {
+		let (slot, cycle_count) =
+			if let Some(info) = self.active_in.add_test(input) {
+				info
 			} else {
 				// send full buffer to fuzz server and replace it with an empty one
 				self.send_active_buffers();
@@ -353,6 +353,7 @@ impl <ChannelT : CommunicationChannel> BufferedFuzzServer<ChannelT> {
 			};
 		let _id = self.history.new_test(info, &slot);
 		// println!("{:?} -> {:?}", slot, _id);
+		cycle_count
 	}
 }
 
@@ -362,6 +363,7 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 		let mutator_id = mutator.id();
 		let mutator_max = mutator.max();
 		let max = std::cmp::min(mutator_max, self.conf.max_runs + start);
+		let mut cycle_count = 0;
 		//println!("Mutator.max: {}", max);
 		// output of the mutator aka input to our fuzz server
 		if let Some(output_size) = mutator.output_size() {
@@ -369,7 +371,7 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 			for ii in start..max {
 				mutator.apply(ii, &mut output);
 				// TODO: inline push test, we could save a copy here!
-				self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
+				cycle_count += self.push_test(&MutationInfo { mutator: mutator_id, ii }, &output);
 			}
 		} else {
 			// variable size output
@@ -380,11 +382,11 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 				// make sure the output is a multiple of the single cycle input length
 				let len = ((used + in_size - 1) / in_size) * in_size;
 				// TODO: inline push test, we could save a copy here!
-				self.push_test(&MutationInfo { mutator: mutator_id, ii  }, &output[0..len]);
+				cycle_count += self.push_test(&MutationInfo { mutator: mutator_id, ii  }, &output[0..len]);
 			}
 		}
 		if max == mutator_max {
-			Run::Done(mutator_max)
+			Run::Done(mutator_max, cycle_count)
 		} else {
 			Run::Yield(max)
 		}
