@@ -78,18 +78,13 @@ pub struct Queue {
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String) -> Self {
-		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default());
+	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String, stats: stats::Snapshot) -> Self {
 		let working_dir = Queue::check_working_dir(working_dir);
 		Queue::save_config(&working_dir, config);
+		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default());
+		Queue::save_to_working_dir(&working_dir, &entry, stats);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry, start_ts }
-	}
-
-	fn save_config(working_dir: &path::Path, j: String) {
-		let filename = working_dir.join("config.json");
-		let mut file = fs::File::create(filename).expect("Failed to create config json log file!");
-		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
 	}
 
 	fn choose_next_test(&mut self) -> EntryId {
@@ -127,7 +122,7 @@ impl Queue {
 			Some(Lineage { parent, mutation }) } else { None };
 		let after = ts - self.start_ts;
 		let entry = InternalEntry::from_mutation(id, inputs, lineage, after);
-		self.save_to_working_dir(&entry, stats);
+		Queue::save_to_working_dir(&self.working_dir, &entry, stats);
 		self.entries.push(entry)
 	}
 	pub fn debug_print_entry(&self, id: EntryId) {
@@ -165,10 +160,16 @@ impl Queue {
 		dir_path.to_path_buf()
 	}
 
-	fn save_to_working_dir(&self, entry: &InternalEntry, stats: stats::Snapshot) {
+	fn save_config(working_dir: &path::Path, j: String) {
+		let filename = working_dir.join("config.json");
+		let mut file = fs::File::create(filename).expect("Failed to create config json log file!");
+		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
+	}
+
+	fn save_to_working_dir(working_dir: &path::Path, entry: &InternalEntry, stats: stats::Snapshot) {
 		let content = EntryFile { entry: entry.clone(), stats };
 		let j = serde_json::to_string(&content).expect("failed to serialize entry!");
-		let filename = self.working_dir.join(format!("entry_{:04}.json", entry.id.0));
+		let filename = working_dir.join(format!("entry_{:04}.json", entry.id.0));
 		let mut file = fs::File::create(filename).expect("Failed to create entry json log file!");
 		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
 	}

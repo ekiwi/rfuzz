@@ -128,12 +128,9 @@ fn test_mode(server: &mut FuzzServer) {
 
 fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
           test_size: run::TestSize, server: &mut FuzzServer) {
-	let start_ts = get_time();
-
-	// queue
+	// starting seed
 	let start_cycles = 5;
 	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
-	let mut q = queue::Queue::create(&args.output_directory, &starting_seed, start_ts.clone(), config.to_json());
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
@@ -149,9 +146,16 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics
-	let mut statistics = stats::Stats::new(mutations.get_names(), start_ts);
-	//let mut runs : u64 = 0;
-	//let start = time::PreciseTime::now();
+	let start_ts = get_time();
+	let mut statistics = stats::Stats::new(mutations.get_names(), start_ts.clone());
+
+	// queue
+	let mut q = queue::Queue::create(
+		&args.output_directory,
+		&starting_seed,
+		start_ts,
+		config.to_json(),
+		statistics.take_snapshot());
 
 	let max_entries = 1_000_000;
 	let max_children = 100_000;	// TODO: better mechanism to determine length of the havoc stage
