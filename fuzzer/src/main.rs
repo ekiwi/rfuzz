@@ -4,6 +4,7 @@ extern crate libc;
 extern crate time;
 extern crate rand;
 extern crate toml;
+extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 extern crate colored;
 #[macro_use] extern crate prettytable;
@@ -177,8 +178,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 					if is_interesting {
 						let (info, interesting_input) = server.get_info(feedback.id);
 						let now = get_time();
-						q.add_new_test(interesting_input, info, now);
 						statistics.update_new_discovery(info.mutator.id, now);
+						q.add_new_test(interesting_input, info, now, statistics.take_snapshot());
 					}
 				}
 			}
@@ -197,8 +198,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 		if is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
 			let now = get_time();
-			q.add_new_test(interesting_input, info, now);
 			statistics.update_new_discovery(info.mutator.id, now);
+			q.add_new_test(interesting_input, info, now, statistics.take_snapshot());
 		}
 	}
 

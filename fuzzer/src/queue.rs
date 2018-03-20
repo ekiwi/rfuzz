@@ -6,6 +6,9 @@ use std::path;
 use std::clone::Clone;
 use std::env;
 use mutation::{MutationInfo, MutationHistory, MutationSchedule};
+use stats;
+use serde_json;
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct Entry {
@@ -25,13 +28,19 @@ impl Entry {
 #[derive(PartialEq, PartialOrd, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EntryId(u32);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Lineage {
 	parent: EntryId,
 	mutation: MutationInfo
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+struct EntryFile {
+	entry: InternalEntry,
+	stats: stats::Snapshot,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct InternalEntry {
 	// const
 	id: EntryId,	// always equivalent to position in vector!
@@ -102,12 +111,14 @@ impl Queue {
 		entry.mutation_history = mutation_history;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration, stats: stats::Snapshot) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation }) } else { None };
-		self.entries.push(InternalEntry::from_mutation(id, inputs, lineage, ts))
+		let entry = InternalEntry::from_mutation(id, inputs, lineage, ts);
+		self.save_to_working_dir(&entry, stats);
+		self.entries.push(entry)
 	}
 	pub fn debug_print_entry(&self, id: EntryId) {
 		if let Some(ee) = self.entries.get(id.0 as usize) {
@@ -144,24 +155,11 @@ impl Queue {
 		dir_path.to_path_buf()
 	}
 
-	// /// load saved queue from a directory
-	// pub fn load(working_dir: &str, load_dir: &str) -> Self {
-	// 	let dir_path = path::Path::new(dirname);
-	// 	if !dir_path.exists() {
-	// 		let parent_path = dir_path.parent().unwrap();
-	// 		assert!(parent_path.exists());
-	// 		fs::create_dir(dir_path).unwrap();
-	// 	}
-	// 	assert!(dir_path.is_dir());
-	// 	let file_count = fs::read_dir(dir_path).unwrap().count();
-
-	// 	if file_count > 0 {
-	// 		assert!(false, "TODO: implement loading queue from filesystem")
-	// 	}
-
-
-	// 	let mut entries = Vec::new();
-	// 	let active_entry = None;
-	// 	Queue { entries, active_entry }
-	// }
+	fn save_to_working_dir(&self, entry: &InternalEntry, stats: stats::Snapshot) {
+		let content = EntryFile { entry: entry.clone(), stats };
+		let j = serde_json::to_string(&content).expect("failed to serialize entry!");
+		let filename = self.working_dir.join(format!("entry_{:04}.json", entry.id.0));
+		let mut file = fs::File::create(filename).expect("Failed to create entry json log file!");
+		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
+	}
 }
