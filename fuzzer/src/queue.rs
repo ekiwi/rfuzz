@@ -46,7 +46,7 @@ struct InternalEntry {
 	id: EntryId,	// always equivalent to position in vector!
 	inputs: Vec<u8>,
 	lineage: Option<Lineage>,
-	creation_time: Duration,
+	discovered_after: Duration,
 	// variable
 	mutation_history: MutationHistory,
 }
@@ -54,12 +54,12 @@ struct InternalEntry {
 impl InternalEntry {
 	fn from_raw_inputs(id: EntryId, inputs: &[u8], ts: Duration) -> Self {
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage: None, creation_time:  ts,
+		InternalEntry { id, inputs, lineage: None, discovered_after:  ts,
 		                mutation_history: MutationHistory::default() }
 	}
 	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>, ts: Duration) -> Self {
 		let inputs = inputs.to_vec();
-		InternalEntry { id, inputs, lineage, creation_time:  ts,
+		InternalEntry { id, inputs, lineage, discovered_after:  ts,
 		                mutation_history: MutationHistory::default() }
 	}
 }
@@ -72,16 +72,18 @@ pub struct Queue {
 	working_dir: path::PathBuf,
 	/// used to chose the next test
 	last_fuzzed_entry: Option<EntryId>,
+	// start time used for calculating the delta T for input discoveries
+	start_ts: Duration,
 }
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8], start: Duration, config: String) -> Self {
-		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, start);
+	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String) -> Self {
+		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default());
 		let working_dir = Queue::check_working_dir(working_dir);
 		Queue::save_config(&working_dir, config);
 		let last_fuzzed_entry = None;
-		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry }
+		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry, start_ts }
 	}
 
 	fn save_config(working_dir: &path::Path, j: String) {
@@ -123,7 +125,8 @@ impl Queue {
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation }) } else { None };
-		let entry = InternalEntry::from_mutation(id, inputs, lineage, ts);
+		let after = ts - self.start_ts;
+		let entry = InternalEntry::from_mutation(id, inputs, lineage, after);
 		self.save_to_working_dir(&entry, stats);
 		self.entries.push(entry)
 	}
