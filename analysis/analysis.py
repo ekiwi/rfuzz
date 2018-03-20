@@ -6,9 +6,22 @@
 
 import argparse, os, sys, json, glob
 
+# let's try to be a cool **data** scientist!
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 def load_json(filename):
 	return json.loads(open(filename).read())
+
+# this similar to code in `fuzzer/src/config.rs:print_inputs(..)`
+# def format_input(fmt, data):
+# 	def read_bit(cycle, bit):
+
+# 	for field in fmt:
+
+def parse_time(tt):
+	return tt['secs'] + tt['nanos'] * 1e-9
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
@@ -22,4 +35,17 @@ if __name__ == '__main__':
 	entry_pattern = os.path.join(result_dir, 'entry*.json')
 	entries = [load_json(filename) for filename in glob.glob(entry_pattern)]
 
-	print(len(entries))
+	# input_format = config['input']
+
+	# from IPython import embed; embed()
+
+
+	print("HACK: we should not have to sort the discovery times here, they should be ordered!")
+	disco_times = sorted([parse_time(entry['entry']['discovered_after']) for entry in entries])
+
+	print(disco_times)
+
+	plt.plot(disco_times, range(len(disco_times)) )
+	plt.ylabel("Inputs found")
+	plt.xlabel("Time (s)")
+	plt.show()
