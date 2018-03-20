@@ -76,11 +76,18 @@ pub struct Queue {
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8], start: Duration) -> Self {
+	pub fn create(working_dir: &str, seed: &[u8], start: Duration, config: String) -> Self {
 		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, start);
 		let working_dir = Queue::check_working_dir(working_dir);
+		Queue::save_config(&working_dir, config);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry }
+	}
+
+	fn save_config(working_dir: &path::Path, j: String) {
+		let filename = working_dir.join("config.json");
+		let mut file = fs::File::create(filename).expect("Failed to create config json log file!");
+		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
 	}
 
 	fn choose_next_test(&mut self) -> EntryId {

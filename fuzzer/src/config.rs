@@ -5,6 +5,7 @@
 // (and potentially extended/modified by hand)
 
 use toml;
+use serde_json;
 use config::toml::value::Datetime;
 use colored::*;
 use prettytable::Table;
@@ -31,8 +32,11 @@ impl Config {
 		let size = Config::determine_test_size(word_size, &data);
 		let config = Config { size, data };
 		config.validate();
-		// TODO: generate ranges for the anlysis!
 		config
+	}
+
+	pub fn to_json(&self) -> String {
+		serde_json::to_string(&self.data).expect("failed to serialize data!")
 	}
 
 	pub fn gen_ranges(&self) -> Vec<analysis::Range> {
@@ -193,14 +197,14 @@ impl Config {
 	}
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct General {
 	filename: String,
 	instrumented: String,
 	top: String,
 	timestamp: Datetime
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Coverage {
 	port: String,
 	name: String,
@@ -210,12 +214,12 @@ struct Coverage {
 	column: i32,
 	human: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Input {
 	name: String,
 	width: u32,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Counter {
 	name: String,
 	width: i32,
@@ -225,7 +229,7 @@ struct Counter {
 	signal: i32
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ConfigData {
 	general: General,
 	coverage: Vec<Coverage>,
