@@ -40,7 +40,7 @@ class InputFormat:
 			return [data]
 		else:
 			bb = self.bytes
-			return [data[ii*bb:(ii+1)*bb] for ii in range(cc-1)]
+			return [data[ii*bb:(ii+1)*bb] for ii in range(cc)]
 	# this similar to code in `fuzzer/src/config.rs:print_inputs(..)`
 	def format(self, bb):
 		assert len(bb) == self.bytes
