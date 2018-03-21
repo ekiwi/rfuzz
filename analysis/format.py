@@ -19,7 +19,7 @@ def load_json(filename):
 	return json.loads(open(filename).read())
 
 WordSize = 8
-def div_2_ceil(a,b): return (a + (b - 1)) / b
+def div_2_ceil(a,b): return (a + (b - 1)) // b
 def to_bytes(b): return div_2_ceil(div_2_ceil(b, 8), WordSize) * WordSize
 
 def parse_time(tt):
@@ -37,18 +37,31 @@ class InputFormat:
 	def split(self, data):
 		cc = self.cycle_count(data)
 		if cc < 2:
-			return data
+			return [data]
 		else:
 			bb = self.bytes
 			return [data[ii*bb:(ii+1)*bb] for ii in range(cc-1)]
 	# this similar to code in `fuzzer/src/config.rs:print_inputs(..)`
 	def format(self, bb):
-		return {}
+		assert len(bb) == self.bytes
+		def read_bit(ii):
+			byte = bb[ii // 8]
+			bit_ii = 7 - (ii % 8)
+			return (byte >> bit_ii) & 1
+		msb, dd = 0, {}
+		for field in self.fields:
+			value = 0
+			for ii in range(field['width']):
+				vv = read_bit(msb)
+				value = (value << 1) | vv
+				msb += 1
+			dd[field['name']] = value
+		return dd
 
 class CoverageFormat:
 	def __init__(self, config):
 		self.counters = config['conter']
-		assert all(counter['index'] == ii for counter, ii in enumerate(self.counters))
+		assert all(counter['index'] == ii for ii, counter in enumerate(self.counters))
 		assert all(counter['width'] == 8 for counter in self.counters)
 		self.bits = sum(cc['width'] for cc in self.counters)
 		self.bytes = to_bytes(self.bits + 2 * 8) - 2
@@ -58,9 +71,14 @@ class Input:
 	def __init__(self, entry, fmt):
 		ee = entry['entry']
 		self.id = ee['id']
-		self.parent = ee['parent']
-		self.mutator = ee['mutator']['id']
-		self.cycles = fmt.cycle_count(ee['inputs'])
-		self.inputs = fmt.split(ee['inputs'])
+		lineage = ee['lineage']
+		if lineage is None:
+			self.parent = self.mutator = None
+		else:
+			self.parent = lineage['parent']
+			self.mutator = lineage['mutation']['mutator']['id']
+		inputs = ee['inputs']
+		self.cycles = fmt.cycle_count(inputs)
+		self.inputs = fmt.split(inputs)
 		self.bytes = [bytes(ii) for ii in self.inputs]
 		self.formated = [fmt.format(bb) for bb in self.bytes]
