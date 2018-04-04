@@ -69,10 +69,9 @@ VERILATOR_BUILD = $(BUILD)/v$(DUT)
 
 $(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
 	mkdir -p $(VERILATOR_BUILD)
-	cd $(VERILATOR_BUILD) ;\
-	meson ../../verilator --buildtype=release && \
-	meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)' && \
-	ninja
+	cd $(VERILATOR_BUILD) && meson ../../verilator --buildtype=release
+	cd $(VERILATOR_BUILD) && meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)'
+	cd $(VERILATOR_BUILD) && ninja
 	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
 
 ################################################################################
