@@ -4,7 +4,7 @@
 # Copyright 2018, University of California, Berkeley
 # author: Kevin Laeufer <laeufer@cs.berkeley.edu>
 
-import os, sys, json, glob
+import os, sys, json, glob, tempfile, subprocess
 
 
 def load_results(result_dir):
@@ -67,18 +67,51 @@ class CoverageFormat:
 		self.bytes = to_bytes(self.bits + 2 * 8) - 2
 
 
+def mutator_id_to_name(id, mutators):
+	for mm in mutators:
+		if mm['id'] == id: return mm['name']
+	return None
+
 class Input:
 	def __init__(self, entry, fmt):
 		ee = entry['entry']
+		stats = entry['stats']
 		self.id = ee['id']
 		lineage = ee['lineage']
 		if lineage is None:
-			self.parent = self.mutator = None
+			self.parent = self.mutator_id = self.mutator_name = None
 		else:
 			self.parent = lineage['parent']
-			self.mutator = lineage['mutation']['mutator']['id']
+			self.mutator_id = lineage['mutation']['mutator']['id']
+			self.mutator_name = mutator_id_to_name(self.mutator_id, stats['mutators'])
 		inputs = ee['inputs']
 		self.cycles = fmt.cycle_count(inputs)
 		self.inputs = fmt.split(inputs)
 		self.bytes = [bytes(ii) for ii in self.inputs]
 		self.formated = [fmt.format(bb) for bb in self.bytes]
+
+def make_mutation_graph(inputs):
+	nodes = []
+	edges = []
+	for ii in inputs:
+		nodes.append(
+			(ii.id, str(ii.id))
+		)
+		if ii.parent is not None:
+			edges.append(
+				(ii.parent, ii.id, ii.mutator_name)
+			)
+	dot = ["digraph g {"]
+	dot += ['\t{} [label="{}"];'.format(*n) for n in nodes]
+	dot += ['\t{} -> {} [label="{}"];'.format(*e) for e in edges]
+	dot += ["}"]
+	return "\n".join(dot)
+
+def make_mutation_graph_pdf(filename, inputs):
+	dot = make_mutation_graph(inputs)
+	with tempfile.NamedTemporaryFile('w', suffix='.dot', delete=False) as out:
+		out.write(dot)
+		dotfile = out.name
+	#cmd = ['dot', '-Tpdf', dotfile, '-o', filename]
+	cmd = ['sfdp', '-x', '-Goverlap=scale', '-Tpdf', dotfile, '-o', filename]
+	subprocess.run(cmd, check=True)

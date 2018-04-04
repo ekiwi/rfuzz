@@ -1,0 +1,4 @@
+# analysis artifacts
+*.dot
+*.png
+*.pdf

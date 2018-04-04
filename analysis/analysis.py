@@ -28,6 +28,11 @@ if __name__ == '__main__':
 	if os.path.basename(inp_dir).startswith("sodor"):
 		riscv.print_instructions(config, entries)
 
+	fmt = InputFormat(config)
+	inputs = [Input(ee, fmt) for ee in entries]
+
+	make_mutation_graph_pdf("mutations.pdf", inputs)
+
 	disco_times = [parse_time(entry['entry']['discovered_after']) for entry in entries]
 	plt.plot(disco_times, range(len(disco_times)) )
 	plt.ylabel("Inputs found")
