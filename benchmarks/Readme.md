@@ -124,3 +124,54 @@ Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 
 **Note**: You will also need to copy `vsrc/SyncMem.sv` from `riscv-sodor` into
 the build directory (`build/vSodor3Stage`).
+
+## SiFive Peripherals
+
+We extracted a series of Tile Link peripherals from the [SiFive Blocks repo](https://github.com/sifive/sifive-blocks).
+
+To reproduce do the following:
+
+* checkout [sifive/freedom @ fff1881](https://github.com/sifive/freedom/commit/fff18810cd56d6b331a4ac08b62425a75280182b)
+* populate all the submodules: `git submodule update --init --recoursive`
+* change `rocket-chip/src/main/scala/util/PlusArg.scala` to use a dummy version of the plus argument reader:
+
+```.diff
+--- a/src/main/scala/util/PlusArg.scala
++++ b/src/main/scala/util/PlusArg.scala
+@@ -14,6 +14,11 @@ class plusarg_reader(val format: String, val default: Int, val docstring: String
+   }
+ }
+ 
++class DummyPlusArgReader(val format: String, val default: Int, val docstring: String) extends Module {
++       val io = IO(new Bundle { val out = UInt(OUTPUT, width = 32) } )
++       io.out := default.U
++}
++
+ object PlusArg
+ {
+   // PlusArg("foo") will return 42.U if the simulation is run with +foo=42
+@@ -24,7 +29,7 @@ object PlusArg
+ 
+   def apply(name: String, default: Int = 0, docstring: String = ""): UInt = {
+     PlusArgArtefacts.append(name, default, docstring)
+-    Module(new plusarg_reader(name + "=%d", default, docstring)).io.out
++    Module(new DummyPlusArgReader(name + "=%d", default, docstring)).io.out
+   }
+ }
+```
+
+* disable (comment out) the `printf` in `sifive-blocks/src/main/scala/devices/uart/UART.scala`
+* generate firrtl: `make -f Makefile.e300artydevkit firrtl`
+* extract the peripherals using Jack's
+  [retop_firrtl.py](https://gist.githubusercontent.com/jackkoenig/b780c809c7e0ef5d6658bdcfe273ecda/raw/7abe8ee3ccd46f04531b586b524451334ed4b75f/retop_firrtl.py)
+  which depends on
+  [split_firrtl.py](https://gist.githubusercontent.com/jackkoenig/68c91ad94315fb566032816cc769aac4/raw/8e54cb93dadee409b64cd87fcbcb83933ce0d66b/split_firrtl.py):
+
+```.sh
+./retop_firrtl.py TLPWM builds/e300artydevkit/sifive.freedom.everywhere.e300artydevkit.E300ArtyDevKitConfig.fir TLPWM.fir
+./retop_firrtl.py TLSPI builds/e300artydevkit/sifive.freedom.everywhere.e300artydevkit.E300ArtyDevKitConfig.fir TLSPI.fir
+./retop_firrtl.py TLUART builds/e300artydevkit/sifive.freedom.everywhere.e300artydevkit.E300ArtyDevKitConfig.fir TLUART.fir
+./retop_firrtl.py TLI2C builds/e300artydevkit/sifive.freedom.everywhere.e300artydevkit.E300ArtyDevKitConfig.fir TLI2C.fir
+```
+
+**Note**: for some reason the fuzz server segfaults when trying to fuzz `TLPWM`.
