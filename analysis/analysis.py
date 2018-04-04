@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	fmt = InputFormat(config)
 	inputs = [Input(ee, fmt) for ee in entries]
 
-	make_mutation_graph_pdf("mutations.pdf", inputs)
+	make_mutation_graph("mutations.png", inputs)
 
 	disco_times = [parse_time(entry['entry']['discovered_after']) for entry in entries]
 	plt.plot(disco_times, range(len(disco_times)) )

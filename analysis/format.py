@@ -90,7 +90,7 @@ class Input:
 		self.bytes = [bytes(ii) for ii in self.inputs]
 		self.formated = [fmt.format(bb) for bb in self.bytes]
 
-def make_mutation_graph(inputs):
+def make_mutation_graph_dot(inputs):
 	nodes = []
 	edges = []
 	for ii in inputs:
@@ -107,11 +107,13 @@ def make_mutation_graph(inputs):
 	dot += ["}"]
 	return "\n".join(dot)
 
-def make_mutation_graph_pdf(filename, inputs):
-	dot = make_mutation_graph(inputs)
+def make_mutation_graph(filename, inputs, fmt=None):
+	dot = make_mutation_graph_dot(inputs)
+	if fmt is None:
+		fmt = os.path.splitext(filename)[1][1:]
 	with tempfile.NamedTemporaryFile('w', suffix='.dot', delete=False) as out:
 		out.write(dot)
 		dotfile = out.name
 	#cmd = ['dot', '-Tpdf', dotfile, '-o', filename]
-	cmd = ['sfdp', '-x', '-Goverlap=scale', '-Tpdf', dotfile, '-o', filename]
+	cmd = ['sfdp', '-x', '-Goverlap=scale', '-T' + fmt, dotfile, '-o', filename]
 	subprocess.run(cmd, check=True)
