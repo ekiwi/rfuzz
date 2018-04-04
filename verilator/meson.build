@@ -27,7 +27,7 @@ verilator_warnings = ['-Wno-char-subscripts', '-Wno-sign-compare',
 toplevel = '@0@_VHarness'.format(dut)
 verilator_files = ['V@0@.h'.format(toplevel),
                    'V@0@__Syms.h'.format(toplevel),
-                   'V@0@__Inlines.h'.format(toplevel),
+                   #'V@0@__Inlines.h'.format(toplevel),
                    'V@0@.cpp'.format(toplevel),
                    'V@0@__Syms.cpp'.format(toplevel),
                    'verilated_vcd_c.cpp', 'verilated.cpp']
