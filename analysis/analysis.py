@@ -39,13 +39,14 @@ if __name__ == '__main__':
 
 		disco_times = [ii.discovered_after for ii in inputs]
 		cov = [ii.total_cov / ii.max_cov for ii in inputs]
-		coverage_data.append((disco_times, cov))
+		coverage_data.append((disco_times, cov, name))
 
 	max_time = max(cc[0][-1] for cc in coverage_data)
-	for disco_times, cov in coverage_data:
+	for disco_times, cov, name in coverage_data:
 		disco_times.append(max_time)
 		cov.append(cov[-1])
-		plt.plot(disco_times, cov)
+		plt.plot(disco_times, cov, label=name)
+	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
 	plt.show()
