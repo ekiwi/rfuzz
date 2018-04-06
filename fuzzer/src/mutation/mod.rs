@@ -18,6 +18,7 @@ pub struct MutationHistory {
 pub struct MutationScheduleConfig {
 	pub skip_deterministic: bool,
 	pub skip_non_deterministic: bool,
+	pub independent_random: bool,
 }
 
 /// contains a list of possible mutations
@@ -43,29 +44,37 @@ impl MutationSchedule {
 		// TODO: fix horrible hack!!!
 		mutator_id_to_name.insert(mutators::RANDOM_BITFLIP_MUTATOR_ID, "random biflips".to_string());
 		mutator_id_to_name.insert(mutators::AFL_HAVOC_MUTATOR_ID, "afl havoc".to_string());
+		mutator_id_to_name.insert(mutators::RANDOM_GENERATOR_MUTATOR_ID, "random".to_string());
 		MutationSchedule { config, format, input_size, mutators, mutator_id_to_name }
 	}
 
 	pub fn get_mutator(&self, history: &mut MutationHistory, inputs: &[u8]) -> Option<Box<Mutator>> {
-		if !self.config.skip_deterministic {
-			for mutator in &self.mutators {
-				assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
-				// TODO: for non-deterministic mutators, the single hash set is not really going to work....
-				if !history.finished.contains(&mutator.id) {
-					history.finished.insert(mutator.id);
-					return Some((mutator.create)(&self.format, inputs));
-				}
-			}
-		}
-		// hacky non-deterministic stage
-		if !self.config.skip_non_deterministic {
+		if self.config.independent_random {
 			let mut rng = rand::thread_rng();
 			let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
-			//let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
-			let mutator = Box::new(mutators::AflHavocMutator::create(&self.format, inputs, seed));
-			return Some(mutator);
+			let mutator = Box::new(mutators::RandomGenerator::create(inputs.len(), seed));
+			Some(mutator)
+		} else {
+			if !self.config.skip_deterministic {
+				for mutator in &self.mutators {
+					assert!(mutator.deterministic, "non-deterministic mutators not suported at the moment!");
+					// TODO: for non-deterministic mutators, the single hash set is not really going to work....
+					if !history.finished.contains(&mutator.id) {
+						history.finished.insert(mutator.id);
+						return Some((mutator.create)(&self.format, inputs));
+					}
+				}
+			}
+			// hacky non-deterministic stage
+			if !self.config.skip_non_deterministic {
+				let mut rng = rand::thread_rng();
+				let seed : Seed = [rng.next_u32(), rng.next_u32(), rng.next_u32(), rng.next_u32()];
+				//let mutator = Box::new(mutators::RandomBitflipMutator::create(&self.format, inputs, seed));
+				let mutator = Box::new(mutators::AflHavocMutator::create(&self.format, inputs, seed));
+				return Some(mutator);
+			}
+			None
 		}
-		None
 	}
 
 	pub fn get_name(&self, id: MutatorId) -> &str {

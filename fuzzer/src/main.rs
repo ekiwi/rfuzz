@@ -38,6 +38,7 @@ struct Args {
 	print_total_cov: bool,
 	skip_deterministic: bool,
 	skip_non_deterministic: bool,
+	random: bool,
 	input_directory: Option<String>,
 	output_directory: String,
 	test_mode: bool,
@@ -62,6 +63,9 @@ fn main() {
 		.arg(Arg::with_name("skip_non_deterministic")
 			.long("skip-non-deterministic").short("n")
 			.help("Skip all non-deterministic mutation strategies."))
+		.arg(Arg::with_name("random")
+			.long("random").short("r")
+			.help("Generate independent random inputs instead of using the fuzzing algorithm."))
 		.arg(Arg::with_name("input_directory")
 			.long("input-directory").short("i").value_name("DIR")
 			.takes_value(true)
@@ -82,6 +86,7 @@ fn main() {
 		print_total_cov: matches.is_present("print_total_cov"),
 		skip_deterministic: matches.is_present("skip_deterministic"),
 		skip_non_deterministic: matches.is_present("skip_non_deterministic"),
+		random: matches.is_present("random"),
 		input_directory: matches.value_of("input_directory").map(|s| s.to_string()),
 		output_directory: matches.value_of("output_directory").unwrap().to_string(),
 		test_mode: matches.is_present("test_mode"),
@@ -141,8 +146,12 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	// mutation
 	let mut_config = mutation::MutationScheduleConfig {
 		skip_deterministic: args.skip_deterministic,
-		skip_non_deterministic: args.skip_non_deterministic
+		skip_non_deterministic: args.skip_non_deterministic,
+		independent_random: args.random,
 	};
+	if mut_config.independent_random {
+		println!("⚠️ Mutation disabled. Generating independent random inputs! ⚠️");
+	}
 	let mutations = mutation::MutationSchedule::initialize(mut_config, test_size, config.get_inputs());
 
 	// statistics

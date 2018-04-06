@@ -75,6 +75,52 @@ impl Mutator for RandomBitflipMutator {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Random Generator
+////////////////////////////////////////////////////////////////////////////////
+// used as the baseline in our experiments, NOT a real mutator
+
+
+
+pub struct RandomGenerator {
+	id: MutatorId,
+	len: usize,
+	rng: rand::XorShiftRng,
+	max: u32,
+	last_ii: Option<u32>,
+}
+
+pub const RANDOM_GENERATOR_MUTATOR_ID : u64 = id!(150, v!(0,1));
+
+impl RandomGenerator {
+	pub fn create(len: usize, seed: Seed) -> Self {
+		let max = 10000;
+
+		let id = MutatorId { id: RANDOM_GENERATOR_MUTATOR_ID, seed: Some(seed) };
+		let rng = rand::XorShiftRng::from_seed(seed);
+		let last_ii = None;
+		RandomGenerator { id,len, rng, max, last_ii }
+	}
+}
+
+impl Mutator for RandomGenerator {
+	fn id(&self) -> MutatorId { self.id }
+	fn max(&self) -> u32 { self.max }
+	fn output_size(&self) -> Option<usize> { Some(self.len) }
+	fn apply(&mut self, ii: u32, output: &mut [u8]) -> usize {
+		// checks
+		assert_eq!(self.len, output.len());
+		if let Some(last) = self.last_ii {
+			assert_eq!(last + 1, ii);
+		}
+		self.last_ii = Some(ii);
+
+		self.rng.fill_bytes(output);
+		output.len()
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Field Structure Aware Mutators
 ////////////////////////////////////////////////////////////////////////////////
 
