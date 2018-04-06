@@ -10,7 +10,7 @@ extern crate colored;
 #[macro_use] extern crate prettytable;
 extern crate ctrlc;
 extern crate clap;
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -147,7 +147,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 
 	// statistics
 	let start_ts = get_time();
-	let mut statistics = stats::Stats::new(mutations.get_names(), start_ts.clone());
+	let mut statistics = stats::Stats::new(mutations.get_names(), start_ts.clone(), analysis.get_bitmap());
 
 	// queue
 	let mut q = queue::Queue::create(
@@ -155,7 +155,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 		&starting_seed,
 		start_ts,
 		config.to_json(),
-		statistics.take_snapshot());
+		statistics.take_snapshot(),
+		&seed_coverage);
 
 	let max_entries = 1_000_000;
 	let max_children = 100_000;	// TODO: better mechanism to determine length of the havoc stage
@@ -184,8 +185,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 					if is_interesting {
 						let (info, interesting_input) = server.get_info(feedback.id);
 						let now = get_time();
-						statistics.update_new_discovery(info.mutator.id, now);
-						q.add_new_test(interesting_input, info, now, statistics.take_snapshot());
+						statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
+						q.add_new_test(interesting_input, info, now, statistics.take_snapshot(), &feedback.data);
 					}
 				}
 			}
@@ -204,8 +205,8 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 		if is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
 			let now = get_time();
-			statistics.update_new_discovery(info.mutator.id, now);
-			q.add_new_test(interesting_input, info, now, statistics.take_snapshot());
+			statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
+			q.add_new_test(interesting_input, info, now, statistics.take_snapshot(), &feedback.data);
 		}
 	}
 

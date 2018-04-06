@@ -16,6 +16,7 @@ pub struct Snapshot {
 	tests_per_second: AverageRatioSnapshot,
 	cycles_per_test: AverageRatioSnapshot,
 	cycles_per_second: AverageRatioSnapshot,
+	bitmap: Vec<u8>,
 	runtime: Duration,
 }
 
@@ -95,6 +96,7 @@ pub struct Stats {
 	tests_per_second: AverageRatio,
 	cycles_per_test: AverageRatio,
 	cycles_per_second: AverageRatio,
+	bitmap: Vec<u8>,
 	// PreciseTime is used for calculating delta time, Duration is used for
 	// absolute time stamps.
 	// We are doing this for now, but it does not seem to be a very clean
@@ -106,7 +108,7 @@ pub struct Stats {
 }
 
 impl Stats {
-	pub fn new(mutator_info: Vec<(String, u64)>, ts: Duration) -> Self {
+	pub fn new(mutator_info: Vec<(String, u64)>, ts: Duration, bitmap: Vec<u8>) -> Self {
 		let mutators = mutator_info.into_iter()
 			.map(|ii| MutatorStats::new(ii.0, ii.1)).collect();
 
@@ -115,6 +117,7 @@ impl Stats {
 			tests_per_second:  AverageRatio::default(),
 			cycles_per_test:   AverageRatio::default(),
 			cycles_per_second: AverageRatio::default(),
+			bitmap,
 			start_ts: ts,
 			start: time::PreciseTime::now(),
 			mutator_start: time::PreciseTime::now(),
@@ -133,6 +136,7 @@ impl Stats {
 			tests_per_second:  self.tests_per_second.take_snapshot(),
 			cycles_per_test:   self.cycles_per_test.take_snapshot(),
 			cycles_per_second: self.cycles_per_second.take_snapshot(),
+			bitmap: self.bitmap.clone(),
 			runtime
 		}
 	}
@@ -153,11 +157,12 @@ impl Stats {
 		self.mutator_start = now;
 	}
 
-	pub fn update_new_discovery(&mut self, mutator_id: u64, ts: Duration) {
+	pub fn update_new_discovery(&mut self, mutator_id: u64, ts: Duration, bitmap: Vec<u8>) {
 		assert_eq!(self.mutators.iter_mut()
 			.filter(|m| m.id == mutator_id).take(1)
 			.map(|m| m.update_new_discovery(ts))
 			.count(), 1);
+		self.bitmap = bitmap;
 	}
 
 	pub fn done(&mut self) {

@@ -38,6 +38,7 @@ struct Lineage {
 struct EntryFile {
 	entry: InternalEntry,
 	stats: stats::Snapshot,
+	trace_bits: Vec<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -78,11 +79,11 @@ pub struct Queue {
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String, stats: stats::Snapshot) -> Self {
+	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String, stats: stats::Snapshot, trace_bits: &[u8]) -> Self {
 		let working_dir = Queue::check_working_dir(working_dir);
 		Queue::save_config(&working_dir, config);
 		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default());
-		Queue::save_to_working_dir(&working_dir, &entry, stats);
+		Queue::save_to_working_dir(&working_dir, &entry, stats, trace_bits);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry, start_ts }
 	}
@@ -115,14 +116,14 @@ impl Queue {
 		entry.mutation_history = mutation_history;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration, stats: stats::Snapshot) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration, stats: stats::Snapshot, trace_bits: &[u8]) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation }) } else { None };
 		let after = ts - self.start_ts;
 		let entry = InternalEntry::from_mutation(id, inputs, lineage, after);
-		Queue::save_to_working_dir(&self.working_dir, &entry, stats);
+		Queue::save_to_working_dir(&self.working_dir, &entry, stats, trace_bits);
 		self.entries.push(entry)
 	}
 	pub fn debug_print_entry(&self, id: EntryId) {
@@ -166,8 +167,8 @@ impl Queue {
 		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
 	}
 
-	fn save_to_working_dir(working_dir: &path::Path, entry: &InternalEntry, stats: stats::Snapshot) {
-		let content = EntryFile { entry: entry.clone(), stats };
+	fn save_to_working_dir(working_dir: &path::Path, entry: &InternalEntry, stats: stats::Snapshot, trace_bits: &[u8]) {
+		let content = EntryFile { entry: entry.clone(), stats, trace_bits: trace_bits.to_vec() };
 		let j = serde_json::to_string(&content).expect("failed to serialize entry!");
 		let filename = working_dir.join(format!("entry_{:04}.json", entry.id.0));
 		let mut file = fs::File::create(filename).expect("Failed to create entry json log file!");
