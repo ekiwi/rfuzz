@@ -25,16 +25,18 @@ if __name__ == '__main__':
 	inp_dir = args.DIR[0]
 	config, entries = load_results(inp_dir)
 
-	if os.path.basename(inp_dir).startswith("sodor"):
-		riscv.print_instructions(config, entries)
+	#if os.path.basename(inp_dir).startswith("sodor"):
+	#	riscv.print_instructions(config, entries)
 
+	cov = CoverageFormat(config)
 	fmt = InputFormat(config)
-	inputs = [Input(ee, fmt) for ee in entries]
+	inputs = [Input(ee, fmt, cov) for ee in entries]
 
 	make_mutation_graph("mutations.png", inputs)
 
-	disco_times = [parse_time(entry['entry']['discovered_after']) for entry in entries]
-	plt.plot(disco_times, range(len(disco_times)) )
-	plt.ylabel("Inputs found")
+	disco_times = [ii.discovered_after for ii in inputs]
+	cov = [ii.total_cov / ii.max_cov for ii in inputs]
+	plt.plot(disco_times, cov)
+	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
-	#plt.show()
+	plt.show()

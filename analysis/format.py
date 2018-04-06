@@ -60,11 +60,15 @@ class InputFormat:
 
 class CoverageFormat:
 	def __init__(self, config):
-		self.counters = config['conter']
+		self.counters = config['counter']
 		assert all(counter['index'] == ii for ii, counter in enumerate(self.counters))
 		assert all(counter['width'] == 8 for counter in self.counters)
 		self.bits = sum(cc['width'] for cc in self.counters)
 		self.bytes = to_bytes(self.bits + 2 * 8) - 2
+		self.tf_coverage = all(
+			self.counters[ii+0]['name'] == 'True' and
+			self.counters[ii+1]['name'] == 'False'
+			for ii in range(0, len(self.counters), 2))
 
 
 def mutator_id_to_name(id, mutators):
@@ -72,11 +76,22 @@ def mutator_id_to_name(id, mutators):
 		if mm['id'] == id: return mm['name']
 	return None
 
+def calc_tf_coverage(bitmap, cov, binned=False):
+	assert cov.tf_coverage
+	not_covd = 0xff if binned else 0
+	covered = 0
+	for ii in range(0, len(cov.counters), 2):
+		t_covd = (bitmap[ii+0] != not_covd)
+		f_covd = (bitmap[ii+1] != not_covd)
+		covered += 1 if (t_covd and f_covd) else 0
+	return covered
+
 class Input:
-	def __init__(self, entry, fmt):
+	def __init__(self, entry, fmt, cov):
 		ee = entry['entry']
 		stats = entry['stats']
 		self.id = ee['id']
+		self.discovered_after = parse_time(ee['discovered_after'])
 		lineage = ee['lineage']
 		if lineage is None:
 			self.parent = self.mutator_id = self.mutator_name = None
@@ -89,6 +104,11 @@ class Input:
 		self.inputs = fmt.split(inputs)
 		self.bytes = [bytes(ii) for ii in self.inputs]
 		self.formated = [fmt.format(bb) for bb in self.bytes]
+		# coverage
+		if cov.tf_coverage:
+			self.max_cov = len(cov.counters) // 2
+			self.total_cov = calc_tf_coverage(stats['bitmap'], cov, binned=True)
+			self.local_cov = calc_tf_coverage(entry['trace_bits'], cov, binned=False)
 
 def make_mutation_graph_dot(inputs):
 	nodes = []
