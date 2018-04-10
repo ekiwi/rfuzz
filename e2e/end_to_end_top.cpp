@@ -56,6 +56,7 @@ struct Simulation {
 
 static inline std::vector<uint8_t> load_test(const std::string& filename) {
 	std::ifstream in(filename, std::ios::binary);
+	assert(in.is_open());
 	in.seekg(0, std::ios::end);
 	auto len = in.tellg();
 	in.seekg(0, std::ios::beg);
@@ -66,19 +67,19 @@ static inline std::vector<uint8_t> load_test(const std::string& filename) {
 }
 
 double sc_time_stamp () { throw std::logic_error("calling sc_time_stamp is not supported!"); }
+#define ERROR(reason) { std::cout << "{\"error\": \"" reason "\"}" << std::endl; return 1; }
 int main(int argc, char** argv) {
 
-	Verilated::commandArgs(argc, argv);
+	if(argc != 2) { ERROR("argcount"); }
+	std::string filename(argv[1]);
+
 	Simulation sim;
 	sim.top = new TOP_TYPE;
 
 	// load test data
-	const auto in = load_test("../1_cycle_icache.bin");
+	const auto in = load_test(filename);
 	const int64_t cycles = in.size() / InputSize;
-	if(cycles * InputSize != in.size()) {
-		std::cout << "{\"error\": \"size\"}" << std::endl;
-		return 1;
-	}
+	if(cycles * InputSize != in.size()) { ERROR("size"); }
 
 	// If verilator was invoked with --trace
 #if VM_TRACE
