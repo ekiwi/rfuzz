@@ -52,14 +52,19 @@ object Convert64BitEndianess {
 }
 
 object HarnessGenerator extends App {
-	require(args.length > 1, "Please provide the toml form the instrumentation pass as well as the output toml as argumenst!")
+	require(args.length > 2, "Please provide the toml form the instrumentation pass as well as the 2 output toml as arguments!")
 	val inToml = args(0)
 	val outToml = args(1)
+	val outE2EToml = args(2)
 	val conf = Config.loadToml(inToml)
 	println(s"Conf: ${conf}")
 	// super hacky "out parameter" to get list of counters from Harness design
 	val counters = collection.mutable.ArrayBuffer[Config.Counter]()
 	chisel3.Driver.execute(args, () => new VerilatorHarness(conf, counters))
 	Config.writeAugmentedToml(inToml, outToml, counters.toSeq)
+	// end-to-end coverage
+	val e2e_counters = collection.mutable.ArrayBuffer[Config.Counter]()
+	chisel3.Driver.execute(args, () => new E2ECoverageHarness(conf, e2e_counters))
+	Config.writeAugmentedToml(inToml, outE2EToml, e2e_counters.toSeq)
 }
 

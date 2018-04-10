@@ -16,8 +16,13 @@ template = """
 #ifndef DUT_CONF_HPP
 #define DUT_CONF_HPP
 
+#if defined(E2E)
+#include <V{toplevel}_E2EHarness.h>
+#define TOP_TYPE V{toplevel}_E2EHarness
+#else
 #include <V{toplevel}_VHarness.h>
 #define TOP_TYPE V{toplevel}_VHarness
+#endif
 
 #define TOPLEVEL_STR "{toplevel}"
 

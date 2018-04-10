@@ -12,7 +12,7 @@ project('coverage', 'cpp', default_options : ['cpp_std=c++11'], version: '0.0.1'
 
 dut = get_option('dut')
 build = get_option('build_dir')
-top = '@0@/@1@_VHarness.v'.format(build, dut)
+top = '@0@/@1@_E2EHarness.v'.format(build, dut)
 dependencies = ['@0@/@1@.v'.format(build, dut)]
 toml = '@0@/@1@.toml'.format(build, dut)
 exe = 'cov'
@@ -24,7 +24,7 @@ verilator_defines = ['-DVL_PRINTF=printf', '-DVM_COVERAGE=0', '-DVM_SC=0', '-DVL
 verilator_warnings = ['-Wno-char-subscripts', '-Wno-sign-compare',
                       '-Wno-uninitialized', '-Wno-unused-but-set-variable',
                       '-Wno-unused-parameter', '-Wno-unused-variable']
-toplevel = '@0@_VHarness'.format(dut)
+toplevel = '@0@_E2EHarness'.format(dut)
 verilator_files = ['V@0@.h'.format(toplevel),
                    'V@0@__Syms.h'.format(toplevel),
                    #'V@0@__Inlines.h'.format(toplevel),

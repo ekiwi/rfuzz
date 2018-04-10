@@ -16,6 +16,7 @@
 #include <chrono>
 #include <locale>
 
+#define E2E
 #include "dut.hpp"
 
 
