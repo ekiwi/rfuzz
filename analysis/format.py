@@ -10,10 +10,11 @@ import os, sys, json, glob, tempfile, subprocess
 def load_results(result_dir):
 	assert os.path.isdir(result_dir)
 	config = load_json(os.path.join(result_dir, 'config.json'))
+	top = config['general']['top']
 	entry_pattern = os.path.join(result_dir, 'entry*.json')
 	unordered_entries = [load_json(filename) for filename in glob.glob(entry_pattern)]
 	entries = sorted(unordered_entries, key=lambda e: e['entry']['id'])
-	return config, entries
+	return config, entries, top
 
 def load_json(filename):
 	return json.loads(open(filename).read())
@@ -58,6 +59,16 @@ class InputFormat:
 			dd[field['name']] = value
 		return dd
 
+def calc_tf_coverage(bitmap, cov, binned=False):
+	assert cov.tf_coverage
+	not_covd = 0xff if binned else 0
+	covered = 0
+	for ii in range(0, len(cov.counters), 2):
+		t_covd = (bitmap[ii+0] != not_covd)
+		f_covd = (bitmap[ii+1] != not_covd)
+		covered += 1 if (t_covd and f_covd) else 0
+	return covered
+
 class CoverageFormat:
 	def __init__(self, config):
 		self.counters = config['counter']
@@ -69,6 +80,14 @@ class CoverageFormat:
 			self.counters[ii+0]['name'] == 'True' and
 			self.counters[ii+1]['name'] == 'False'
 			for ii in range(0, len(self.counters), 2))
+	def get(self, stats, entry):
+		if self.tf_coverage:
+			return {
+				'max': len(self.counters) // 2,
+				'total': calc_tf_coverage(stats['bitmap'], self, binned=True),
+				'local': calc_tf_coverage(entry['trace_bits'], self, binned=False)
+			}
+		return {}
 
 
 def mutator_id_to_name(id, mutators):
@@ -76,18 +95,8 @@ def mutator_id_to_name(id, mutators):
 		if mm['id'] == id: return mm['name']
 	return None
 
-def calc_tf_coverage(bitmap, cov, binned=False):
-	assert cov.tf_coverage
-	not_covd = 0xff if binned else 0
-	covered = 0
-	for ii in range(0, len(cov.counters), 2):
-		t_covd = (bitmap[ii+0] != not_covd)
-		f_covd = (bitmap[ii+1] != not_covd)
-		covered += 1 if (t_covd and f_covd) else 0
-	return covered
-
 class Input:
-	def __init__(self, entry, fmt, cov):
+	def __init__(self, entry, fmt, fuzzer_cov, e2e_cov):
 		ee = entry['entry']
 		stats = entry['stats']
 		self.id = ee['id']
@@ -105,10 +114,8 @@ class Input:
 		self.bytes = [bytes(ii) for ii in self.inputs]
 		self.formated = [fmt.format(bb) for bb in self.bytes]
 		# coverage
-		if cov.tf_coverage:
-			self.max_cov = len(cov.counters) // 2
-			self.total_cov = calc_tf_coverage(stats['bitmap'], cov, binned=True)
-			self.local_cov = calc_tf_coverage(entry['trace_bits'], cov, binned=False)
+		self.fuzzer_cov = fuzzer_cov.get(stats, entry)
+		self.e2e_cov = e2e_cov.get(self.bytes)
 
 def make_mutation_graph_dot(inputs):
 	nodes = []

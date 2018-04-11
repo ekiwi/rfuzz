@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from format import *
+from e2e import CoverageCalcuator
 import riscv
 
 def shell(): from IPython import embed; embed()
@@ -26,19 +27,20 @@ if __name__ == '__main__':
 
 	for inp_dir in args.DIR:
 		name = os.path.basename(inp_dir)
-		config, entries = load_results(inp_dir)
+		config, entries, dut = load_results(inp_dir)
 
 		#if os.path.basename(inp_dir).startswith("sodor"):
 		#	riscv.print_instructions(config, entries)
 
-		cov = CoverageFormat(config)
+		end2end = CoverageCalcuator(dut)
+		fuzzer_cov = CoverageFormat(config)
 		fmt = InputFormat(config)
-		inputs = [Input(ee, fmt, cov) for ee in entries]
+		inputs = [Input(ee, fmt, fuzzer_cov, end2end) for ee in entries]
 
 		make_mutation_graph("{}_mutations.png".format(name), inputs)
 
 		disco_times = [ii.discovered_after for ii in inputs]
-		cov = [ii.total_cov / ii.max_cov for ii in inputs]
+		cov = [ii.e2e_cov['total'] / ii.e2e_cov['max'] for ii in inputs]
 		coverage_data.append((disco_times, cov, name))
 
 	max_time = max(cc[0][-1] for cc in coverage_data)

@@ -10,6 +10,7 @@ INSTRUMENTATION_TOML := $(BUILD)/$(DUT)_InstrumentationInfo.toml
 TOML := $(BUILD)/$(DUT).toml
 E2ECOV_TOML := $(BUILD)/$(DUT).e2e.toml
 VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
+FUZZ_SERVER := $(BUILD)/$(DUT)_server
 E2ECOV_HARNESS := $(BUILD)/$(DUT)_E2EHarness.v
 E2ECOV := $(BUILD)/$(DUT)_cov
 
