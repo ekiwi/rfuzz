@@ -8,3 +8,6 @@ build/
 # CPython
 __pycache__/
 *.pyc
+
+# Vim
+*.swp
