@@ -27,6 +27,7 @@ if __name__ == '__main__':
 
 	for inp_dir in args.DIR:
 		name = os.path.basename(inp_dir)
+		print("processing {} ...".format(name))
 		config, entries, dut = load_results(inp_dir)
 
 		#if os.path.basename(inp_dir).startswith("sodor"):
@@ -42,6 +43,7 @@ if __name__ == '__main__':
 		disco_times = [ii.discovered_after for ii in inputs]
 		cov = [ii.e2e_cov['total'] for ii in inputs]
 		coverage_data.append((disco_times, cov, name))
+		#print(inputs[-1].e2e_cov['not_covered'])
 
 	max_time = max(cc[0][-1] for cc in coverage_data)
 	for disco_times, cov, name in coverage_data:

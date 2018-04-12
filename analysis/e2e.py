@@ -27,6 +27,7 @@ class CoverageCounterInfo:
 		assert counter['width'] == 8
 		self.port = signal['port']
 		self.index = counter['index']
+		self.name = signal['name']
 	def value(self): return CoverageCounterValue(self)
 
 class CoverageCounterValue:
@@ -81,17 +82,24 @@ class CoverageCalcuator:
 			for counter in self.oracle.counters
 			if not exclude(counter, self.signal(counter))
 		]
+		#print(self.oracle.counters)
+		#print("\n".join(cc.name for cc in self.counters))
 		# initialize coverage state
 		self.total = TestCoverage.empty(self.counters)
 	def get(self, inp):
 		trace_bits = self.oracle.query(inp)
 		covered = TestCoverage.parse(self.counters, trace_bits)
+		#print([vv.cov_percent for vv in covered.values])
 		new_coverage = covered.difference(self.total)
 		self.total = self.total.union(covered)
 		return {
 			'total': self.total.cov_percent(),
 			'local': covered.cov_percent(),
 			'new': new_coverage.cov_percent(),
+			'individual': [vv.cov_percent for vv in self.total.values],
+			'not_covered': [cc.name
+				for vv, cc in zip(self.total.values, self.counters)
+				if vv.cov_percent == 0.0],
 		}
 	def signal(self, counter):
 		return self.oracle.config['coverage'][counter['signal']]
