@@ -95,7 +95,28 @@ class NGramCounterGenerator(N: Int, counter_width: Int) {
 	}
 }
 
+// the output of the true or false latch has three different states
+// (after running for at least one cycle):
+// - 01 -> always False
+// - 10 -> awlays True
+// - 11 -> toggled
 class TrueOrFalseLatchGenerator {
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
+		val pos = Module(new SaturatingCounter(1))
+		pos.io.enable := Mux(connect, cover_point, false.B)
+		val neg = Module(new SaturatingCounter(1))
+		neg.io.enable := Mux(connect, ~cover_point, false.B)
+		val count = Cat(0.U(6.W), pos.io.value, neg.io.value)
+		Seq(count)
+	}
+	def bits(cover_points: Int) : Int = cover_points * 8
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		Seq(Config.Counter("TF", 8, 3, false, signal_index, signal_index))
+	}
+}
+
+// the legacy version treats the true and false counts as independent counters
+class LegacyTrueOrFalseLatchGenerator {
 	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
 		val pos = Module(new SaturatingCounter(1))
 		pos.io.enable := Mux(connect, cover_point, false.B)

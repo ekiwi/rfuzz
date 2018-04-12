@@ -41,8 +41,8 @@ class CoverageCalcuator:
 		new_coverage = covered - self.union
 		self.union = covered | self.union
 		return {
-			# possible values per (TF) counter pair are: 01, 10, 11
-			'max': len(self.oracle.fmt.counters) // 2 * 3,
+			# possible values per (TF) counter are: 01, 10, 11
+			'max': len(self.oracle.fmt.counters) * 3,
 			'total': len(self.union),
 			'local': len(covered),
 			'new': len(new_coverage),

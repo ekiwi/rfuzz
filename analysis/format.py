@@ -59,16 +59,6 @@ class InputFormat:
 			dd[field['name']] = value
 		return dd
 
-def calc_tf_coverage(bitmap, cov, binned=False):
-	assert cov.tf_coverage
-	not_covd = 0xff if binned else 0
-	covered = 0
-	for ii in range(0, len(cov.counters), 2):
-		t_covd = (bitmap[ii+0] != not_covd)
-		f_covd = (bitmap[ii+1] != not_covd)
-		covered += 1 if (t_covd and f_covd) else 0
-	return covered
-
 class CoverageFormat:
 	def __init__(self, config):
 		self.counters = config['counter']
@@ -76,18 +66,9 @@ class CoverageFormat:
 		assert all(counter['width'] == 8 for counter in self.counters)
 		self.bits = sum(cc['width'] for cc in self.counters)
 		self.bytes = to_bytes(self.bits + 2 * 8) - 2
-		self.tf_coverage = all(
-			self.counters[ii+0]['name'] == 'True' and
-			self.counters[ii+1]['name'] == 'False'
-			for ii in range(0, len(self.counters), 2))
+		self.tf_coverage = all(cc['name'] == 'TF' for cc in self.counters)
 	def get(self, stats, entry):
-		if self.tf_coverage:
-			return {
-				'max': len(self.counters) // 2,
-				'total': calc_tf_coverage(stats['bitmap'], self, binned=True),
-				'local': calc_tf_coverage(entry['trace_bits'], self, binned=False)
-			}
-		return {}
+		return {'TODO'}
 
 
 def mutator_id_to_name(id, mutators):
