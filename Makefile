@@ -97,7 +97,7 @@ $(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_E2E_SRC)
 # Fuzz Server Pseudo Target
 ################################################################################
 
-run: $(FUZZ_SERVER)
+run: $(FUZZ_SERVER) $(E2ECOV)
 	rm -rf /tmp/fpga
 	mkdir /tmp/fpga
 	./$(FUZZ_SERVER)
