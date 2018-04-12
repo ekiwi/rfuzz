@@ -16,38 +16,88 @@ from format import to_bytes
 analysis_dir = os.path.dirname(os.path.abspath(__file__))
 build_dir = os.path.abspath(os.path.join(analysis_dir, '..', 'build'))
 
+def exclude(counter, signal):
+	""" decide which counters/signals to include in our end2end coverage metric """
+	return signal['port'] not in ['auto_cover_out']
 
-def bin(trace_bits):
-	assert len(trace_bits) % 2 == 0
-	return {
-		(ii * 2) +
-		(trace_bits[ii] + 2 * trace_bits[ii+1])
-		for ii in range(0, len(trace_bits), 2)
-	}
+class CoverageCounterInfo:
+	""" represents one T/F counter """
+	def __init__(self, counter, signal):
+		assert counter['name'] == 'TF'
+		assert counter['width'] == 8
+		self.port = signal['port']
+		self.index = counter['index']
+	def value(self): return CoverageCounterValue(self)
+
+class CoverageCounterValue:
+	def __init__(self, cc=set()):
+		self.covd = cc
+		assert all(ii in {1,2,3} for ii in self.covd)
+	def union(self, other):
+		assert isinstance(other, CoverageCounterValue)
+		return CoverageCounterValue(cc = self.covd | other.covd)
+	def difference(self, other):
+		assert isinstance(other, CoverageCounterValue)
+		return CoverageCounterValue(cc = self.covd - other.covd)
+	@property
+	def cov_percent(self):
+		# TODO: 0/1 or 0/0.5/1?
+		if 3 in self.covd: return 1.0
+		#if 2 in self.covd: return 0.5
+		#if 1 in self.covd: return 0.5
+		return 0.0
+
+class TestCoverage:
+	@classmethod
+	def empty(cls, counters):
+		vv = [CoverageCounterValue() for cc in counters]
+		return TestCoverage(vv)
+	@classmethod
+	def parse(cls, counters, values):
+		vv = [CoverageCounterValue({values[cc.index]}) for cc in counters]
+		return TestCoverage(vv)
+	def __init__(self, vv):
+		self.values = vv
+	def union(self, other):
+		assert isinstance(other, TestCoverage)
+		assert len(other.values) == len(self.values)
+		vv = [a.union(b) for a, b in zip(self.values, other.values)]
+		return TestCoverage(vv)
+	def difference(self, other):
+		assert isinstance(other, TestCoverage)
+		assert len(other.values) == len(self.values)
+		vv = [a.difference(b) for a, b in zip(self.values, other.values)]
+		return TestCoverage(vv)
+	def cov_percent(self):
+		return sum(vv.cov_percent for vv in self.values) / len(self.values)
+
 
 class CoverageCalcuator:
 	""" stateful wrapper around the coverage oracle """
 	def __init__(self, dut):
 		self.oracle = CoverageOracle.get(dut)
-		self.counters = self.oracle.counters
+		self.counters = [
+			CoverageCounterInfo(counter, self.signal(counter))
+			for counter in self.oracle.counters
+			if not exclude(counter, self.signal(counter))
+		]
 		# initialize coverage state
-		self.union = set() # index set
+		self.total = TestCoverage.empty(self.counters)
 	def get(self, inp):
 		trace_bits = self.oracle.query(inp)
-		assert len(trace_bits) == self.oracle.coverage_size
-		if len(trace_bits) > len(self.counters):
-			trace_bits = trace_bits[:len(self.counters)-len(trace_bits)]
-		assert len(trace_bits) == len(self.counters)
-		covered = bin(trace_bits)
-		new_coverage = covered - self.union
-		self.union = covered | self.union
+		covered = TestCoverage.parse(self.counters, trace_bits)
+		new_coverage = covered.difference(self.total)
+		self.total = self.total.union(covered)
 		return {
-			# possible values per (TF) counter are: 01, 10, 11
-			'max': len(self.counters) * 3,
-			'total': len(self.union),
-			'local': len(covered),
-			'new': len(new_coverage),
+			'total': self.total.cov_percent(),
+			'local': covered.cov_percent(),
+			'new': new_coverage.cov_percent(),
 		}
+	def signal(self, counter):
+		return self.oracle.config['coverage'][counter['signal']]
+	def exclude(self, counter):
+		sig = self.signal(counter)['name']
+		return sig['port'] not in ['auto_cover_out']
 
 class CoverageOracle:
 	_oracles = {}
@@ -62,9 +112,9 @@ class CoverageOracle:
 		assert os.path.isfile(cov_toml)
 		cov_bin  = os.path.join(build_dir, "{}_cov".format(dut))
 		assert os.path.isfile(cov_bin)
-		config = toml.loads(open(cov_toml).read())
+		self.config = toml.loads(open(cov_toml).read())
 		# make sure the coverage instrumentation is the way we want
-		self.counters = config['counter']
+		self.counters = self.config['counter']
 		assert all(counter['index'] == ii for ii, counter in enumerate(self.counters))
 		assert all(counter['width'] == 8 for counter in self.counters)
 		assert all(cc['name'] == 'TF' for cc in self.counters)
