@@ -38,7 +38,7 @@ COMMA := ,
 FIRRTL_TRANSFORMS := \
 	hardwareafl.firrtltransforms.NoDedupTransform \
 	hardwareafl.firrtltransforms.SplitMuxConditions \
-	hardwareafl.firrtltransforms.CoverageTransform \
+	hardwareafl.firrtltransforms.ProfilingTransform \
 	firrtl.passes.wiring.WiringTransform \
 	hardwareafl.firrtltransforms.AddMetaResetTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')

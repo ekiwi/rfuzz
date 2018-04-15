@@ -13,6 +13,7 @@ import scala.collection.mutable
 class VerilatorHarnessIO(input_byte_count: Int, coverage_byte_count: Int) extends Bundle {
 	val input_bytes = Input(Vec(input_byte_count, UInt(8.W)))
 	val coverage_bytes = Output(Vec(coverage_byte_count, UInt(8.W)))
+	val meta_reset = Input(Bool())
 	// FIXME: remove cloneType with new chisel
 	override def cloneType =
           new VerilatorHarnessIO(input_byte_count, coverage_byte_count).asInstanceOf[this.type]
@@ -39,6 +40,7 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 
 	val io = this.IO(new VerilatorHarnessIO(input_byte_count, coverage_byte_count))
 	val dut = Module(new DUT(dut_conf))
+	dut.io.meta_reset := this.io.meta_reset
 
 	// inputs
 	val input_bytes = Cat(io.input_bytes)
@@ -88,6 +90,7 @@ class E2ECoverageHarness(dut_conf: DUTConfig, counters: collection.mutable.Array
 
 	val io = this.IO(new VerilatorHarnessIO(input_byte_count, coverage_byte_count))
 	val dut = Module(new DUT(dut_conf))
+	dut.io.meta_reset := this.io.meta_reset
 
 	// inputs
 	val input_bytes = Cat(io.input_bytes)

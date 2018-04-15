@@ -20,7 +20,8 @@ object ListBundle {
 class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 	override def desiredName = conf.name
 	val io = this.IO(ListBundle( {
-		ListMap("clock" -> Input(Clock()), "reset" -> Input(Bool())) ++
+		ListMap("clock" -> Input(Clock()), "reset" -> Input(Bool()),
+		        "metaReset" -> Input(Bool())) ++
 		conf.input.map{ case inp => inp.name -> Input(UInt(inp.width.W)) } ++
 		conf.coveragePorts.map{ case port => port.name -> Output(UInt(port.width.W)) }
 		// TODO: is it ok to just ignore the output?
@@ -31,6 +32,7 @@ class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 
 class DUT(conf: DUTConfig) extends Module {
 	val io = this.IO(new Bundle {
+		val meta_reset = Input(Bool())
 		val inputs = Input(UInt(conf.inputBits.W))
 		val coverage = Output(Vec(conf.coverageBits, Bool()))
 	})
@@ -40,6 +42,7 @@ class DUT(conf: DUTConfig) extends Module {
 	// connect clock and reset
 	pins("clock") := this.clock
 	pins("reset") := this.reset.toBool
+	pins("metaReset") := this.io.meta_reset
 
 	// extract inputs
 	var left = conf.inputBits - 1

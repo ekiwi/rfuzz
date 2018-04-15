@@ -54,6 +54,10 @@ struct Simulation {
 };
 
 static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
+	// meta reset circuit for one cycle
+	sim.top->io_meta_reset = 1;
+	sim.step();
+	sim.top->io_meta_reset = 0;
 	// reset circuit for one cycles
 	sim.top->reset = 1;
 	sim.step();
