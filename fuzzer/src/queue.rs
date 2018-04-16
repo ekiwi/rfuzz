@@ -48,20 +48,23 @@ struct InternalEntry {
 	inputs: Vec<u8>,
 	lineage: Option<Lineage>,
 	discovered_after: Duration,
+	new_cov: Vec<usize>, // indices of newly covered counters
 	// variable
 	mutation_history: MutationHistory,
 }
 
 impl InternalEntry {
-	fn from_raw_inputs(id: EntryId, inputs: &[u8], ts: Duration) -> Self {
+	fn from_raw_inputs(id: EntryId, inputs: &[u8], ts: Duration,
+	                   new_cov: Vec<usize>) -> Self {
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage: None, discovered_after:  ts,
-		                mutation_history: MutationHistory::default() }
+		                mutation_history: MutationHistory::default(), new_cov }
 	}
-	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>, ts: Duration) -> Self {
+	fn from_mutation(id: EntryId, inputs: &[u8], lineage: Option<Lineage>,
+	                 ts: Duration, new_cov: Vec<usize>) -> Self {
 		let inputs = inputs.to_vec();
 		InternalEntry { id, inputs, lineage, discovered_after:  ts,
-		                mutation_history: MutationHistory::default() }
+		                mutation_history: MutationHistory::default(), new_cov }
 	}
 }
 
@@ -79,10 +82,12 @@ pub struct Queue {
 
 impl Queue {
 	/// create queue with one initial seed
-	pub fn create(working_dir: &str, seed: &[u8], start_ts: Duration, config: String, stats: stats::Snapshot, trace_bits: &[u8]) -> Self {
+	pub fn create(working_dir: &str, seed: &[u8], seed_cov: Vec<usize>,
+	              start_ts: Duration, config: String, stats: stats::Snapshot,
+	              trace_bits: &[u8]) -> Self {
 		let working_dir = Queue::check_working_dir(working_dir);
 		Queue::save_config(&working_dir, config);
-		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default());
+		let entry = InternalEntry::from_raw_inputs(EntryId(0), seed, Duration::default(), seed_cov);
 		Queue::save_to_working_dir(&working_dir, &entry, stats, trace_bits);
 		let last_fuzzed_entry = None;
 		Queue { entries: vec![entry], active_entry: None, working_dir, last_fuzzed_entry, start_ts }
@@ -116,13 +121,15 @@ impl Queue {
 		entry.mutation_history = mutation_history;
 		self.active_entry = None;
 	}
-	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo, ts: Duration, stats: stats::Snapshot, trace_bits: &[u8]) {
+	pub fn add_new_test(&mut self, inputs: &[u8], mutation: MutationInfo,
+	                    new_cov: Vec<usize>, ts: Duration,
+	                    stats: stats::Snapshot, trace_bits: &[u8]) {
 		assert!(self.active_entry.is_some());
 		let id = EntryId(self.entries.len() as u32);
 		let lineage = if let Some(parent) = self.active_entry {
 			Some(Lineage { parent, mutation }) } else { None };
 		let after = ts - self.start_ts;
-		let entry = InternalEntry::from_mutation(id, inputs, lineage, after);
+		let entry = InternalEntry::from_mutation(id, inputs, lineage, after, new_cov);
 		Queue::save_to_working_dir(&self.working_dir, &entry, stats, trace_bits);
 		self.entries.push(entry)
 	}
@@ -140,6 +147,7 @@ impl Queue {
 				         lineage.mutation.ii,
 				         mutations.get_name(lineage.mutation.mutator));
 			}
+			println!("Newly Covered: {:?}", &ee.new_cov);
 			// TODO: creation time
 		}
 	}

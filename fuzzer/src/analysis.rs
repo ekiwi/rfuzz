@@ -23,6 +23,7 @@ impl Range {
 pub struct AnalysisFeedback {
 	pub is_interesting: bool,
 	pub is_invalid: bool,
+	pub new_cov: Option<Vec<usize>>,
 }
 
 pub struct Analysis {
@@ -73,7 +74,8 @@ impl Analysis {
 			self.path_hashes.insert(new_hash);
 		}
 
-		AnalysisFeedback { is_interesting, is_invalid }
+		let new_cov = if cov.new.is_empty() { None } else { Some(cov.new) };
+		AnalysisFeedback { is_interesting, is_invalid, new_cov }
 	}
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }

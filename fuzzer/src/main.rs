@@ -142,7 +142,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	//println!("ranges:]\n{:?}", ranges);
 	let mut analysis = analysis::Analysis::new(test_size, ranges);
 	let seed_coverage = fuzz_one(server, &starting_seed);
-	analysis.run(start_cycles as u16, &seed_coverage);
+	let seed_analysis_res = analysis.run(start_cycles as u16, &seed_coverage);
 	// TODO: support multiple seeds
 
 	// mutation
@@ -164,6 +164,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mut q = queue::Queue::create(
 		&args.output_directory,
 		&starting_seed,
+		seed_analysis_res.new_cov.unwrap(),
 		start_ts,
 		config.to_json(),
 		statistics.take_snapshot(),
@@ -193,12 +194,13 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 				}
 				while let Some(feedback) = server.pop_coverage() {
 					let rr = analysis.run(feedback.cycles, &feedback.data);
-					if rr.is_invalid { println!("invalid input...."); }
 					if rr.is_interesting {
+						if rr.is_invalid { println!("invalid input...."); }
 						let (info, interesting_input) = server.get_info(feedback.id);
 						let now = get_time();
 						statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
-						q.add_new_test(interesting_input, info, now, statistics.take_snapshot(), &feedback.data);
+						q.add_new_test(interesting_input, info, rr.new_cov.unwrap(), now,
+						               statistics.take_snapshot(), &feedback.data);
 					}
 				}
 			}
@@ -214,12 +216,13 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	server.sync();
 	while let Some(feedback) = server.pop_coverage() {
 		let rr = analysis.run(feedback.cycles, &feedback.data);
-		if rr.is_invalid { println!("invalid input...."); }
 		if rr.is_interesting {
+			if rr.is_invalid { println!("invalid input...."); }
 			let (info, interesting_input) = server.get_info(feedback.id);
 			let now = get_time();
 			statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
-			q.add_new_test(interesting_input, info, now, statistics.take_snapshot(), &feedback.data);
+			q.add_new_test(interesting_input, info, rr.new_cov.unwrap(), now,
+			               statistics.take_snapshot(), &feedback.data);
 		}
 	}
 
