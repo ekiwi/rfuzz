@@ -30,6 +30,7 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 	//val cov_gen = new ChangeCounterGenerator(8)
 	//val cov_gen = new TrueCounterGenerator(8)
 	val cov_gen = new TrueOrFalseLatchGenerator
+	val fail_cov = new FailCheckGenerator(true)
 
 	val coverage_bits = cov_gen.bits(dut_conf.coverageSignals.size)
 	// the cycles count in front of every coverage item takes 16bit
@@ -51,7 +52,11 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 	val connect_coverage = true.B
 	val coverage = (dut_conf.coverageSignals zip dut.io.coverage).flatMap {
 		case (cov, sig) => {
-			cov_gen.cover(connect_coverage, sig)
+			if(cov.port == "assert_out") {
+				fail_cov.cover(connect_coverage, sig)
+			} else {
+				cov_gen.cover(connect_coverage, sig)
+			}
 		}
 	}
 	require(coverage.forall(_.getWidth == 8))
@@ -63,8 +68,13 @@ class VerilatorHarness(dut_conf: DUTConfig, counters: collection.mutable.ArrayBu
 
 	// coverage counter metadata
 	val counter_info = dut_conf.coverageSignals.zipWithIndex.flatMap {
-		case (_, ii) => {
+		case (cov, ii) => {
 			cov_gen.meta(ii)
+			if(cov.port == "assert_out") {
+				fail_cov.meta(ii)
+			} else {
+				cov_gen.meta(ii)
+			}
 		}
 	}
 	require(counter_info.forall(_.width == 8))

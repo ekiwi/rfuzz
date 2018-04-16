@@ -115,6 +115,19 @@ class TrueOrFalseLatchGenerator {
 	}
 }
 
+class FailCheckGenerator(fail_value: Boolean) {
+	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {
+		val is_fail = cover_point === fail_value.B
+		val count = Module(new SaturatingCounter(1))
+		count.io.enable := Mux(connect, is_fail, false.B)
+		Seq(Cat(0.U(7.W), count.io.value))
+	}
+	def bits(cover_points: Int) : Int = cover_points * 8
+	def meta(signal_index: Int) : Seq[Config.Counter] = {
+		Seq(Config.Counter("Fail", 8, 1, false, signal_index, signal_index, true))
+	}
+}
+
 // the legacy version treats the true and false counts as independent counters
 class LegacyTrueOrFalseLatchGenerator {
 	def cover(connect: Bool, cover_point: Bool) : Seq[UInt] = {

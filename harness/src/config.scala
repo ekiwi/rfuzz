@@ -23,7 +23,7 @@ object Config {
 	case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)
 	case class Input(name: String, width: Int)
 	case class Port(name: String, width: Int)
-	case class Counter(name: String, width: Int, max: Int, scale: Boolean, index: Int, signal: Int)
+	case class Counter(name: String, width: Int, max: Int, scale: Boolean, index: Int, signal: Int, fail: Boolean = false)
 	case class Test(general: General, coverage: List[Coverage], input: List[Input], port: List[Port])
 
 	implicit val booleanCodec: toml.Codec[Boolean] = toml.Codec[Boolean]( {
@@ -81,6 +81,7 @@ object Config {
 			out.println(s"""scale = ${count.scale}""")
 			out.println(s"""index = ${count.index}""")
 			out.println(s"""signal = ${count.signal}""")
+			out.println(s"""fail = ${count.fail}""")
 			out.println()
 		}
 	}
