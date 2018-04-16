@@ -41,23 +41,23 @@ impl Config {
 
 	pub fn gen_ranges(&self) -> Vec<analysis::Range> {
 		assert!(self.data.counter.iter().all(|c| c.width == 8));
-		let do_scale_first = self.data.counter[0].scale;
+		let first = CounterRangeProps::read(&self.data.counter[0]);
 
 		let changes = self.data.counter.iter()
-			.scan(do_scale_first, |s, c| {
-				let change = *s != c.scale;
-				*s = c.scale;
-				Some((change, c.index))})
+			.scan(first, |p, c| {
+				let this = CounterRangeProps::read(&c);
+				let change = *p != this;
+				*p = this;
+				Some((change, c.index, this))})
 			.filter(|x| x.0)
-			.map(|x| x.1 as usize);
+			.map(|x| (x.1 as usize, x.2));
 
 		let mut ranges = Vec::new();
-		let mut range = analysis::Range{start: 0, stop: 0, do_scale: do_scale_first};
-		for ii in changes {
+		let mut range = first.range(0);
+		for (ii, prop) in changes {
 			range.stop = ii;
 			ranges.push(range.clone());
-			range.start = ii;
-			range.do_scale = !range.do_scale;
+			range = prop.range(ii);
 		}
 		range.stop = self.size.coverage;
 		ranges.push(range.clone());
@@ -197,6 +197,23 @@ impl Config {
 	}
 }
 
+#[derive(PartialEq, Copy, Clone)]
+struct CounterRangeProps {
+	scale: bool,
+	fail: bool,
+}
+impl CounterRangeProps {
+	fn read(counter: &Counter) -> Self {
+		CounterRangeProps { scale: counter.scale, fail: counter.fail }
+	}
+	fn range(&self, ii: usize) -> analysis::Range {
+		analysis::Range { start: ii, stop: ii,
+			do_scale: self.scale,
+			is_fail: self.fail,
+		}
+	}
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct General {
 	filename: String,
@@ -226,7 +243,8 @@ struct Counter {
 	max: i32,
 	scale: bool,
 	index : i32,
-	signal: i32
+	signal: i32,
+	fail: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

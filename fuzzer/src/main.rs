@@ -138,7 +138,9 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let starting_seed = vec![0u8; test_size.input * start_cycles];
 
 	// analysis
-	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
+	let ranges = config.gen_ranges();
+	//println!("ranges:]\n{:?}", ranges);
+	let mut analysis = analysis::Analysis::new(test_size, ranges);
 	let seed_coverage = fuzz_one(server, &starting_seed);
 	analysis.run(start_cycles as u16, &seed_coverage);
 	// TODO: support multiple seeds

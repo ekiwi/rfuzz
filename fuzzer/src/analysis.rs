@@ -12,6 +12,8 @@ pub struct Range {
 	pub stop : usize,
 	/// should the coverage value be scaled by the cycle count?
 	pub do_scale : bool,
+	/// does a value other than zero indicate a failing/invalid input?
+	pub is_fail: bool,
 }
 
 impl Range {
