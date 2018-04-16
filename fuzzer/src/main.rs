@@ -135,7 +135,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
           test_size: run::TestSize, server: &mut FuzzServer) {
 	// starting seed
 	let start_cycles = 5;
-	let starting_seed = vec![0u8; (test_size.input * start_cycles)];
+	let starting_seed = vec![0u8; test_size.input * start_cycles];
 
 	// analysis
 	let mut analysis = analysis::Analysis::new(test_size, config.gen_ranges());
