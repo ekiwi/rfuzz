@@ -20,6 +20,11 @@ impl Range {
 	fn len(&self) -> usize { self.stop - self.start }
 }
 
+pub struct AnalysisFeedback {
+	pub is_interesting: bool,
+	pub is_invalid: bool,
+}
+
 pub struct Analysis {
 	path_hashes : HashSet<u64>,
 	bitmap: Vec<u8>,
@@ -49,21 +54,18 @@ impl Analysis {
 	}
 
 	#[inline(always)]
-	pub fn run(&mut self, cycles: u16, trace_bits: &[u8]) -> bool {
+	pub fn run(&mut self, cycles: u16, trace_bits: &[u8]) -> AnalysisFeedback {
 		let cc = cycles as u8;
 		// check coverage
-		let mut new_cov = NewCoverage::None;
+		let mut cov = Coverage::default();
 		for rr in self.ranges.iter() {
-			new_cov = new_cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
+			cov = cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
 		}
 
 		// decide whether we found something interesting
-		let is_interesting = match new_cov {
-			NewCoverage::Branch => { println!("New branch covered!"); true },
-			NewCoverage::BranchCount => { println!("New branch count discovered!"); true},
-			_ => false
-		};
-		self.new_inputs += if new_cov != NewCoverage::None {1} else {0};
+		let is_interesting = cov.is_interesting();
+		let is_invalid = cov.is_fail();
+		self.new_inputs += if is_interesting {1} else {0};
 
 		// check path
 		let new_hash = hash_xx(trace_bits);
@@ -71,7 +73,7 @@ impl Analysis {
 			self.path_hashes.insert(new_hash);
 		}
 
-		is_interesting
+		AnalysisFeedback { is_interesting, is_invalid }
 	}
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
@@ -113,51 +115,71 @@ fn scale(cycles: u8, count: u8) -> u8 {
 	}
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum NewCoverage { None, BranchCount, Branch }
-
-impl NewCoverage {
-	fn combine(self, other: Self) -> Self {
-		match self {
-			NewCoverage::None => other,
-			NewCoverage::Branch => self,
-			NewCoverage::BranchCount => match other {
-				NewCoverage::Branch => other,
-				_ => self
-			}
-		}
+struct Coverage {
+	new: Vec<usize>,	// indices of newly covered counters
+	fail: bool,			// true if at least one of the fail counters is not 0
+}
+impl Coverage {
+	fn is_interesting(&self) -> bool { self.new.len() > 0 }
+	fn is_fail(&self) -> bool { self.fail }
+	fn combine(self, mut other: Self) -> Self {
+		let fail = self.fail || other.fail;
+		let mut new = self.new;
+		new.append(&mut other.new);
+		Coverage { new, fail }
+	}
+}
+impl Default for Coverage {
+	fn default() -> Self {
+		Coverage { new: Vec::new(), fail: false }
 	}
 }
 
 #[inline(always)]
-fn analyze_range(range: &Range, cycles: u8, bitmap: &mut[u8], trace_bits: &[u8]) -> NewCoverage {
+fn analyze_range(range: &Range, cycles: u8, bitmap: &mut[u8], trace_bits: &[u8]) -> Coverage {
 	let bmp = &mut bitmap[range.start..range.stop];
 	let cov = &trace_bits[range.start..range.stop];
 
-	if range.do_scale {
-		analyze_coverage(bmp, cov, |x| scale(cycles, x))
+	if range.is_fail {
+		analyze_fail(range.start, bmp, cov)
+	} else if range.do_scale {
+		analyze_coverage(range.start, bmp, cov, |x| scale(cycles, x))
 	} else {
-		analyze_coverage(bmp, cov, |x| bin(x))
+		analyze_coverage(range.start, bmp, cov, |x| bin(x))
 	}
 }
 
 #[inline(always)]
-fn analyze_coverage<B>(bitmap: &mut [u8], trace_bits: &[u8], bin: B)
-	-> NewCoverage
+fn analyze_fail(offset: usize, bitmap: &mut [u8], trace_bits: &[u8]) -> Coverage {
+	assert_eq!(bitmap.len(), trace_bits.len());
+	let len = cmp::min(bitmap.len(), trace_bits.len());
+	let mut cov = Coverage::default();
+	for i in 0..len {
+		let new = trace_bits[i];
+		cov.fail = cov.fail || (new != 0);
+		if new != 0 && bitmap[i] != 0 {
+			bitmap[i] = 0;
+			cov.new.push(offset + i);
+		}
+	}
+	cov
+}
+
+
+#[inline(always)]
+fn analyze_coverage<B>(offset: usize, bitmap: &mut [u8], trace_bits: &[u8], bin: B)
+	-> Coverage
 	where B: Fn(u8) -> u8 {
 	assert_eq!(bitmap.len(), trace_bits.len());
 	let len = cmp::min(bitmap.len(), trace_bits.len());
-	let mut new_cov = NewCoverage::None;
+	let mut cov = Coverage::default();
 	for i in 0..len {
 		let old = bitmap[i];
 		let new = bin(trace_bits[i]);
 		if (new & old) != 0 {
-			if new_cov != NewCoverage::Branch {
-				new_cov = if old == 0xff { NewCoverage::Branch }
-				else { NewCoverage::BranchCount };
-			}
+			cov.new.push(offset + i);
 			bitmap[i] &= !new; // delete new bits from the bitmap
 		}
 	}
-	new_cov
+	cov
 }

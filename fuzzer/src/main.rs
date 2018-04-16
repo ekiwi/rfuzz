@@ -192,8 +192,9 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 					Run::Yield(ii) => { start = ii; }
 				}
 				while let Some(feedback) = server.pop_coverage() {
-					let is_interesting = analysis.run(feedback.cycles, &feedback.data);
-					if is_interesting {
+					let rr = analysis.run(feedback.cycles, &feedback.data);
+					if rr.is_invalid { println!("invalid input...."); }
+					if rr.is_interesting {
 						let (info, interesting_input) = server.get_info(feedback.id);
 						let now = get_time();
 						statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
@@ -212,8 +213,9 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 
 	server.sync();
 	while let Some(feedback) = server.pop_coverage() {
-		let is_interesting = analysis.run(feedback.cycles, &feedback.data);
-		if is_interesting {
+		let rr = analysis.run(feedback.cycles, &feedback.data);
+		if rr.is_invalid { println!("invalid input...."); }
+		if rr.is_interesting {
 			let (info, interesting_input) = server.get_info(feedback.id);
 			let now = get_time();
 			statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
