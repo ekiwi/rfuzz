@@ -2,8 +2,9 @@
 FIR := ICacheCover.fir
 DUT := ICache
 
-BUILD := build
-INPUT := benchmarks/$(FIR)
+ROOT := $(shell pwd)
+BUILD := $(ROOT)/build
+INPUT := $(ROOT)/benchmarks/$(FIR)
 INSTRUMENTED_V := $(BUILD)/$(DUT).v
 INSTRUMENTED_FIR := $(BUILD)/$(DUT).lo.fir
 INSTRUMENTATION_TOML := $(BUILD)/$(DUT)_InstrumentationInfo.toml
@@ -13,6 +14,9 @@ VERILATOR_HARNESS := $(BUILD)/$(DUT)_VHarness.v
 FUZZ_SERVER := $(BUILD)/$(DUT)_server
 E2ECOV_HARNESS := $(BUILD)/$(DUT)_E2EHarness.v
 E2ECOV := $(BUILD)/$(DUT)_cov
+
+IVY := $(ROOT)/.ivy2
+SBT := sbt -ivy $(IVY)
 
 
 
@@ -42,11 +46,21 @@ FIRRTL_TRANSFORMS := \
 	firrtl.passes.wiring.WiringTransform \
 	hardwareafl.firrtltransforms.AddMetaResetTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
+CHISEL_STAMP := $(ROOT)/chisel.stamp
+FIRRTL_STAMP := $(ROOT)/firrtl.stamp
+
+lookup_scala_srcs = $(shell find $(1)/ -iname "*.scala" 2> /dev/null)
+$(FIRRTL_STAMP): $(call lookup_scala_srcs,firrtl/)
+	cd firrtl ;\
+  $(SBT) publishLocal && touch $@
+$(CHISEL_STAMP): $(FIRRTL_STAMP) $(call lookup_scala_srcs,chisel3/)
+	cd chisel3 ;\
+  $(SBT) publishLocal && touch $@
 
 
-$(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
+$(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES) $(CHISEL_STAMP)
 	cd instrumentation ;\
-	sbt "runMain hardwareafl.firrtltransforms.CustomTop -i ../$< -o ../$(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
+	$(SBT) "runMain hardwareafl.firrtltransforms.CustomTop -i $< -o $(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
 	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
 	mv instrumentation/$(DUT).lo.fir $(INSTRUMENTED_FIR)
 
@@ -60,7 +74,7 @@ HARNESS_TEST := $(shell find harness/test -name '*.scala')
 
 $(VERILATOR_HARNESS) $(TOML) $(E2ECOV_HARNESS) $(E2ECOV_TOML): $(INSTRUMENTATION_TOML) $(HARNESS_SRC)
 	cd harness ;\
-	sbt "run ../$(INSTRUMENTATION_TOML) ../$(TOML) ../$(E2ECOV_TOML)"
+	sbt "run $(INSTRUMENTATION_TOML) $(TOML) $(E2ECOV_TOML)"
 	mv harness/VerilatorHarness.v $(VERILATOR_HARNESS)
 	mv harness/E2ECoverageHarness.v $(E2ECOV_HARNESS)
 

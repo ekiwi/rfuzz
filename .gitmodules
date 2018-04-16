@@ -13,3 +13,6 @@
 [submodule "midas/platforms/zynq"]
 	path = midas/platforms/zynq
 	url = git@github.com:ucb-bar/midas-zynq.git
+[submodule "chisel3"]
+	path = chisel3
+	url = git@github.com:freechipsproject/chisel3.git
