@@ -40,10 +40,12 @@ if __name__ == '__main__':
 
 		make_mutation_graph("{}_mutations.png".format(name), inputs)
 
-		disco_times = [ii.discovered_after for ii in inputs]
-		cov = [ii.e2e_cov['total'] for ii in inputs]
+		disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
+		cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
 		coverage_data.append((disco_times, cov, name))
 		#print(inputs[-1].e2e_cov['not_covered'])
+
+	print(coverage_data)
 
 	max_time = max(cc[0][-1] for cc in coverage_data)
 	for disco_times, cov, name in coverage_data:

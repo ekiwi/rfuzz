@@ -82,16 +82,20 @@ class CoverageCalcuator:
 			for counter in self.oracle.counters
 			if not exclude(counter, self.signal(counter))
 		]
+		self.fail_counters = [cc['index'] for cc in self.oracle.counters
+		                      if cc['name'] == 'Fail']
 		#print(self.oracle.counters)
 		#print("\n".join(cc.name for cc in self.counters))
 		# initialize coverage state
 		self.total = TestCoverage.empty(self.counters)
 	def get(self, inp):
 		trace_bits = self.oracle.query(inp)
+		invalid = not all(trace_bits[ii] == 0 for ii in self.fail_counters)
 		covered = TestCoverage.parse(self.counters, trace_bits)
 		#print([vv.cov_percent for vv in covered.values])
 		new_coverage = covered.difference(self.total)
-		self.total = self.total.union(covered)
+		if not invalid:
+			self.total = self.total.union(covered)
 		return {
 			'total': self.total.cov_percent(),
 			'local': covered.cov_percent(),
@@ -100,6 +104,7 @@ class CoverageCalcuator:
 			'not_covered': [cc.name
 				for vv, cc in zip(self.total.values, self.counters)
 				if vv.cov_percent == 0.0],
+			'invalid': invalid,
 		}
 	def signal(self, counter):
 		return self.oracle.config['coverage'][counter['signal']]
@@ -125,7 +130,7 @@ class CoverageOracle:
 		self.counters = self.config['counter']
 		assert all(counter['index'] == ii for ii, counter in enumerate(self.counters))
 		assert all(counter['width'] == 8 for counter in self.counters)
-		assert all(cc['name'] == 'TF' for cc in self.counters)
+		assert all(cc['name'] in ['TF', 'Fail'] for cc in self.counters)
 		# calculate coverage size
 		bits = sum(cc['width'] for cc in self.counters)
 		self.coverage_size = to_bytes(bits + 2 * 8) - 2
