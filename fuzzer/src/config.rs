@@ -179,7 +179,7 @@ impl Config {
 		assert_eq!(bitmap.len(), self.size.coverage);
 
 		let mut table = Table::new();
-		table.add_row(row!["count", "bits", "name", "type", "signal", "expression", "source location"]);
+		table.add_row(row!["count", "bits", "name", "ii", "type", "signal", "expression", "source location"]);
 
 		for counter in self.data.counter.iter() {
 			let covd = bitmap[counter.index as usize];
@@ -191,7 +191,8 @@ impl Config {
 			let bits = format!("{:08b}", (!covd) & mask);
 
 			let src = format!("{}:{}", signal.filename, signal.line);
-			table.add_row(row![num, bits, counter.name, signal.port, signal.name, signal.human, src]);
+			let ii = format!("{}", counter.index);
+			table.add_row(row![num, bits, counter.name, ii, signal.port, signal.name, signal.human, src]);
 		}
 		table.printstd();
 	}
