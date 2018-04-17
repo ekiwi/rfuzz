@@ -91,7 +91,7 @@ by hand to make all registers have resets (including `x` and `y`).
 ### 1 Stage
 
 from: https://github.com/ekiwi/riscv-sodor @
-[3da97a0c6e8ec10d508c8034334ffa46eb76f727](https://github.com/ekiwi/riscv-sodor/commit/3da97a0c6e8ec10d508c8034334ffa46eb76f727)
+[3e1eba34f7331b7a385a44e8312ed2c47b0b1a43](https://github.com/ekiwi/riscv-sodor/commit/3e1eba34f7331b7a385a44e8312ed2c47b0b1a43)
 
 Generated like this:
 
