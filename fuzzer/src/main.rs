@@ -143,6 +143,12 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mut analysis = analysis::Analysis::new(test_size, ranges);
 	let seed_coverage = fuzz_one(server, &starting_seed);
 	let seed_analysis_res = analysis.run(start_cycles as u16, &seed_coverage);
+	if seed_analysis_res.is_invalid {
+		println!("❌ Invalid seed!");
+	}
+	if !seed_analysis_res.is_interesting {
+		println!("⚠️ Uninteresting seed! Might be 🐟!");
+	}
 	// TODO: support multiple seeds
 
 	// mutation
