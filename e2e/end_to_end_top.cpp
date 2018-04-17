@@ -90,6 +90,11 @@ int main(int argc, char** argv) {
 	sim.tfp->open ("dump.vcd");
 #endif
 
+	sim.top->reset = 0;
+	// meta reset circuit for one cycle
+	sim.top->io_meta_reset = 1;
+	sim.step();
+	sim.top->io_meta_reset = 0;
 	// reset circuit for one cycles
 	sim.top->reset = 1;
 	sim.step();
