@@ -96,7 +96,7 @@ VERILATOR_BUILD = $(BUILD)/v$(DUT)
 $(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
 	mkdir -p $(VERILATOR_BUILD)
 	cd $(VERILATOR_BUILD) && meson ../../verilator --buildtype=release
-	cd $(VERILATOR_BUILD) && meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)'
+	cd $(VERILATOR_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
 	cd $(VERILATOR_BUILD) && ninja
 	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
 
@@ -110,7 +110,7 @@ VERILATOR_E2E_BUILD = $(BUILD)/v$(DUT).e2e
 $(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_E2E_SRC)
 	mkdir -p $(VERILATOR_E2E_BUILD)
 	cd $(VERILATOR_E2E_BUILD) && meson ../../e2e --buildtype=release
-	cd $(VERILATOR_E2E_BUILD) && meson configure -Dtrace=false -Dbuild_dir='../$(BUILD)' -Ddut='$(DUT)'
+	cd $(VERILATOR_E2E_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
 	cd $(VERILATOR_E2E_BUILD) && ninja
 	mv $(VERILATOR_E2E_BUILD)/cov $(E2ECOV)
 
@@ -122,6 +122,6 @@ $(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_E2E_SRC)
 run: $(FUZZ_SERVER) $(E2ECOV)
 	rm -rf /tmp/fpga
 	mkdir /tmp/fpga
-	./$(FUZZ_SERVER)
+	$(FUZZ_SERVER)
 
 .PHONY: instrumentation run
