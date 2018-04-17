@@ -20,6 +20,10 @@ object ProfilingTransform {
   )
 }
 
+case class DoNotProfileModule(target: ModuleName) extends SingleTargetAnnotation[ModuleName] {
+  def duplicate(n: ModuleName) = this.copy(target = n)
+}
+
 /** Uses Firrtl's Wiring Transform to wire profiling signals in rocket-chip to the top
   *
   * Cover points are expected to be of the form: printf(..., "COVER:..." signal)
@@ -178,12 +182,15 @@ class ProfilingTransform extends Transform {
 
   def execute(state: CircuitState): CircuitState = {
 
+    val dontProfile = state.annotations
+                           .collect { case DoNotProfileModule(ModuleName(m, _)) => m }
+                           .toSet
     val top = state.circuit.modules.find(_.name == state.circuit.main).get
     val topNameS = Namespace(top) // used for pins naming
 
     val (modsx, profiledSignalMaps) = (state.circuit.modules.map {
-      case mod: Module => onModule(mod, top.name, topNameS)
-      case ext: ExtModule => (ext, Map.empty[ProfileConfig, Seq[SourceAnnotation]])
+      case mod: Module if !dontProfile(mod.name) => onModule(mod, top.name, topNameS)
+      case other => (other, Map.empty[ProfileConfig, Seq[SourceAnnotation]])
     }).unzip
     val profiledSignals =
       configs.map(
