@@ -31,24 +31,28 @@ pub struct Analysis {
 	bitmap: Vec<u8>,
 	new_inputs : usize,
 	ranges : Vec<Range>,
-
+	fail_ranges: Vec<Range>,
 }
 /// analyses the coverage assuming packed 1-bit coverage counters
 impl Analysis {
-	pub fn new(test_size: TestSize, ranges: Vec<Range>) -> Analysis {
-		Analysis::check_ranges(test_size.coverage, &ranges);
+	pub fn new(test_size: TestSize, all_ranges: Vec<Range>) -> Analysis {
+		Analysis::check_ranges(test_size.coverage, &all_ranges);
+		let ranges = all_ranges.iter().filter(|r| !r.is_fail).map(|r| r.clone()).collect();
+		let fail_ranges = all_ranges.iter().filter(|r| r.is_fail).map(|r| r.clone()).collect();
 		Analysis {
 			path_hashes: HashSet::new(),
 			bitmap: vec![0xff; test_size.coverage],
 			new_inputs: 0,
 			ranges: ranges,
+			fail_ranges: fail_ranges,
 		}
 	}
 
 	fn check_ranges(coverage_size: usize, ranges: &[Range]) {
 		let mut start = 0;
 		for rr in ranges {
-			assert_eq!(rr.start, start, "Ranges are not continuus!");
+			assert_eq!(rr.start, start, "Ranges are not continous!");
+			assert!(!(rr.is_fail && rr.do_scale), "fail ranges cannot be scaled (i.e., it makes no sense).");
 			start = rr.stop;
 		}
 		assert_eq!(start, coverage_size, "Ranges do not cover all of the coverage!");
@@ -59,12 +63,25 @@ impl Analysis {
 		let cc = cycles as u8;
 		// check coverage
 		let mut cov = Coverage::default();
+
+		// a) check assertions without modifying other parts of the coverage map
+		for rr in self.fail_ranges.iter() {
+			cov = cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
+		}
+		let is_invalid = cov.is_fail();
+
+		// TODO: structure this in a cleaner way, maybe switch to two different
+		//       coverage maps + maybe no actual coverage map for assertion failures
+		if is_invalid {
+			return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: None };
+		}
+
+		// b) check other kinds of coverage updating the map
 		for rr in self.ranges.iter() {
 			cov = cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
 		}
 
 		// decide whether we found something interesting
-		let is_invalid = cov.is_fail();
 		let is_interesting = cov.is_interesting() && !is_invalid;
 		self.new_inputs += if is_interesting {1} else {0};
 
