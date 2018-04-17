@@ -1,0 +1,10 @@
+[
+  {
+    "class":"hardwareafl.firrtltransforms.DoNotProfileModule",
+    "target":"Sodor3Stage.SparseAsyncReadMem"
+  },
+  {
+    "class":"hardwareafl.firrtltransforms.DoNotProfileModule",
+    "target":"Sodor3Stage.SparseSyncMem"
+  }
+]
