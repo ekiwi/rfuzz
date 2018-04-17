@@ -64,8 +64,8 @@ impl Analysis {
 		}
 
 		// decide whether we found something interesting
-		let is_interesting = cov.is_interesting();
 		let is_invalid = cov.is_fail();
+		let is_interesting = cov.is_interesting() && !is_invalid;
 		self.new_inputs += if is_interesting {1} else {0};
 
 		// check path
