@@ -170,7 +170,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	let mut q = queue::Queue::create(
 		&args.output_directory,
 		&starting_seed,
-		seed_analysis_res.new_cov.unwrap(),
+		seed_analysis_res.new_cov,
 		start_ts,
 		config.to_json(),
 		statistics.take_snapshot(),
@@ -205,7 +205,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 						let (info, interesting_input) = server.get_info(feedback.id);
 						let now = get_time();
 						statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
-						q.add_new_test(interesting_input, info, rr.new_cov.unwrap(), now,
+						q.add_new_test(interesting_input, info, rr.new_cov, now,
 						               statistics.take_snapshot(), &feedback.data);
 					}
 				}
@@ -227,7 +227,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 			let (info, interesting_input) = server.get_info(feedback.id);
 			let now = get_time();
 			statistics.update_new_discovery(info.mutator.id, now, analysis.get_bitmap());
-			q.add_new_test(interesting_input, info, rr.new_cov.unwrap(), now,
+			q.add_new_test(interesting_input, info, rr.new_cov, now,
 			               statistics.take_snapshot(), &feedback.data);
 		}
 	}

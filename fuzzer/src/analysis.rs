@@ -23,7 +23,7 @@ impl Range {
 pub struct AnalysisFeedback {
 	pub is_interesting: bool,
 	pub is_invalid: bool,
-	pub new_cov: Option<Vec<usize>>,
+	pub new_cov: Vec<usize>,
 }
 
 pub struct Analysis {
@@ -73,7 +73,7 @@ impl Analysis {
 		// TODO: structure this in a cleaner way, maybe switch to two different
 		//       coverage maps + maybe no actual coverage map for assertion failures
 		if is_invalid {
-			return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: None };
+			return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: Vec::new() };
 		}
 
 		// b) check other kinds of coverage updating the map
@@ -91,8 +91,7 @@ impl Analysis {
 			self.path_hashes.insert(new_hash);
 		}
 
-		let new_cov = if cov.new.is_empty() { None } else { Some(cov.new) };
-		AnalysisFeedback { is_interesting, is_invalid, new_cov }
+		AnalysisFeedback { is_interesting, is_invalid, new_cov: cov.new }
 	}
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
