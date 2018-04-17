@@ -5,6 +5,7 @@ DUT := ICache
 ROOT := $(shell pwd)
 BUILD := $(ROOT)/build
 INPUT := $(ROOT)/benchmarks/$(FIR)
+ANNO_FILE := $(ROOT)/benchmarks/$(DUT).anno.json
 INSTRUMENTED_V := $(BUILD)/$(DUT).v
 INSTRUMENTED_FIR := $(BUILD)/$(DUT).lo.fir
 INSTRUMENTATION_TOML := $(BUILD)/$(DUT)_InstrumentationInfo.toml
@@ -49,6 +50,12 @@ INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 CHISEL_STAMP := $(ROOT)/chisel.stamp
 FIRRTL_STAMP := $(ROOT)/firrtl.stamp
 
+ifeq ($(wildcard $(ANNO_FILE)),)
+  ANNO_CMD =
+else
+  ANNO_CMD = -faf $(ANNO_FILE)
+endif
+
 lookup_scala_srcs = $(shell find $(1)/ -iname "*.scala" 2> /dev/null)
 $(FIRRTL_STAMP): $(call lookup_scala_srcs,firrtl/)
 	cd firrtl ;\
@@ -60,7 +67,7 @@ $(CHISEL_STAMP): $(FIRRTL_STAMP) $(call lookup_scala_srcs,chisel3/)
 
 $(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES) $(CHISEL_STAMP)
 	cd instrumentation ;\
-	$(SBT) "runMain hardwareafl.firrtltransforms.CustomTop -i $< -o $(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS))"
+	$(SBT) "runMain hardwareafl.firrtltransforms.CustomTop -i $< -o $(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS)) $(ANNO_CMD)"
 	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
 	mv instrumentation/$(DUT).lo.fir $(INSTRUMENTED_FIR)
 
