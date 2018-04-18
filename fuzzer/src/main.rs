@@ -120,15 +120,15 @@ fn main() {
 	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
 
 	if args.test_mode {
-		test_mode(&mut server);
+		test_mode(&mut server, &config.top());
 	} else {
 		fuzzer(args, canceled, config, test_size, &mut server);
 	}
 }
 
-fn test_mode(server: &mut FuzzServer) {
+fn test_mode(server: &mut FuzzServer, top: &str) {
 	println!("⚠️ Test mode selected! ⚠️");
-	test::test_fuzz_server(server);
+	test::test_fuzz_server(server, top);
 }
 
 fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,

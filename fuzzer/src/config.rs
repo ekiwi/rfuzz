@@ -35,6 +35,8 @@ impl Config {
 		config
 	}
 
+	pub fn top(&self) -> String { self.data.general.top.clone() }
+
 	pub fn to_json(&self) -> String {
 		serde_json::to_string(&self.data).expect("failed to serialize data!")
 	}
