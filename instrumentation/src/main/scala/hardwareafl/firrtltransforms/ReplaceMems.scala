@@ -10,7 +10,8 @@ import firrtl.passes.MemPortUtils.{memPortField, memType}
 import scala.collection.mutable
 
 object ReplaceMemsTransform {
-  val SparseMemSize = 4
+  // TODO: increase for longer tests!
+  val SparseMemSize = 32
 
   def getMem(tpe: Type, depth: Int, nR: Int, nW: Int): Module = {
     import chisel3._
