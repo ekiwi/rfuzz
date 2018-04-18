@@ -45,6 +45,7 @@ FIRRTL_TRANSFORMS := \
 	hardwareafl.firrtltransforms.SplitMuxConditions \
 	hardwareafl.firrtltransforms.ProfilingTransform \
 	firrtl.passes.wiring.WiringTransform \
+	hardwareafl.firrtltransforms.ReplaceMemsTransform \
 	hardwareafl.firrtltransforms.AddMetaResetTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
 CHISEL_STAMP := $(ROOT)/chisel.stamp
