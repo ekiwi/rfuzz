@@ -53,7 +53,11 @@ struct Simulation {
 	uint64_t cycles() { return main_time / 2; }
 };
 
+const uint8_t ResetInput[InputSize] = { 0 };
+
 static inline void run_test(Simulation& sim, Fuzzer& fuzzer) {
+	// apply deterministic inputs during reset
+	apply_input(sim.top, ResetInput);
 	// meta reset circuit for one cycle
 	sim.top->io_meta_reset = 1;
 	sim.step();
