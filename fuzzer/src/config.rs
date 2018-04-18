@@ -165,13 +165,14 @@ impl Config {
 		assert_eq!(coverage.len(), self.size.coverage);
 
 		let mut table = Table::new();
-		table.add_row(row!["count", "name", "type", "signal", "expression", "source location"]);
+		table.add_row(row!["count", "name", "ii", "type", "signal", "expression", "source location"]);
 
 		for counter in self.data.counter.iter() {
 			let count = coverage[counter.index as usize];
 			let signal = &self.data.coverage[counter.signal as usize];
 			let src = format!("{}:{}", signal.filename, signal.line);
-			table.add_row(row![count, counter.name, signal.port, signal.name, signal.human, src]);
+			let ii = format!("{}", counter.index);
+			table.add_row(row![count, counter.name, ii, signal.port, signal.name, signal.human, src]);
 		}
 		table.printstd();
 	}
