@@ -138,11 +138,17 @@ public:
 
 };
 
-double sc_time_stamp () { throw std::logic_error("calling sc_time_stamp is not supported!"); }
+ActiveFuzzer fuzzer;
+
+double sc_time_stamp () {
+	std::cerr << "❌ seems like something went wrong! ❌" << std::endl;
+	std::cerr << "🐟🐟 test inputs: 🐟🐟" << std::endl;
+	fuzzer.print_active_test();
+	throw std::logic_error("calling sc_time_stamp is not supported!");
+}
 int main(int argc, char** argv) {
 	print_header();
 
-	ActiveFuzzer fuzzer;
 	fuzzer.init(CoverageSize, InputSize);
 
 	Verilated::commandArgs(argc, argv);
