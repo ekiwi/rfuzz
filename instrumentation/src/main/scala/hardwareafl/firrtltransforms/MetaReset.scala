@@ -56,7 +56,7 @@ class AddMetaResetTransform extends Transform {
     val modSet = state.circuit.modules.collect({ case m: Module => m }).toSet
     val modsLeafToRoot = (new InstanceGraph(state.circuit)).moduleOrder.reverse
     val (modsUpdate, _) =
-      state.circuit.modules.foldLeft((Map.empty[String, DefModule], Map.empty[String, Type])) {
+      modsLeafToRoot.foldLeft((Map.empty[String, DefModule], Map.empty[String, Type])) {
         case ((acc, types), m) => m match {
           case mod: Module =>
             val modx = onMod(types)(mod)
