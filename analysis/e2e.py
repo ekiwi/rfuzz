@@ -101,7 +101,7 @@ class CoverageCalcuator:
 			'local': covered.cov_percent(),
 			'new': new_coverage.cov_percent(),
 			'individual': [vv.cov_percent for vv in self.total.values],
-			'not_covered': [cc.name
+			'not_covered': [(cc.name, cc.index)
 				for vv, cc in zip(self.total.values, self.counters)
 				if vv.cov_percent == 0.0],
 			'invalid': invalid,

@@ -30,22 +30,22 @@ if __name__ == '__main__':
 		print("processing {} ...".format(name))
 		config, entries, dut = load_results(inp_dir)
 
-		#if os.path.basename(inp_dir).startswith("sodor"):
-		#	riscv.print_instructions(config, entries)
-
 		end2end = CoverageCalcuator(dut)
 		fuzzer_cov = CoverageFormat(config)
 		fmt = InputFormat(config)
 		inputs = [Input(ee, fmt, fuzzer_cov, end2end) for ee in entries]
+
+		#if "sodor" in os.path.basename(inp_dir):
+		#	riscv.print_instructions(inputs)
 
 		make_mutation_graph("{}_mutations.png".format(name), inputs)
 
 		disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
 		cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
 		coverage_data.append((disco_times, cov, name))
-		#print(inputs[-1].e2e_cov['not_covered'])
+		print(inputs[-1].e2e_cov['not_covered'])
 
-	print(coverage_data)
+	#print(coverage_data)
 
 	max_time = max(cc[0][-1] for cc in coverage_data)
 	for disco_times, cov, name in coverage_data:

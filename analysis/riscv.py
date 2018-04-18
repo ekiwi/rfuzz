@@ -14,10 +14,8 @@ def dasm(instruction):
 	rr = subprocess.run([dasm_bin], input=hx, check=True, stdout=subprocess.PIPE)
 	return rr.stdout.decode('ASCII').strip()
 
-def print_instructions(config, entries):
-	fmt = InputFormat(config)
-	for ee in entries:
-		inp = Input(ee, fmt)
+def print_instructions(inputs):
+	for inp in inputs:
 		print("-------------------------------------------")
 		print("- {} Entry:".format(inp.id))
 		# for ii, cc, bb, raw in zip(range(inp.cycles), inp.formated, inp.bytes, inp.inputs):
