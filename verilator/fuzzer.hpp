@@ -8,7 +8,10 @@
 #include <cstring>
 struct Fuzzer {
 	/// called before the simulation is initialized
-	virtual void init(size_t coverage_size) { this->coverage_size = coverage_size; }
+	virtual void init(size_t coverage_size, size_t input_size) {
+		this->coverage_size = coverage_size;
+		this->input_size = input_size;
+	}
 	/// called inbetween tests to check if there is more data availabel
 	virtual bool done() { return true; }
 	/// returns false on last input of a single test
@@ -17,6 +20,7 @@ struct Fuzzer {
 	virtual ~Fuzzer(){}
 protected:
 	size_t coverage_size = 0;
+	size_t input_size = 0;
 };
 
 #endif // FUZZER_HPP

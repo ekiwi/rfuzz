@@ -107,7 +107,7 @@ class StatusDisplay {
 	inline void print(const uint64_t cycles) {
 		const auto now = Clock::now();
 		const auto delta_t = now - begin;
-		const auto ms = Milliseconds(delta_t).count();
+		//const auto ms = Milliseconds(delta_t).count();
 		const auto sec = Seconds(delta_t).count();
 
 		if(sec < 1) return;
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 	print_header();
 
 	ActiveFuzzer fuzzer;
-	fuzzer.init(CoverageSize);
+	fuzzer.init(CoverageSize, InputSize);
 
 	Verilated::commandArgs(argc, argv);
 	Simulation sim;

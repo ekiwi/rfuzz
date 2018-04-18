@@ -114,6 +114,7 @@ void FPGAQueueFuzzer::release_buffer() {
 		// reset buffer state
 		test_in_id = -1;
 		test_in_ptr = nullptr;
+		active_test_ptr = nullptr;
 	}
 }
 void FPGAQueueFuzzer::parse_header() {
@@ -142,6 +143,7 @@ void FPGAQueueFuzzer::parse_header() {
 }
 
 void FPGAQueueFuzzer::start_test() {
+	active_test_ptr = test_in_ptr;
 	inputs_left = change_endianess(read_from_test<uint64_t>());
 	tests_left -= 1;
 	const auto cycles = static_cast<uint16_t>(inputs_left);
@@ -149,9 +151,10 @@ void FPGAQueueFuzzer::start_test() {
 	write_to_coverage(change_endianess(cycles));
 }
 
-void FPGAQueueFuzzer::init(size_t coverage_size) {
-	Fuzzer::init(coverage_size);
+void FPGAQueueFuzzer::init(size_t coverage_size, size_t input_size) {
+	Fuzzer::init(coverage_size, input_size);
 	assert((this->coverage_size + 2) % 8 == 0);
+	assert((this->input_size) % 8 == 0);
 	command_pipe = std::unique_ptr<NamedPipe>(new NamedPipe("0"));
 }
 bool FPGAQueueFuzzer::done() {
@@ -171,6 +174,7 @@ bool FPGAQueueFuzzer::done() {
 	}
 }
 bool FPGAQueueFuzzer::pop(uint8_t* input, size_t len) {
+	assert(len == this->input_size);
 	if(inputs_left > 0) {
 		read_from_test(input, len);
 		inputs_left -= 1;
@@ -184,6 +188,22 @@ void FPGAQueueFuzzer::push(const uint8_t* coverage, size_t len) {
 	assert(inputs_left == 0);
 	assert(len == this->coverage_size);
 	write_to_coverage(coverage, len);
+}
+
+void FPGAQueueFuzzer::print_active_test() {
+	assert(this->active_test_ptr != nullptr);
+	// parse and print inputs
+	const char* test_ptr = this->active_test_ptr;
+	const auto cycles = change_endianess(read_from_buf<uint64_t>(&test_ptr));
+	const auto test_size = cycles * this->input_size;
+	assert(test_size > 0);
+	auto bb = (const uint8_t*)test_ptr;
+
+	std::cout << "[" << (int)bb[0];
+	for(uint64_t ii = 1; ii < test_size; ii++) {
+		std::cout << ", " << (int)bb[ii];
+	}
+	std::cout << "]" << std::endl;
 }
 
 FPGAQueueFuzzer::~FPGAQueueFuzzer() {

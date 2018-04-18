@@ -88,6 +88,12 @@ static inline uint64_t change_endianess(uint64_t value) {
 	       ((value & 0x00000000000000ff) << 56);
 }
 
+template<typename T> static inline T read_from_buf(const char** buf) {
+	T value;
+	std::memcpy(&value, *buf, sizeof(T));
+	*buf += sizeof(T);
+	return value;
+}
 class FPGAQueueFuzzer : public Fuzzer {
 private:
 	std::unique_ptr<NamedPipe> command_pipe;
@@ -100,13 +106,11 @@ private:
 	std::unordered_map<int, char*> shms;
 	int test_in_id = -1;
 	const char* test_in_ptr = nullptr;
+	const char* active_test_ptr = nullptr;
 	int coverage_out_id = -1;
 	char* coverage_out_ptr = nullptr;
 	template<typename T> inline T read_from_test() {
-		T value;
-		std::memcpy(&value, test_in_ptr, sizeof(T));
-		test_in_ptr += sizeof(T);
-		return value;
+		return read_from_buf<T>(&test_in_ptr);
 	}
 	inline void read_from_test(uint8_t* out, size_t len) {
 		std::memcpy(out, test_in_ptr, len);
@@ -134,10 +138,11 @@ private:
 	void parse_header();
 	void start_test();
 public:
-	void init(size_t coverage_size) override;
+	void init(size_t coverage_size, size_t input_size) override;
 	bool done() override;
 	bool pop(uint8_t* input, size_t len) override;
 	void push(const uint8_t* coverage, size_t len) override;
+	void print_active_test();
 	~FPGAQueueFuzzer();
 };
 
