@@ -117,9 +117,11 @@ object CustomTop {
 class CustomLowFirrtlOpt extends LowFirrtlOptimization {
   override def transforms: Seq[Transform] = {
     // Lets do this programmatically
-    super.transforms.filterNot(t =>
-      t == passes.memlib.VerilogMemDelays ||
-      t == passes.PadWidths)
+    super.transforms.flatMap {
+      case passes.memlib.VerilogMemDelays => Some(new CustomVerilogMemDelays)
+      case passes.PadWidths => None
+      case other => Some(other)
+    }
   }
 }
 
