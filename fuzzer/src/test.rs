@@ -19,21 +19,23 @@ const SODOR3_TESTS: &'static [(&'static [u8], &'static [u8])] = &[
 	];
 use run::{ FuzzServer, Run };
 use mutation;
+use config;
 use super::fuzz_one;
 
-fn compare_coverage(errors: u64, inputs: &[u8], expected: &[u8], received: &[u8]) -> u64 {
+fn compare_coverage(config: &config::Config, errors: u64, inputs: &[u8], expected: &[u8], received: &[u8]) -> u64 {
 	let matches = expected == received;
 	if !matches {
 		println!("❌ got unexpected coverage for test inputs!");
 		println!("\tinputs: {:?}", inputs);
 		println!("\texpected: {:?}", expected);
 		println!("\treceived: {:?}", received);
+		config.print_test_coverage_diff("expected", expected, "received", received);
 		errors + 1
 	} else { errors }
 }
 
-pub fn test_fuzz_server(server: &mut FuzzServer, top: &str) {
-
+pub fn test_fuzz_server(server: &mut FuzzServer, config: &config::Config) {
+	let top = config.top();
 	let is_sodor3 = top == "Sodor3Stage";
 	let is_icache = top == "ICache";
 
@@ -47,7 +49,7 @@ pub fn test_fuzz_server(server: &mut FuzzServer, top: &str) {
 	println!("Fuzzing one input at a time and checking that the returned coverage matches...");
 	for &(inputs, coverage) in tests {
 		let cov = fuzz_one(server, inputs);
-		errors = compare_coverage(errors, inputs, coverage, &cov);
+		errors = compare_coverage(config, errors, inputs, coverage, &cov);
 	}
 
 	println!("Fuzzing all provided tests (sort of) at once...");
@@ -61,7 +63,7 @@ pub fn test_fuzz_server(server: &mut FuzzServer, top: &str) {
 	for &(inputs, coverage) in tests {
 		let feedback = server.pop_coverage().expect("should get coverage back!");
 		let cov = feedback.data.to_vec();
-		errors = compare_coverage(errors, inputs, coverage, &cov);
+		errors = compare_coverage(config, errors, inputs, coverage, &cov);
 	}
 
 	let max_tests = (tests.len() * 2) as u64;

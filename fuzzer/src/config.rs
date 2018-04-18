@@ -165,7 +165,7 @@ impl Config {
 		assert_eq!(coverage.len(), self.size.coverage);
 
 		let mut table = Table::new();
-		table.add_row(row!["count", "name", "ii", "type", "signal", "expression", "source location"]);
+		table.add_row(row!["count", "ii", "type", "signal", "expression", "source location"]);
 
 		for counter in self.data.counter.iter() {
 			let count = coverage[counter.index as usize];
@@ -173,6 +173,27 @@ impl Config {
 			let src = format!("{}:{}", signal.filename, signal.line);
 			let ii = format!("{}", counter.index);
 			table.add_row(row![count, counter.name, ii, signal.port, signal.name, signal.human, src]);
+		}
+		table.printstd();
+	}
+
+	// to be run on the raw coverage feedback from the fuzz server
+	pub fn print_test_coverage_diff(&self, a_name: &str, a: &[u8], b_name: &str, b: &[u8]) {
+		assert_eq!(a.len(), self.size.coverage);
+		assert_eq!(b.len(), self.size.coverage);
+
+		let mut table = Table::new();
+		table.add_row(row![a_name, b_name, "ii", "type", "signal", "expression", "source location"]);
+
+		for counter in self.data.counter.iter() {
+			let count_a = a[counter.index as usize];
+			let count_b = b[counter.index as usize];
+			if count_a != count_b {
+				let signal = &self.data.coverage[counter.signal as usize];
+				let src = format!("{}:{}", signal.filename, signal.line);
+				let ii = format!("{}", counter.index);
+				table.add_row(row![count_a, count_b, ii, signal.port, signal.name, signal.human, src]);
+			}
 		}
 		table.printstd();
 	}
