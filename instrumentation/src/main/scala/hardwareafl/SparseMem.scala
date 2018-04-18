@@ -60,8 +60,10 @@ class SparseMem[T <: Data](dataType: T, depth: Int, addrWidth: Int, nR: Int, nW:
     r.data := read(r.en, r.addr)
   }
 
+  // Increase addr width by 1 so we can detect overflow
   val nextAddr = RegInit(0.U((log2Ceil(depth) + 1).W))
-  assert(nextAddr < depth.U, "Too many different writes to this Mem!")
+  assert(nextAddr < depth.U,
+    "SparseMem ran out of space with size %d, increase size in ReplaceMemsTransform!", depth.U)
 
   val nextAddrs = io.w.foldLeft(nextAddr) { 
     case (na, w) => Mux(w.en, na +% 1.U, na)

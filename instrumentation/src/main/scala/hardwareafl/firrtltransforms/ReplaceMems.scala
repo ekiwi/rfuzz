@@ -25,7 +25,8 @@ object ReplaceMemsTransform {
       }
       val io = IO(new Bundle {})
       // No need for dontTouch because we retop to SparseMem right away
-      val submod = Module(new SparseMem(dataType, SparseMemSize, log2Ceil(depth), nR, nW))
+      val size = math.min(SparseMemSize, depth) // Use actual mem depth if it's smaller
+      val submod = Module(new SparseMem(dataType, size, log2Ceil(depth), nR, nW))
     })
     val circuit = {
       val parsed = Parser.parse(chirrtl.split("\n").toIterator, Parser.IgnoreInfo)
