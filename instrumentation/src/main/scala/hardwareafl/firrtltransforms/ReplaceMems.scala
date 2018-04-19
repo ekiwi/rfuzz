@@ -59,8 +59,9 @@ class ReplaceMemsTransform extends Transform {
 
   private def onStmt(ns: Namespace,
                      topNS: Namespace,
+                     resetRef: Option[WRef],
                      newMods: mutable.ArrayBuffer[Module])
-                    (stmt: Statement): Statement = stmt.map(onStmt(ns, topNS, newMods)) match {
+                    (stmt: Statement): Statement = stmt.map(onStmt(ns, topNS, resetRef, newMods)) match {
     case mem: DefMemory =>
       if (mem.writeLatency != 1 || mem.readLatency != 0 || mem.readwriters.nonEmpty) {
         throwInternalError(s"Error! Must run after CustomVerilogMemDelays!\n" +
@@ -101,7 +102,9 @@ class ReplaceMemsTransform extends Transform {
         val rhs = WSubField(WSubField(WRef(wire), memPort), "clk")
         Connect(NoInfo, lhs, rhs)
       }
-      val resetCon = Connect(NoInfo, WSubField(WRef(inst.name), "reset"), WRef("reset"))
+      // TODO This heavily relies on metaRest reseting everything to zero
+      val reset = resetRef.getOrElse(UIntLiteral(0, IntWidth(1)))
+      val resetCon = Connect(NoInfo, WSubField(WRef(inst.name), "reset"), reset)
       val allCons = rcons ++ wcons ++ Seq(clkCon, resetCon)
 
       Block(Seq(inst, wire) ++ allCons)
@@ -112,8 +115,10 @@ class ReplaceMemsTransform extends Transform {
   private def onModule(topNS: Namespace)(mod: Module): Seq[Module] = {
     val namespace = Namespace(mod)
 
+    val resetRef = mod.ports.collectFirst { case Port(_,"reset",_,_) => WRef("reset") }
+
     val newMods = mutable.ArrayBuffer.empty[Module]
-    val bodyx = onStmt(namespace, topNS, newMods)(mod.body)
+    val bodyx = onStmt(namespace, topNS, resetRef, newMods)(mod.body)
     Seq(mod.copy(body = bodyx)) ++ newMods
   }
   def execute(state: CircuitState): CircuitState = {
