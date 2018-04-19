@@ -91,7 +91,7 @@ by hand to make all registers have resets (including `x` and `y`).
 ### 1 Stage
 
 from: https://github.com/ekiwi/riscv-sodor @
-[3e1eba34f7331b7a385a44e8312ed2c47b0b1a43](https://github.com/ekiwi/riscv-sodor/commit/3e1eba34f7331b7a385a44e8312ed2c47b0b1a43)
+[adf2ed49c634b2b3c1bb391a67e544cf26334f96](https://github.com/ekiwi/riscv-sodor/commit/adf2ed49c634b2b3c1bb391a67e544cf26334f96)
 
 Generated like this:
 
@@ -120,7 +120,7 @@ Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 ### 3 Stage
 
 Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
-[3e1eba34f7331b7a385a44e8312ed2c47b0b1a43](https://github.com/ekiwi/riscv-sodor/commit/3e1eba34f7331b7a385a44e8312ed2c47b0b1a43)
+[adf2ed49c634b2b3c1bb391a67e544cf26334f96](https://github.com/ekiwi/riscv-sodor/commit/adf2ed49c634b2b3c1bb391a67e544cf26334f96)
 
 **Note**: You will also need to copy `vsrc/SyncMem.sv` from `riscv-sodor` into
 the build directory (`build/vSodor3Stage`).
