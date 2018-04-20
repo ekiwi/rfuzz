@@ -14,3 +14,6 @@ project/plugins/project/
 
 # sometimes we generate random toml files
 *.toml
+
+# tests
+test_run_dir/
