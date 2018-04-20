@@ -50,6 +50,7 @@ class SparseMemMaxWritesTester extends BasicTester {
     mod.io.w(0).write(1.U, 123.U)
   }
   .elsewhen(cycle === 1.U) {
+    // if we change this to write to address 2 or 3, this test should fail!
     mod.io.w(0).write(1.U, 123.U)
   }
   .elsewhen(cycle === 2.U) {
