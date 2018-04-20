@@ -177,3 +177,19 @@ To reproduce do the following:
 ```
 
 **Note**: for some reason the fuzz server segfaults when trying to fuzz `TLPWM`.
+
+## FFTSmall
+
+Generated from https://github.com/ucb-art/fft @
+[69a841b0e1617440d3afef1a15f95f5e713d5730](https://github.com/ucb-art/fft/commit/69a841b0e1617440d3afef1a15f95f5e713d5730)
+
+```
+> git submodule update --init dsp-framework
+> cd dsp-framework
+> git submodule update --init --recursive
+> cd ..
+> make firrtl
+```
+
+We then copied the generated `generated-src/craft.DspTop.DefaultStandaloneFixedPointFFTConfig.fir`
+to the benchmarks directory as `FFTSmall.fir` and renamed the toplevel from `DspTop` to `FFTSmall`.
