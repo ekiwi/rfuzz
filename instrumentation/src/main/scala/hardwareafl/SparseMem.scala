@@ -25,7 +25,11 @@ class MemReaderIO[T <: Data](private val dataType: T, private val addrWidth: Int
 class MemWriterIO[T <: Data](private val dataType: T, private val addrWidth: Int) extends Bundle {
   val addr = Input(UInt(addrWidth.W))
   val en = Input(Bool())
-  val mask = Input(UInt(SparseMem.getMaskWidth(dataType).W))
+  // We have to emulate firrtl's memlib mask type with is Vector for aggregate or Bool for GroundType
+  val mask: Data = dataType match {
+    case _: Vec[_] => Input(Vec(SparseMem.getMaskWidth(dataType), Bool()))
+    case _: Bits => Input(UInt(SparseMem.getMaskWidth(dataType).W))
+  }
   val data = Input(dataType)
   def write(addr: UInt, data: T): Unit = {
     en := true.B
@@ -33,7 +37,14 @@ class MemWriterIO[T <: Data](private val dataType: T, private val addrWidth: Int
     this.data := data
   }
 }
-class SparseMem[T <: Data](dataType: T, depth: Int, addrWidth: Int, nR: Int, nW: Int)(implicit maybe: MaybeVec[T]) extends Module {
+class SparseMem[T <: Data]
+    (dataType: T,
+     depth: Int,
+     addrWidth: Int,
+     nR: Int,
+     nW: Int,
+     syncRead: Boolean)
+    (implicit maybe: MaybeVec[T]) extends Module {
   val io = IO(new Bundle {
     val w = Vec(nW, new MemWriterIO(dataType, addrWidth))
     val r = Vec(nR, new MemReaderIO(dataType, addrWidth))
@@ -55,6 +66,8 @@ class SparseMem[T <: Data](dataType: T, depth: Int, addrWidth: Int, nR: Int, nW:
     val (valid, addrIdx) = addrMatch(addr)
     Mux(valid && en, mem(addrIdx), 0.U.asTypeOf(dataType))
   }
+
+  val readers = if (syncRead) RegNext(io.r) else io.r
 
   for (r <- io.r) {
     r.data := read(r.en, r.addr)
@@ -79,7 +92,7 @@ class SparseMem[T <: Data](dataType: T, depth: Int, addrWidth: Int, nR: Int, nW:
       maybe.evidence match {
         case Some(ev) =>
           implicit val evidence = ev
-          mem.write(addr, w.data, w.mask.toBools)
+          mem.write(addr, w.data, w.mask.asUInt.toBools)
         case None =>
           mem.write(addr, w.data)
       }

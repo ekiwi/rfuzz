@@ -3,8 +3,9 @@ package firrtltransforms
 
 import firrtl._
 import firrtl.ir._
-import firrtl.Utils.throwInternalError
+import firrtl.annotations._
 import firrtl.Mappers._
+import firrtl.Utils.throwInternalError
 import firrtl.passes.MemPortUtils.{memPortField, memType}
 
 import scala.collection.mutable
@@ -13,20 +14,22 @@ object ReplaceMemsTransform {
   // TODO: increase for longer tests!
   val SparseMemSize = 32
 
-  def getMem(tpe: Type, depth: Int, nR: Int, nW: Int): Module = {
+  def getMem(tpe: Type, depth: Int, nR: Int, nW: Int, syncRead: Boolean): Module = {
     import chisel3._
     import chisel3.util.log2Ceil
     val chirrtl = chisel3.Driver.emit(() => new Module {
       override def desiredName = "IgnoreMe"
-      val dataType = tpe match {
+      def typeToData(tpe: Type): Data = tpe match {
         case UIntType(IntWidth(w)) => UInt(w.toInt.W)
         case SIntType(IntWidth(w)) => SInt(w.toInt.W)
-        case other => throwInternalError(s"Unsupported type ${other.serialize}, bug Jack")
+        case VectorType(t, s) => Vec(s, typeToData(t))
+        case other => throwInternalError(s"Unsupported type ${other.serialize} for SparseMem")
       }
+      val dataType = typeToData(tpe)
       val io = IO(new Bundle {})
       // No need for dontTouch because we retop to SparseMem right away
       val size = math.min(SparseMemSize, depth) // Use actual mem depth if it's smaller
-      val submod = Module(new SparseMem(dataType, size, log2Ceil(depth), nR, nW))
+      val submod = Module(new SparseMem(dataType, size, log2Ceil(depth), nR, nW, syncRead))
     })
     val circuit = {
       val parsed = Parser.parse(chirrtl.split("\n").toIterator, Parser.IgnoreInfo)
@@ -63,12 +66,13 @@ class ReplaceMemsTransform extends Transform {
                      newMods: mutable.ArrayBuffer[Module])
                     (stmt: Statement): Statement = stmt.map(onStmt(ns, topNS, resetRef, newMods)) match {
     case mem: DefMemory =>
-      if (mem.writeLatency != 1 || mem.readLatency != 0 || mem.readwriters.nonEmpty) {
-        throwInternalError(s"Error! Must run after CustomVerilogMemDelays!\n" +
+      if (mem.writeLatency != 1 || (mem.readLatency != 0 && mem.readLatency != 1) || mem.readwriters.nonEmpty) {
+        throwInternalError(s"Error! Can only handle Chisel mems, try running after CustomVerilogMemDelays!\n" +
           s"Got ${mem.serialize}")
       }
       val memMod = {
-        val mod = getMem(mem.dataType, mem.depth, mem.readers.size, mem.writers.size)
+        val syncRead = mem.readLatency == 1
+        val mod = getMem(mem.dataType, mem.depth, mem.readers.size, mem.writers.size, syncRead)
         mod.copy(name = topNS.newName(mod.name))
       }
       newMods += memMod
@@ -123,11 +127,18 @@ class ReplaceMemsTransform extends Transform {
   }
   def execute(state: CircuitState): CircuitState = {
     val moduleNamespace = Namespace(state.circuit)
-    val modulesx = state.circuit.modules.flatMap {
-      case mod: Module => onModule(moduleNamespace)(mod)
-      case ext: ExtModule => Seq(ext)
-    }
-    val res = state.copy(circuit = state.circuit.copy(modules = modulesx))
+    val circuitName = CircuitName(state.circuit.main)
+    val (modulesx: Seq[DefModule], annos: Seq[DoNotProfileModule]) = state.circuit.modules.map {
+      case mod: Module =>
+        val mods = onModule(moduleNamespace)(mod)
+        val newMods = mods.filter(_.name != mod.name)
+        assert(newMods.size + 1 == mods.size) // Sanity check
+        (mods, newMods.map(m => DoNotProfileModule(ModuleName(m.name, circuitName))))
+      case ext: ExtModule => (Seq(ext), Seq.empty[DoNotProfileModule])
+    }.unzip match { case (ms, as) => (ms.flatten, as.flatten) }
+
+    val res = state.copy(circuit = state.circuit.copy(modules = modulesx),
+                         annotations = annos ++ state.annotations)
     (new ResolveAndCheck).execute(res)
   }
 }

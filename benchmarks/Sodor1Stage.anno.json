@@ -1,6 +1,0 @@
-[
-  {
-    "class":"hardwareafl.firrtltransforms.DoNotProfileModule",
-    "target":"Sodor1Stage.SparseAsyncReadMem"
-  }
-]
