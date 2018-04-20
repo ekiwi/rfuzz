@@ -6,7 +6,7 @@ import chisel3.util._
 import chisel3.testers._
 
 class SparseMemTester extends BasicTester {
-  val mod = Module(new SparseMem(UInt(32.W), 4, 8, 1, 1))
+  val mod = Module(new SparseMem(UInt(32.W), 4, 8, 1, 1, false))
   // Defaults
   mod.io <> DontCare
   mod.io.w(0).en := false.B
