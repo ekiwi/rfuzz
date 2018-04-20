@@ -94,7 +94,7 @@ VERILATOR_TB_SRC = $(shell ls verilator/*.hpp verilator/*.cpp verilator/*.h veri
 VERILATOR_BUILD = $(BUILD)/v$(DUT)
 
 
-$(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_TB_SRC)
+$(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED_V) $(VERILATOR_TB_SRC)
 	mkdir -p $(VERILATOR_BUILD)
 	cd $(VERILATOR_BUILD) && meson ../../verilator --buildtype=release
 	cd $(VERILATOR_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
@@ -108,7 +108,7 @@ VERILATOR_E2E_SRC = $(shell ls e2e/*.cpp e2e/meson*)
 VERILATOR_E2E_BUILD = $(BUILD)/v$(DUT).e2e
 
 
-$(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED) $(VERILATOR_E2E_SRC)
+$(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED_V) $(VERILATOR_E2E_SRC)
 	mkdir -p $(VERILATOR_E2E_BUILD)
 	cd $(VERILATOR_E2E_BUILD) && meson ../../e2e --buildtype=release
 	cd $(VERILATOR_E2E_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
