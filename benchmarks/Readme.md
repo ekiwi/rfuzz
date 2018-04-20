@@ -122,8 +122,10 @@ Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 [adf2ed49c634b2b3c1bb391a67e544cf26334f96](https://github.com/ekiwi/riscv-sodor/commit/adf2ed49c634b2b3c1bb391a67e544cf26334f96)
 
-**Note**: You will also need to copy `vsrc/SyncMem.sv` from `riscv-sodor` into
-the build directory (`build/vSodor3Stage`).
+### 5 Stage
+
+Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
+[04ac8241be231b935a2603456baf8745d392abb4](https://github.com/ekiwi/riscv-sodor/commit/04ac8241be231b935a2603456baf8745d392abb4)
 
 ## SiFive Peripherals
 
