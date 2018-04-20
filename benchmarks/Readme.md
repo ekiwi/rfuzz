@@ -125,7 +125,7 @@ Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
 ### 5 Stage
 
 Generated similarely to the Stage 1 from: https://github.com/ekiwi/riscv-sodor @
-[04ac8241be231b935a2603456baf8745d392abb4](https://github.com/ekiwi/riscv-sodor/commit/04ac8241be231b935a2603456baf8745d392abb4)
+[d52df6bb6f67caeff8049065c239418a4f811648](https://github.com/ekiwi/riscv-sodor/commit/d52df6bb6f67caeff8049065c239418a4f811648)
 
 ## SiFive Peripherals
 
