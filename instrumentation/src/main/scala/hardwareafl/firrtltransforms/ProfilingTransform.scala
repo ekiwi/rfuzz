@@ -122,7 +122,7 @@ class ProfilingTransform extends Transform {
         case Seq() => stmtx
         case Seq((config, (retStmt, signals))) =>
           val (nodes, annos) = (signals.map { expr =>
-            val node = DefNode(NoInfo, localNS.newTemp, expr)
+            val node = DefNode(get_info(stmtx), localNS.newTemp, expr)
             val named = ComponentName(node.name, ModuleName(mod.name, CircuitName(top)))
             val pinName = namespace.newName(profilePinPrefix)
             assert(localNS.tryName(pinName), s"Name collision with $pinName in ${mod.name}!")
