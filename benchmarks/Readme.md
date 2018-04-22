@@ -79,6 +79,17 @@ Line 133232 to Line 145035 in `example.TestHarness.DefaultExampleConfig.fir`).
 
 <img src="http://www.lowrisc.org/docs/untether-v0.2/figures/dcache.png" width="640">
 
+## RocketTile
+
+**RocketTile.fir**
+
+Generated from
+[this commit in project-template](https://github.com/ucb-bar/project-template/commit/555c1ed45b9834c6a963a4cac6dbd35ced94f190).
+We ran `make chirrtl` in the `verisim` directory and extracted
+`RocketTile_tile` from the resulting
+`example.TestHarness.DefaultExampleConfig.fir` using Jack's retop\_firrtl.py;
+we then renamed the resulting top `RocketTile`.
+
 ## gcd
 
 This is the small circuit that we originally used for testing the basic system.
