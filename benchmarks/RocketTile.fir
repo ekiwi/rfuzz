@@ -7941,11 +7941,13 @@ circuit RocketTile :
     when _T_3113 : @[RocketCore.scala 716:11]
       printf(clock, UInt<1>(1), "C%d: %d [%d] pc=[%x] W[r%d=%x][%d] R[r%d=%x] R[r%d=%x] inst=[%x] DASM(%x)\n", io.hartid, _T_3090, _T_3093, _T_3094, _T_3100, rf_wdata, rf_wen, _T_3101, _T_3105, _T_3106, _T_3110, csr.io.trace[0].insn, csr.io.trace[0].insn) @[RocketCore.scala 716:11]
       skip @[RocketCore.scala 716:11]
-    inst plusarg_reader of plusarg_reader_37 @[PlusArg.scala 24:11]
-    plusarg_reader.out is invalid
-    node _T_3115 = gt(plusarg_reader.out, UInt<1>("h00")) @[RocketCore.scala 728:25]
+    inst DummyPlusArgReader of DummyPlusArgReader_37 @[PlusArg.scala 29:11]
+    DummyPlusArgReader.io is invalid
+    DummyPlusArgReader.clock <= clock
+    DummyPlusArgReader.reset <= reset
+    node _T_3115 = gt(DummyPlusArgReader.io.out, UInt<1>("h00")) @[RocketCore.scala 728:25]
     when _T_3115 : @[RocketCore.scala 728:36]
-      node _T_3116 = lt(csr.io.time, plusarg_reader.out) @[RocketCore.scala 729:25]
+      node _T_3116 = lt(csr.io.time, DummyPlusArgReader.io.out) @[RocketCore.scala 729:25]
       node _T_3117 = bits(reset, 0, 0) @[RocketCore.scala 729:12]
       node _T_3118 = or(_T_3116, _T_3117) @[RocketCore.scala 729:12]
       node _T_3120 = eq(_T_3118, UInt<1>("h00")) @[RocketCore.scala 729:12]
@@ -10474,13 +10476,15 @@ circuit RocketTile :
     node _T_2476 = and(_T_2474, _T_2475) @[Monitor.scala 442:36]
     _T_2367 <= _T_2476 @[Monitor.scala 442:14]
     reg _T_2479 : UInt<32>, clock with : (reset => (reset, UInt<32>("h00"))) @[Monitor.scala 444:27]
-    inst plusarg_reader of plusarg_reader_34 @[PlusArg.scala 24:11]
-    plusarg_reader.out is invalid
+    inst DummyPlusArgReader of DummyPlusArgReader_34 @[PlusArg.scala 29:11]
+    DummyPlusArgReader.io is invalid
+    DummyPlusArgReader.clock <= clock
+    DummyPlusArgReader.reset <= reset
     node _T_2481 = neq(_T_2367, UInt<1>("h00")) @[Monitor.scala 446:23]
     node _T_2483 = eq(_T_2481, UInt<1>("h00")) @[Monitor.scala 446:13]
-    node _T_2485 = eq(plusarg_reader.out, UInt<1>("h00")) @[Monitor.scala 446:36]
+    node _T_2485 = eq(DummyPlusArgReader.io.out, UInt<1>("h00")) @[Monitor.scala 446:36]
     node _T_2486 = or(_T_2483, _T_2485) @[Monitor.scala 446:27]
-    node _T_2487 = lt(_T_2479, plusarg_reader.out) @[Monitor.scala 446:60]
+    node _T_2487 = lt(_T_2479, DummyPlusArgReader.io.out) @[Monitor.scala 446:60]
     node _T_2488 = or(_T_2486, _T_2487) @[Monitor.scala 446:48]
     node _T_2489 = bits(reset, 0, 0) @[Monitor.scala 446:12]
     node _T_2490 = or(_T_2488, _T_2489) @[Monitor.scala 446:12]
@@ -11882,13 +11886,15 @@ circuit RocketTile :
     node _T_1316 = and(_T_1314, _T_1315) @[Monitor.scala 442:36]
     _T_1207 <= _T_1316 @[Monitor.scala 442:14]
     reg _T_1319 : UInt<32>, clock with : (reset => (reset, UInt<32>("h00"))) @[Monitor.scala 444:27]
-    inst plusarg_reader of plusarg_reader_35 @[PlusArg.scala 24:11]
-    plusarg_reader.out is invalid
+    inst DummyPlusArgReader of DummyPlusArgReader_35 @[PlusArg.scala 29:11]
+    DummyPlusArgReader.io is invalid
+    DummyPlusArgReader.clock <= clock
+    DummyPlusArgReader.reset <= reset
     node _T_1321 = neq(_T_1207, UInt<1>("h00")) @[Monitor.scala 446:23]
     node _T_1323 = eq(_T_1321, UInt<1>("h00")) @[Monitor.scala 446:13]
-    node _T_1325 = eq(plusarg_reader.out, UInt<1>("h00")) @[Monitor.scala 446:36]
+    node _T_1325 = eq(DummyPlusArgReader.io.out, UInt<1>("h00")) @[Monitor.scala 446:36]
     node _T_1326 = or(_T_1323, _T_1325) @[Monitor.scala 446:27]
-    node _T_1327 = lt(_T_1319, plusarg_reader.out) @[Monitor.scala 446:60]
+    node _T_1327 = lt(_T_1319, DummyPlusArgReader.io.out) @[Monitor.scala 446:60]
     node _T_1328 = or(_T_1326, _T_1327) @[Monitor.scala 446:48]
     node _T_1329 = bits(reset, 0, 0) @[Monitor.scala 446:12]
     node _T_1330 = or(_T_1328, _T_1329) @[Monitor.scala 446:12]
@@ -26161,13 +26167,15 @@ circuit RocketTile :
     node _T_2530 = and(_T_2528, _T_2529) @[Monitor.scala 442:36]
     _T_2421 <= _T_2530 @[Monitor.scala 442:14]
     reg _T_2533 : UInt<32>, clock with : (reset => (reset, UInt<32>("h00"))) @[Monitor.scala 444:27]
-    inst plusarg_reader of plusarg_reader_36 @[PlusArg.scala 24:11]
-    plusarg_reader.out is invalid
+    inst DummyPlusArgReader of DummyPlusArgReader_36 @[PlusArg.scala 29:11]
+    DummyPlusArgReader.io is invalid
+    DummyPlusArgReader.clock <= clock
+    DummyPlusArgReader.reset <= reset
     node _T_2535 = neq(_T_2421, UInt<1>("h00")) @[Monitor.scala 446:23]
     node _T_2537 = eq(_T_2535, UInt<1>("h00")) @[Monitor.scala 446:13]
-    node _T_2539 = eq(plusarg_reader.out, UInt<1>("h00")) @[Monitor.scala 446:36]
+    node _T_2539 = eq(DummyPlusArgReader.io.out, UInt<1>("h00")) @[Monitor.scala 446:36]
     node _T_2540 = or(_T_2537, _T_2539) @[Monitor.scala 446:27]
-    node _T_2541 = lt(_T_2533, plusarg_reader.out) @[Monitor.scala 446:60]
+    node _T_2541 = lt(_T_2533, DummyPlusArgReader.io.out) @[Monitor.scala 446:60]
     node _T_2542 = or(_T_2540, _T_2541) @[Monitor.scala 446:48]
     node _T_2543 = bits(reset, 0, 0) @[Monitor.scala 446:12]
     node _T_2544 = or(_T_2542, _T_2543) @[Monitor.scala 446:12]
@@ -32026,26 +32034,35 @@ circuit RocketTile :
     node _T_676 = eq(state, UInt<3>("h00")) @[Multiplier.scala 172:25]
     io.req.ready <= _T_676 @[Multiplier.scala 172:16]
     
-  extmodule plusarg_reader_37 : 
-    output out : UInt<32>
+  module DummyPlusArgReader_37 : 
+    input clock : Clock
+    input reset : UInt<1>
+    output io : {out : UInt<32>}
     
-    defname = plusarg_reader
-    parameter FORMAT = "max-core-cycles=%d"
-    parameter DEFAULT = 0
+    clock is invalid
+    reset is invalid
+    io is invalid
+    io.out <= UInt<1>("h00") @[PlusArg.scala 17:10]
     
-  extmodule plusarg_reader_34 : 
-    output out : UInt<32>
+  module DummyPlusArgReader_34 : 
+    input clock : Clock
+    input reset : UInt<1>
+    output io : {out : UInt<32>}
     
-    defname = plusarg_reader
-    parameter FORMAT = "tilelink_timeout=%d"
-    parameter DEFAULT = 0
+    clock is invalid
+    reset is invalid
+    io is invalid
+    io.out <= UInt<1>("h00") @[PlusArg.scala 17:10]
     
-  extmodule plusarg_reader_35 : 
-    output out : UInt<32>
+  module DummyPlusArgReader_35 : 
+    input clock : Clock
+    input reset : UInt<1>
+    output io : {out : UInt<32>}
     
-    defname = plusarg_reader
-    parameter FORMAT = "tilelink_timeout=%d"
-    parameter DEFAULT = 0
+    clock is invalid
+    reset is invalid
+    io is invalid
+    io.out <= UInt<1>("h00") @[PlusArg.scala 17:10]
     
   module Arbiter : 
     input clock : Clock
@@ -37153,12 +37170,15 @@ circuit RocketTile :
     io.w <= res.cfg.w @[PMP.scala 159:8]
     io.x <= res.cfg.x @[PMP.scala 160:8]
     
-  extmodule plusarg_reader_36 : 
-    output out : UInt<32>
+  module DummyPlusArgReader_36 : 
+    input clock : Clock
+    input reset : UInt<1>
+    output io : {out : UInt<32>}
     
-    defname = plusarg_reader
-    parameter FORMAT = "tilelink_timeout=%d"
-    parameter DEFAULT = 0
+    clock is invalid
+    reset is invalid
+    io is invalid
+    io.out <= UInt<1>("h00") @[PlusArg.scala 17:10]
     
   module MulAddRecFNPipe : 
     input clock : Clock
