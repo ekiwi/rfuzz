@@ -193,3 +193,11 @@ Generated from https://github.com/ucb-art/fft @
 
 We then copied the generated `generated-src/craft.DspTop.DefaultStandaloneFixedPointFFTConfig.fir`
 to the benchmarks directory as `FFTSmall.fir` and renamed the toplevel from `DspTop` to `FFTSmall`.
+In order to not fuzz the AXI wrapper, we extracted the actual DSP block using
+Jack's [retop_firrtl.py](https://gist.githubusercontent.com/jackkoenig/b780c809c7e0ef5d6658bdcfe273ecda/raw/7abe8ee3ccd46f04531b586b524451334ed4b75f/retop_firrtl.py):
+
+```
+> ./retop_firrtl.py FFT ~/rfuzz/benchmarks/FFTSmall.fir ~/rfuzz/benchmarks/FFTSmall.fir
+```
+
+and then renamed the `FFT` module to `FFTSmall`.
