@@ -44,6 +44,7 @@ if __name__ == '__main__':
 		cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
 		coverage_data.append((disco_times, cov, name))
 		print(inputs[-1].e2e_cov['not_covered'])
+		print("invalid: {}/{}".format(sum(ii.e2e_cov['invalid'] for ii in inputs), len(inputs)))
 
 	#print(coverage_data)
 
