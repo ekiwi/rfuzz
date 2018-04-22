@@ -20,6 +20,19 @@ impl Range {
 	fn len(&self) -> usize { self.stop - self.start }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum JQFLevel { None, Reject, SeparateCoverage }
+impl JQFLevel {
+	pub fn from_arg(arg: &str) -> Self {
+		match arg {
+			"0" => JQFLevel::None,
+			"1" => JQFLevel::Reject,
+			"2" => JQFLevel::SeparateCoverage,
+			other => panic!("Unexpected arg: {}", other),
+		}
+	}
+}
+
 pub struct AnalysisFeedback {
 	pub is_interesting: bool,
 	pub is_invalid: bool,
@@ -32,10 +45,11 @@ pub struct Analysis {
 	new_inputs : usize,
 	ranges : Vec<Range>,
 	fail_ranges: Vec<Range>,
+	jqf: JQFLevel,
 }
 /// analyses the coverage assuming packed 1-bit coverage counters
 impl Analysis {
-	pub fn new(test_size: TestSize, all_ranges: Vec<Range>) -> Analysis {
+	pub fn new(test_size: TestSize, all_ranges: Vec<Range>, jqf: JQFLevel) -> Analysis {
 		Analysis::check_ranges(test_size.coverage, &all_ranges);
 		let ranges = all_ranges.iter().filter(|r| !r.is_fail).map(|r| r.clone()).collect();
 		let fail_ranges = all_ranges.iter().filter(|r| r.is_fail).map(|r| r.clone()).collect();
@@ -45,6 +59,7 @@ impl Analysis {
 			new_inputs: 0,
 			ranges: ranges,
 			fail_ranges: fail_ranges,
+			jqf
 		}
 	}
 
@@ -70,10 +85,12 @@ impl Analysis {
 		}
 		let is_invalid = cov.is_fail();
 
-		// TODO: structure this in a cleaner way, maybe switch to two different
-		//       coverage maps + maybe no actual coverage map for assertion failures
-		if is_invalid {
-			return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: Vec::new() };
+		if self.jqf != JQFLevel::None {
+			// TODO: structure this in a cleaner way, maybe switch to two different
+			//       coverage maps + maybe no actual coverage map for assertion failures
+			if is_invalid {
+				return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: Vec::new() };
+			}
 		}
 
 		// b) check other kinds of coverage updating the map

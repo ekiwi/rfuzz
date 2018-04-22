@@ -42,6 +42,7 @@ struct Args {
 	input_directory: Option<String>,
 	output_directory: String,
 	test_mode: bool,
+	jqf: analysis::JQFLevel,
 }
 
 fn main() {
@@ -66,6 +67,11 @@ fn main() {
 		.arg(Arg::with_name("random")
 			.long("random").short("r")
 			.help("Generate independent random inputs instead of using the fuzzing algorithm."))
+		.arg(Arg::with_name("jqf_level")
+			.long("jqf-level").short("j")
+			.help("Select which level of JQF to apply.")
+			.takes_value(true).possible_values(&["0", "1", "2"])
+			.default_value("1"))
 		.arg(Arg::with_name("input_directory")
 			.long("input-directory").short("i").value_name("DIR")
 			.takes_value(true)
@@ -90,6 +96,7 @@ fn main() {
 		input_directory: matches.value_of("input_directory").map(|s| s.to_string()),
 		output_directory: matches.value_of("output_directory").unwrap().to_string(),
 		test_mode: matches.is_present("test_mode"),
+		jqf: analysis::JQFLevel::from_arg(matches.value_of("jqf_level").unwrap()),
 	};
 
 	// "Ctrl + C" handling
@@ -140,7 +147,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 	// analysis
 	let ranges = config.gen_ranges();
 	//println!("ranges:]\n{:?}", ranges);
-	let mut analysis = analysis::Analysis::new(test_size, ranges);
+	let mut analysis = analysis::Analysis::new(test_size, ranges, args.jqf);
 	let seed_coverage = fuzz_one(server, &starting_seed);
 	let seed_analysis_res = analysis.run(start_cycles as u16, &seed_coverage);
 	if seed_analysis_res.is_invalid {
