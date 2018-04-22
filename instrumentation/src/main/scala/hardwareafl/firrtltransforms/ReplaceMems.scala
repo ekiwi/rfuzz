@@ -50,7 +50,7 @@ object ReplaceMemsTransform {
   * @note Assumes that wrapping Module has a port named "reset"
   */
 class ReplaceMemsTransform extends Transform {
-  def inputForm = HighForm
+  def inputForm = LowForm
   def outputForm = HighForm
 
   import ReplaceMemsTransform._
@@ -85,19 +85,24 @@ class ReplaceMemsTransform extends Transform {
         mem.readers.zipWithIndex.flatMap { case (r, i) =>
           val pref = subindex(WSubField(WSubField(WRef(inst.name), "io"), "r"), i)
           val rref = WSubField(WRef(wire), r)
-          Seq(Connect(NoInfo, WSubField(pref, "addr"), WSubField(rref, "addr")),
-              Connect(NoInfo, WSubField(pref, "en"), WSubField(rref, "en")),
-              Connect(NoInfo, WSubField(rref, "data"), WSubField(pref, "data")))
+          // On LowForm, zero-width address will be removed
+          val addrCon = if (mem.depth > 1) {
+            Seq(Connect(NoInfo, WSubField(pref, "addr"), WSubField(rref, "addr")))
+          } else Seq()
+          addrCon ++ Seq(Connect(NoInfo, WSubField(pref, "en"), WSubField(rref, "en")),
+                         Connect(NoInfo, WSubField(rref, "data"), WSubField(pref, "data")))
         }
       }
       val wcons = {
         mem.writers.zipWithIndex.flatMap { case (w, i) =>
           val pref = subindex(WSubField(WSubField(WRef(inst.name), "io"), "w"), i)
           val wref = WSubField(WRef(wire), w)
-          Seq(Connect(NoInfo, WSubField(pref, "addr"), WSubField(wref, "addr")),
-              Connect(NoInfo, WSubField(pref, "en"), WSubField(wref, "en")),
-              Connect(NoInfo, WSubField(pref, "data"), WSubField(wref, "data")),
-              Connect(NoInfo, WSubField(pref, "mask"), WSubField(wref, "mask")))
+          val addrCond = if (mem.depth > 1) {
+            Seq(Connect(NoInfo, WSubField(pref, "addr"), WSubField(wref, "addr")))
+          } else Seq()
+          addrCond ++ Seq(Connect(NoInfo, WSubField(pref, "en"), WSubField(wref, "en")),
+                          Connect(NoInfo, WSubField(pref, "data"), WSubField(wref, "data")),
+                          Connect(NoInfo, WSubField(pref, "mask"), WSubField(wref, "mask")))
         }
       }
       val clkCon = {
