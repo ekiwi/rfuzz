@@ -41,7 +41,8 @@ pub struct AnalysisFeedback {
 
 pub struct Analysis {
 	path_hashes : HashSet<u64>,
-	bitmap: Vec<u8>,
+	total_coverage: Vec<u8>,
+	valid_coverage: Vec<u8>,
 	new_inputs : usize,
 	ranges : Vec<Range>,
 	fail_ranges: Vec<Range>,
@@ -55,7 +56,8 @@ impl Analysis {
 		let fail_ranges = all_ranges.iter().filter(|r| r.is_fail).map(|r| r.clone()).collect();
 		Analysis {
 			path_hashes: HashSet::new(),
-			bitmap: vec![0xff; test_size.coverage],
+			total_coverage: vec![0xff; test_size.coverage],
+			valid_coverage: vec![0xff; test_size.coverage],
 			new_inputs: 0,
 			ranges: ranges,
 			fail_ranges: fail_ranges,
@@ -76,30 +78,42 @@ impl Analysis {
 	#[inline(always)]
 	pub fn run(&mut self, cycles: u16, trace_bits: &[u8]) -> AnalysisFeedback {
 		let cc = cycles as u8;
-		// check coverage
-		let mut cov = Coverage::default();
 
 		// a) check assertions without modifying other parts of the coverage map
+		let mut fail_cov = Coverage::default();
 		for rr in self.fail_ranges.iter() {
-			cov = cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
+			fail_cov = fail_cov.combine(analyze_range(rr, cc, &mut self.total_coverage, trace_bits));
 		}
-		let is_invalid = cov.is_fail();
+		let is_invalid = fail_cov.is_fail();
 
-		if self.jqf != JQFLevel::None {
-			// TODO: structure this in a cleaner way, maybe switch to two different
-			//       coverage maps + maybe no actual coverage map for assertion failures
+		if self.jqf == JQFLevel::SeparateCoverage {
+			// for full JQF we maintain a total_coverage map that includes every input
+			let mut total_cov = Coverage::default();
+			for rr in self.ranges.iter() {
+				total_cov = total_cov.combine(analyze_range(rr, cc, &mut self.total_coverage, trace_bits));
+			}
+
+			if is_invalid {
+				let is_interesting = total_cov.is_interesting();
+				if is_interesting {
+					println!("JQF2: found invalid, but interesting input");
+				}
+				return AnalysisFeedback { is_interesting, is_invalid, new_cov: total_cov.new }
+			}
+		} else if self.jqf == JQFLevel::Reject {
 			if is_invalid {
 				return AnalysisFeedback { is_interesting: false, is_invalid: true, new_cov: Vec::new() };
 			}
 		}
 
-		// b) check other kinds of coverage updating the map
+		// if JQF is active (lvl > 0), we know that the input is valid at this point!
+		let mut cov = Coverage::default();
 		for rr in self.ranges.iter() {
-			cov = cov.combine(analyze_range(rr, cc, &mut self.bitmap, trace_bits));
+			cov = cov.combine(analyze_range(rr, cc, &mut self.valid_coverage, trace_bits));
 		}
 
 		// decide whether we found something interesting
-		let is_interesting = cov.is_interesting() && !is_invalid;
+		let is_interesting = cov.is_interesting();
 		self.new_inputs += if is_interesting {1} else {0};
 
 		// check path
@@ -108,13 +122,17 @@ impl Analysis {
 			self.path_hashes.insert(new_hash);
 		}
 
+		if is_interesting && self.jqf == JQFLevel::SeparateCoverage {
+			println!("JQF2: found valid and interesting input");
+		}
+
 		AnalysisFeedback { is_interesting, is_invalid, new_cov: cov.new }
 	}
 
 	pub fn path_count(&self) -> usize { self.path_hashes.len() }
 	pub fn new_inputs_count(&self) -> usize { self.new_inputs }
 	pub fn get_bitmap(&self) -> Vec<u8> {
-		self.bitmap.clone()
+		self.valid_coverage.clone()
 	}
 }
 
