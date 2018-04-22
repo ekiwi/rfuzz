@@ -102,15 +102,16 @@ def make_mutation_graph_dot(inputs):
 	nodes = []
 	edges = []
 	for ii in inputs:
+		style = "" if not ii.e2e_cov['invalid'] else ",style=dotted"
 		nodes.append(
-			(ii.id, str(ii.id))
+			(ii.id, str(ii.id), style)
 		)
 		if ii.parent is not None:
 			edges.append(
 				(ii.parent, ii.id, ii.mutator_name)
 			)
 	dot = ["digraph g {"]
-	dot += ['\t{} [label="{}"];'.format(*n) for n in nodes]
+	dot += ['\t{} [label="{}"{}];'.format(*n) for n in nodes]
 	dot += ['\t{} -> {} [label="{}"];'.format(*e) for e in edges]
 	dot += ["}"]
 	return "\n".join(dot)
