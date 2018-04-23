@@ -9,6 +9,7 @@
 #include <chrono>
 #include <locale>
 
+
 #include "dut.hpp"
 
 
@@ -147,11 +148,16 @@ double sc_time_stamp () {
 	throw std::logic_error("calling sc_time_stamp is not supported!");
 }
 int main(int argc, char** argv) {
+	std::string instance_id = "0";
+	if(argc >= 2) {
+		instance_id = std::string(argv[1]);
+	}
+
 	print_header();
 
-	fuzzer.init(CoverageSize, InputSize);
+	fuzzer.init(CoverageSize, InputSize, instance_id);
 
-	Verilated::commandArgs(argc, argv);
+	// Verilated::commandArgs(argc, argv);
 	Simulation sim;
 	sim.top = new TOP_TYPE;
 

@@ -151,11 +151,11 @@ void FPGAQueueFuzzer::start_test() {
 	write_to_coverage(change_endianess(cycles));
 }
 
-void FPGAQueueFuzzer::init(size_t coverage_size, size_t input_size) {
-	Fuzzer::init(coverage_size, input_size);
+void FPGAQueueFuzzer::init(size_t coverage_size, size_t input_size, const std::string& name) {
+	Fuzzer::init(coverage_size, input_size, name);
 	assert((this->coverage_size + 2) % 8 == 0);
 	assert((this->input_size) % 8 == 0);
-	command_pipe = std::unique_ptr<NamedPipe>(new NamedPipe("0"));
+	command_pipe = std::unique_ptr<NamedPipe>(new NamedPipe(name));
 }
 bool FPGAQueueFuzzer::done() {
 	if(tests_left > 0) {

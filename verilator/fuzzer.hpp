@@ -6,9 +6,10 @@
 #define FUZZER_HPP
 #include <stdint.h>
 #include <cstring>
+#include <string>
 struct Fuzzer {
 	/// called before the simulation is initialized
-	virtual void init(size_t coverage_size, size_t input_size) {
+	virtual void init(size_t coverage_size, size_t input_size, const std::string&) {
 		this->coverage_size = coverage_size;
 		this->input_size = input_size;
 	}

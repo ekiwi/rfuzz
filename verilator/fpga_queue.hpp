@@ -138,7 +138,7 @@ private:
 	void parse_header();
 	void start_test();
 public:
-	void init(size_t coverage_size, size_t input_size) override;
+	void init(size_t coverage_size, size_t input_size, const std::string& name) override;
 	bool done() override;
 	bool pop(uint8_t* input, size_t len) override;
 	void push(const uint8_t* coverage, size_t len) override;
