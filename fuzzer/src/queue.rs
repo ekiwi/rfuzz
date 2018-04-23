@@ -177,6 +177,17 @@ impl Queue {
 		file.write_all(j.as_bytes()).expect("Failed to write entry to file!");
 	}
 
+	pub fn save_latest(&self, stats: stats::Snapshot) {
+		Queue::save_latest_to_dir(&self.working_dir, stats);
+	}
+
+	fn save_latest_to_dir(working_dir: &path::Path, stats: stats::Snapshot) {
+		let j = serde_json::to_string(&stats).expect("failed to serialize stats!");
+		let filename = working_dir.join("latest.json");
+		let mut file = fs::File::create(filename).expect("Failed to create latest file!");
+		file.write_all(j.as_bytes()).expect("Failed to write stats to file!");
+	}
+
 	fn save_to_working_dir(working_dir: &path::Path, entry: &InternalEntry, stats: stats::Snapshot, trace_bits: &[u8]) {
 		let content = EntryFile { entry: entry.clone(), stats, trace_bits: trace_bits.to_vec() };
 		let j = serde_json::to_string(&content).expect("failed to serialize entry!");

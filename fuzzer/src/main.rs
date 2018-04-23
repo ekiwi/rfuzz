@@ -229,6 +229,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 			if new_runs >= max_children { break; }
 		}
 		q.return_test(active_test.id, history);
+		q.save_latest(statistics.take_snapshot());
 		if canceled.load(Ordering::SeqCst) {
 			println!("User interrupted fuzzing. Going to shut down....");
 			break;
@@ -248,6 +249,7 @@ fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
 			               statistics.take_snapshot(), &feedback.data);
 		}
 	}
+	q.save_latest(statistics.take_snapshot());
 
 	// done with the main fuzzing part
 	statistics.done();
