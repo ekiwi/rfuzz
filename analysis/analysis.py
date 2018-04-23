@@ -17,6 +17,30 @@ import riscv
 
 def shell(): from IPython import embed; embed()
 
+def analyse_out(inp_dir):
+	name = os.path.basename(inp_dir)
+	print("processing {} ...".format(name))
+	config, entries, dut = load_results(inp_dir)
+
+	end2end = CoverageCalcuator(dut)
+	fuzzer_cov = CoverageFormat(config)
+	fmt = InputFormat(config)
+	inputs = [Input(ee, fmt, fuzzer_cov, end2end) for ee in entries]
+
+	#if "sodor" in os.path.basename(inp_dir):
+	#	riscv.print_instructions(inputs)
+
+	make_mutation_graph("{}_mutations.png".format(name), inputs)
+
+	disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
+	cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
+
+	print(inputs[-1].e2e_cov['not_covered'])
+	print("invalid: {}/{}".format(sum(ii.e2e_cov['invalid'] for ii in inputs), len(inputs)))
+	#print([ii.cycles for ii in inputs])
+
+	return (disco_times, cov, name)
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
 		description='analysis script for the fuzzing results')
@@ -26,25 +50,7 @@ if __name__ == '__main__':
 	coverage_data = []
 
 	for inp_dir in args.DIR:
-		name = os.path.basename(inp_dir)
-		print("processing {} ...".format(name))
-		config, entries, dut = load_results(inp_dir)
-
-		end2end = CoverageCalcuator(dut)
-		fuzzer_cov = CoverageFormat(config)
-		fmt = InputFormat(config)
-		inputs = [Input(ee, fmt, fuzzer_cov, end2end) for ee in entries]
-
-		#if "sodor" in os.path.basename(inp_dir):
-		#	riscv.print_instructions(inputs)
-
-		make_mutation_graph("{}_mutations.png".format(name), inputs)
-
-		disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
-		cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
-		coverage_data.append((disco_times, cov, name))
-		print(inputs[-1].e2e_cov['not_covered'])
-		print("invalid: {}/{}".format(sum(ii.e2e_cov['invalid'] for ii in inputs), len(inputs)))
+		coverage_data.append(analyse_out(inp_dir))
 
 	#print(coverage_data)
 
