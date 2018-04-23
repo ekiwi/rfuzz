@@ -44,21 +44,56 @@ def analyse_out(inp_dir):
 
 	return (disco_times, cov, name)
 
+CI_mult = [12.7062,4.3027,3.1824,2.7764,2.5706,2.4469,2.3646, 2.3060, 2.2622,2.2281,2.2010,2.1788,2.1604,2.1448, 2.131,2.120,2.110,2.101,2.093,2.086,2.080,2.074,2.069]
+color_cycle = plt.rcParams['axes.color_cycle']
+
+
+def analyse_multi(inp_dir):
+	subdirs = glob.glob(os.path.join(inp_dir, '*.out'))
+	if len(subdirs) < 1:
+		print("ERROR: no *.out dir in {}".format(inp_dir))
+		sys.exit(1)
+
+	times = []
+	percentages = []
+	all_times = []
+	for subdir in subdirs:
+		disco_times, cov, name = analyse_out(subdir)
+		times.append(disco_times)
+		all_times += disco_times
+		percentages.append(cov)
+
+	all_percentages = np.zeros((len(subdirs),len(times)))
+	all_times_sorted = sorted(all_times)
+	for ii in range(len(subdirs)):
+		all_percentages[ii] =  np.interp(all_times_sorted, times[ii], percentages[ii])
+
+	name = os.path.basename(inp_dir)
+	means = np.mean(all_percentages[prefix], axis = 0)
+	plt.plot(times, means, label=name)
+	stds = np.std(all_percentages[prefix], axis = 0)
+	stds = stds/np.sqrt(len(all_percentages))
+	stds = stds * CI_mult[len(all_percentages)-2]
+	plt.fill_between(times, means - stds, means + stds, facecolor=color_cycle[0], alpha=0.2,linestyle='dashed', edgecolor=color_cycle[0])
+
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
 		description='analysis script for the fuzzing results')
 	parser.add_argument('DIR', help='fuzzer output directory to be analyzed', nargs='+')
 	args = parser.parse_args()
 
-	coverage_data = []
+	#coverage_data = []
 
 	for inp_dir in args.DIR:
-		coverage_data.append(analyse_out(inp_dir))
+		analyse_multi(inp_dir)
+		#coverage_data.append(analyse_out(inp_dir))
 
 	#print(coverage_data)
 
-	for disco_times, cov, name in coverage_data:
-		plt.plot(disco_times, cov, label=name)
+	#for disco_times, cov, name in coverage_data:
+	#	plt.plot(disco_times, cov, label=name)
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
