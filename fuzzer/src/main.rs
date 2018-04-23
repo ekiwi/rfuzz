@@ -44,6 +44,7 @@ struct Args {
 	test_mode: bool,
 	jqf: analysis::JQFLevel,
 	fuzz_server_id: String,
+	seed_cycles: usize,
 }
 
 fn main() {
@@ -73,6 +74,11 @@ fn main() {
 			.help("Select which level of JQF to apply.")
 			.takes_value(true).possible_values(&["0", "1", "2"])
 			.default_value("1"))
+		.arg(Arg::with_name("seed_cycles")
+			.long("seed-cycles")
+			.help("The starting seed consits of all zeros for N cycles.")
+			.takes_value(true)
+			.default_value("5"))
 		.arg(Arg::with_name("input_directory")
 			.long("input-directory").short("i").value_name("DIR")
 			.takes_value(true)
@@ -103,6 +109,7 @@ fn main() {
 		test_mode: matches.is_present("test_mode"),
 		jqf: analysis::JQFLevel::from_arg(matches.value_of("jqf_level").unwrap()),
 		fuzz_server_id: matches.value_of("fuzz_server_id").unwrap().to_string(),
+		seed_cycles: matches.value_of("seed_cycles").unwrap().parse::<usize>().unwrap(),
 	};
 
 	// "Ctrl + C" handling
@@ -148,7 +155,7 @@ fn test_mode(server: &mut FuzzServer, config: &config::Config) {
 fn fuzzer(args: Args, canceled: Arc<AtomicBool>, config: config::Config,
           test_size: run::TestSize, server: &mut FuzzServer) {
 	// starting seed
-	let start_cycles = 5;
+	let start_cycles = args.seed_cycles;
 	let starting_seed = vec![0u8; test_size.input * start_cycles];
 
 	// analysis
