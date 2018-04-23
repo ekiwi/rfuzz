@@ -113,7 +113,15 @@ if __name__ == '__main__':
 	# build dut
 	cwd = root_dir
 	cmd = ['make', 'DUT={}'.format(dut), 'FIR={}'.format(fir), 'bin']
-	subprocess.run(cmd, cwd=cwd, check=True)
+	tries = 3
+	for ii in range(tries):
+		print("{}. try to compile fuzz server".format(ii + 1))
+		rr = subprocess.run(cmd, cwd=cwd)
+		if rr.returncode == 0:
+			break
+	if rr.returncode != 0:
+		print("ERROR: failed to compile!")
+		sys.exit(1)
 
 	# build fuzzer
 	subprocess.run(['cargo', 'build', '--release'], cwd=fuzzer_dir, check=True)
