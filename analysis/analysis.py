@@ -69,15 +69,23 @@ def analyse_multi(inp_dirs):
 		#print(all_times_sorted, times[ii], percentages[ii])
 		all_percentages[ii] = np.interp(all_times_sorted, times[ii], percentages[ii])
 
-	name = os.path.basename(inp_dir)
 	means = np.mean(all_percentages, axis = 0)
-	plt.plot(all_times_sorted, means, label=name)
 	stds = np.std(all_percentages, axis = 0)
 	stds = stds/np.sqrt(len(all_percentages))
 	stds = stds * CI_mult[len(all_percentages)-2]
-	plt.fill_between(all_times_sorted, means - stds, means + stds, facecolor=color_cycle[0], alpha=0.2,linestyle='dashed', edgecolor=color_cycle[0])
+	return (all_times_sorted, means, stds, determine_name(inp_dirs))
 
-
+def determine_name(dirs):
+	names = [os.path.basename(s) for s in dirs]
+	if len(names) == 1:
+		name = names[0]
+	else:
+		names = ['.'.join(n.split('.')[1:]) for n in names]
+		assert all(n == names[0] for n in names)
+		name = os.path.basename(os.path.dirname(dirs[0]))
+	if name.endswith('.out'):
+		return name[:-len('.out')]
+	return name
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
@@ -85,17 +93,20 @@ if __name__ == '__main__':
 	parser.add_argument('DIR', help='fuzzer output directory to be analyzed', nargs='+')
 	args = parser.parse_args()
 
-	#coverage_data = []
+	coverage_data = []
 
 	for inp_dir in args.DIR:
+		conf_json = os.path.join(inp_dir, "config.json")
 		subdirs = glob.glob(os.path.join(inp_dir, '*.out'))
-		analyse_multi(subdirs)
-		#coverage_data.append(analyse_out(inp_dir))
+		if os.path.isfile(conf_json):
+			assert len(subdirs) == 0
+			subdirs = [inp_dir]
+		coverage_data.append(analyse_multi(subdirs))
 
 	#print(coverage_data)
 
-	#for disco_times, cov, name in coverage_data:
-	#	plt.plot(disco_times, cov, label=name)
+	for disco_times, cov, std, name in coverage_data:
+		plt.plot(disco_times, cov, label=name)
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
