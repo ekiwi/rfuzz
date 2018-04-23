@@ -14,7 +14,11 @@ def load_results(result_dir):
 	entry_pattern = os.path.join(result_dir, 'entry*.json')
 	unordered_entries = [load_json(filename) for filename in glob.glob(entry_pattern)]
 	entries = sorted(unordered_entries, key=lambda e: e['entry']['id'])
-	return config, entries, top
+	try:
+		latest = parse_time(load_json(os.path.join(result_dir, 'latest.json'))['runtime'])
+	except:
+		latest = None
+	return config, entries, top, latest
 
 def load_json(filename):
 	return json.loads(open(filename).read())

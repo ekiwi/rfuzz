@@ -20,7 +20,7 @@ def shell(): from IPython import embed; embed()
 def analyse_out(inp_dir):
 	name = os.path.basename(inp_dir)
 	print("processing {} ...".format(name))
-	config, entries, dut = load_results(inp_dir)
+	config, entries, dut, latest = load_results(inp_dir)
 
 	end2end = CoverageCalcuator(dut)
 	fuzzer_cov = CoverageFormat(config)
@@ -34,6 +34,9 @@ def analyse_out(inp_dir):
 
 	disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
 	cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]
+	if latest is not None:
+		disco_times.append(latest)
+		cov.append(cov[-1])
 
 	print(inputs[-1].e2e_cov['not_covered'])
 	print("invalid: {}/{}".format(sum(ii.e2e_cov['invalid'] for ii in inputs), len(inputs)))
@@ -54,10 +57,7 @@ if __name__ == '__main__':
 
 	#print(coverage_data)
 
-	max_time = max(cc[0][-1] for cc in coverage_data)
 	for disco_times, cov, name in coverage_data:
-		disco_times.append(max_time)
-		cov.append(cov[-1])
 		plt.plot(disco_times, cov, label=name)
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
