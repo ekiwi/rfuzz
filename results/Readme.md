@@ -21,3 +21,7 @@ Git SHA: ad844b0f15547fafbf08e0e3507b09ad24acb322
 We were able to reproduce the coverage from `4.jqf2.i2c` by fuzzing for an hour.
 This time it took ~40min to reach the same coverage as the previous run achieved
 in ~4min. However at least it seems reproducible.
+
+## rocket
+
+Some early rocket results from running it in simulation for about 2h @ ~16kHz.
