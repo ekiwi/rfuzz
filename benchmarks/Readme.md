@@ -91,6 +91,9 @@ extracted `RocketTile_tile` from the resulting
 `example.TestHarness.DefaultExampleConfig.fir` using Jack's retop\_firrtl.py;
 we then renamed the resulting top `RocketTile`.
 
+We also manually removed the [debug printf](https://github.com/freechipsproject/rocket-chip/blob/1a5559ef0b69202a233bd6e0d9756957cda1ee28/src/main/scala/rocket/RocketCore.scala#L730)
+from the FIRRTL.
+
 ## gcd
 
 This is the small circuit that we originally used for testing the basic system.

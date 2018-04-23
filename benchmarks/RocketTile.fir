@@ -7938,9 +7938,6 @@ circuit RocketTile :
     _T_3110 <= _T_3108 @[RocketCore.scala 721:33]
     node _T_3111 = bits(reset, 0, 0) @[RocketCore.scala 716:11]
     node _T_3113 = eq(_T_3111, UInt<1>("h00")) @[RocketCore.scala 716:11]
-    when _T_3113 : @[RocketCore.scala 716:11]
-      printf(clock, UInt<1>(1), "C%d: %d [%d] pc=[%x] W[r%d=%x][%d] R[r%d=%x] R[r%d=%x] inst=[%x] DASM(%x)\n", io.hartid, _T_3090, _T_3093, _T_3094, _T_3100, rf_wdata, rf_wen, _T_3101, _T_3105, _T_3106, _T_3110, csr.io.trace[0].insn, csr.io.trace[0].insn) @[RocketCore.scala 716:11]
-      skip @[RocketCore.scala 716:11]
     inst DummyPlusArgReader of DummyPlusArgReader_37 @[PlusArg.scala 29:11]
     DummyPlusArgReader.io is invalid
     DummyPlusArgReader.clock <= clock
