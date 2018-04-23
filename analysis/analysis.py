@@ -45,7 +45,8 @@ def analyse_out(inp_dir):
 	return (disco_times, cov, name)
 
 CI_mult = [12.7062,4.3027,3.1824,2.7764,2.5706,2.4469,2.3646, 2.3060, 2.2622,2.2281,2.2010,2.1788,2.1604,2.1448, 2.131,2.120,2.110,2.101,2.093,2.086,2.080,2.074,2.069]
-color_cycle = plt.rcParams['axes.color_cycle']
+color_cycle = [color['color'] for color in list(plt.rcParams['axes.prop_cycle'])]
+
 
 
 def analyse_multi(inp_dirs):
@@ -105,8 +106,11 @@ if __name__ == '__main__':
 
 	#print(coverage_data)
 
-	for disco_times, cov, std, name in coverage_data:
+	for ii, (disco_times, cov, stds, name) in enumerate(coverage_data):
 		plt.plot(disco_times, cov, label=name)
+		plt.fill_between(disco_times, cov - stds, cov + stds,
+		                 facecolor=color_cycle[ii], alpha=0.2,
+		                 linestyle='dashed', edgecolor=color_cycle[ii])
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
