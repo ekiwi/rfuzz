@@ -108,9 +108,9 @@ if __name__ == '__main__':
 
 	for ii, (disco_times, cov, stds, name) in enumerate(coverage_data):
 		plt.plot(disco_times, cov, label=name)
-		plt.fill_between(disco_times, cov - stds, cov + stds,
-		                 facecolor=color_cycle[ii], alpha=0.2,
-		                 linestyle='dashed', edgecolor=color_cycle[ii])
+		#plt.fill_between(disco_times, cov - stds, cov + stds,
+		#                 facecolor=color_cycle[ii], alpha=0.2,
+		#                 linestyle='dashed', edgecolor=color_cycle[ii])
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
