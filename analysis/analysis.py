@@ -48,33 +48,34 @@ CI_mult = [12.7062,4.3027,3.1824,2.7764,2.5706,2.4469,2.3646, 2.3060, 2.2622,2.2
 color_cycle = plt.rcParams['axes.color_cycle']
 
 
-def analyse_multi(inp_dir):
-	subdirs = glob.glob(os.path.join(inp_dir, '*.out'))
-	if len(subdirs) < 1:
-		print("ERROR: no *.out dir in {}".format(inp_dir))
+def analyse_multi(inp_dirs):
+	if len(inp_dirs) < 1:
+		print("ERROR: inp_dirs in {}".format(inp_dirs))
 		sys.exit(1)
 
 	times = []
 	percentages = []
 	all_times = []
-	for subdir in subdirs:
+	for subdir in inp_dirs:
 		disco_times, cov, name = analyse_out(subdir)
 		times.append(disco_times)
 		all_times += disco_times
 		percentages.append(cov)
 
-	all_percentages = np.zeros((len(subdirs),len(times)))
+	all_percentages = np.zeros((len(inp_dirs),len(all_times)))
 	all_times_sorted = sorted(all_times)
-	for ii in range(len(subdirs)):
-		all_percentages[ii] =  np.interp(all_times_sorted, times[ii], percentages[ii])
+	for ii in range(len(inp_dirs)):
+		#print(len(all_times_sorted), len(times[ii]), len(percentages[ii]))
+		#print(all_times_sorted, times[ii], percentages[ii])
+		all_percentages[ii] = np.interp(all_times_sorted, times[ii], percentages[ii])
 
 	name = os.path.basename(inp_dir)
-	means = np.mean(all_percentages[prefix], axis = 0)
-	plt.plot(times, means, label=name)
-	stds = np.std(all_percentages[prefix], axis = 0)
+	means = np.mean(all_percentages, axis = 0)
+	plt.plot(all_times_sorted, means, label=name)
+	stds = np.std(all_percentages, axis = 0)
 	stds = stds/np.sqrt(len(all_percentages))
 	stds = stds * CI_mult[len(all_percentages)-2]
-	plt.fill_between(times, means - stds, means + stds, facecolor=color_cycle[0], alpha=0.2,linestyle='dashed', edgecolor=color_cycle[0])
+	plt.fill_between(all_times_sorted, means - stds, means + stds, facecolor=color_cycle[0], alpha=0.2,linestyle='dashed', edgecolor=color_cycle[0])
 
 
 
@@ -87,7 +88,8 @@ if __name__ == '__main__':
 	#coverage_data = []
 
 	for inp_dir in args.DIR:
-		analyse_multi(inp_dir)
+		subdirs = glob.glob(os.path.join(inp_dir, '*.out'))
+		analyse_multi(subdirs)
 		#coverage_data.append(analyse_out(inp_dir))
 
 	#print(coverage_data)
