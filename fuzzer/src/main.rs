@@ -73,7 +73,7 @@ fn main() {
 			.long("jqf-level").short("j")
 			.help("Select which level of JQF to apply.")
 			.takes_value(true).possible_values(&["0", "1", "2"])
-			.default_value("1"))
+			.default_value("2"))
 		.arg(Arg::with_name("seed_cycles")
 			.long("seed-cycles")
 			.help("The starting seed consits of all zeros for N cycles.")

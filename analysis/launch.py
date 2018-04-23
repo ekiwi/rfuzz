@@ -58,21 +58,56 @@ class Instance:
 		if self.fuzzer_proc.poll() is None:
 			self.fuzzer_proc.send_signal(signal.SIGINT)
 	def wait_for_procs(self):
-		self.fuzzer_proc.wait(timeout=2)
-		self.server_proc.wait(timeout=1)
+		self.fuzzer_proc.wait(timeout=10)
+		self.server_proc.wait(timeout=10)
 
+def parse_config(dut, cfg):
+	jqf_lvl = 2
+	seed_cycles = 5
+	mode = []
+
+	if cfg == 'default':
+		pass
+	elif cfg.startswith('jqf'):
+		jqf_lvl = int(cfg[len('jqf'):])
+	elif cfg.startswith('seed'):
+		seed_cycles = int(cfg[len('seed'):])
+	elif cfg == 'deterministic':
+		mode = ['--skip-non-deterministic']
+	elif cfg == 'nondeterministic':
+		mode = ['--skip-deterministic']
+	elif cfg == 'random':
+		mode = ['--random']
+		jqf_lvl =1
+
+	options = mode + ['--print-queue', '--print-total-cov',
+	'--jqf-level=' + str(jqf_lvl), '--seed-cycles=' + str(seed_cycles)]
+
+	name = "{}.jqf{}.seed{}".format(dut, jqf_lvl, seed_cycles)
+	if len(mode) > 0: name += "." + mode[0][2:]
+	return options, name
+
+configs = [
+	'default',
+	'jqf0', 'jqf1',
+	'seed1', 'seed10', 'seed40',
+	'deterministic', 'nondeterministic',
+	'random',
+	]
 
 if __name__ == '__main__':
-	if len(sys.argv) < 4:
-		print("usage: {} [OPTIONS] DUT OUTDIR TIMEOUT".format(sys.argv[0]))
+	if len(sys.argv) != 5 or sys.argv[1] not in configs:
+		print("usage: {} CONFIG DUT TIMEOUT PROCESSES".format(sys.argv[0]))
+		print("valid configs are:\n{}".format(configs))
 		sys.exit(1)
 
-	timeout = float(sys.argv[-1])
-	out_dir = sys.argv[-2]
-	dut = sys.argv[-3]
-	options = sys.argv[1:-3]
+	timeout = float(sys.argv[3])
+	dut = sys.argv[2]
+	config = sys.argv[1]
+	options, name = parse_config(dut, config)
+	out_dir = name + ".out"
 	fir = "{}.fir".format(fir_patch.get(dut, dut))
-	instance_count = 5
+	instance_count = int(sys.argv[4])
 
 
 	# build dut
