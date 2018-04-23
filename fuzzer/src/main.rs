@@ -43,6 +43,7 @@ struct Args {
 	output_directory: String,
 	test_mode: bool,
 	jqf: analysis::JQFLevel,
+	fuzz_server_id: String,
 }
 
 fn main() {
@@ -84,6 +85,10 @@ fn main() {
 		.arg(Arg::with_name("test_mode")
 			.long("test-mode").short("t")
 			.help("Test the fuzz server with known input/coverage pairs."))
+		.arg(Arg::with_name("fuzz_server_id")
+			.long("server-id").short("s")
+			.help("The id of the fuzz server isntance to connect to.")
+			.takes_value(true).default_value("0"))
 		.get_matches();
 
 	let args = Args {
@@ -97,6 +102,7 @@ fn main() {
 		output_directory: matches.value_of("output_directory").unwrap().to_string(),
 		test_mode: matches.is_present("test_mode"),
 		jqf: analysis::JQFLevel::from_arg(matches.value_of("jqf_level").unwrap()),
+		fuzz_server_id: matches.value_of("fuzz_server_id").unwrap().to_string(),
 	};
 
 	// "Ctrl + C" handling
@@ -124,7 +130,8 @@ fn main() {
 	println!("Coverage Buffer: {} KiB", srv_config.coverage_buffer_size / 1024);
 	println!("Max Inputs: {}", srv_config.test_buffer_size / 16 / 3);
 
-	let mut server = find_one_fuzz_server(FPGA_DIR, srv_config).expect("failed to find a fuzz server");
+	let server_dir = format!("{}/{}", FPGA_DIR, args.fuzz_server_id);
+	let mut server = find_one_fuzz_server(&server_dir, srv_config).expect("failed to find a fuzz server");
 
 	if args.test_mode {
 		test_mode(&mut server, &config);

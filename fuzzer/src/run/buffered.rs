@@ -421,15 +421,11 @@ impl <ChannelT : CommunicationChannel> FuzzServer for BufferedFuzzServer<Channel
 
 #[cfg(feature = "shmem")]
 pub fn find_one_fuzz_server(server_dir: &str, conf: BufferedFuzzServerConfig) -> Option<BufferedFuzzServer<SharedMemoryChannel>> {
-	let paths = std::fs::read_dir(server_dir).expect("failed to open fuzz server directory!");
-	for entry in paths.filter_map(|path| path.ok().and_then(|p| Some(p.path()))) {
-		if entry.is_dir() {
-			if let Some(channel) = SharedMemoryChannel::connect(&entry) {
-				return Some(BufferedFuzzServer::connect(channel, conf))
-			}
-		}
-	}
-	None
+	let entry = std::path::Path::new(server_dir);
+	assert!(entry.is_dir(), "failed to open fuzz server directory!");
+	if let Some(channel) = SharedMemoryChannel::connect(&entry) {
+		Some(BufferedFuzzServer::connect(channel, conf))
+	} else { None }
 }
 
 #[cfg(feature = "dma")]
