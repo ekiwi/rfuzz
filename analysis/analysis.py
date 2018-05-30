@@ -38,6 +38,7 @@ def analyse_out(inp_dir):
 		disco_times.append(latest)
 		cov.append(cov[-1])
 
+	print("# not covered: {}".format(len(inputs[-1].e2e_cov['not_covered'])))
 	print(inputs[-1].e2e_cov['not_covered'])
 	print("invalid: {}/{}".format(sum(ii.e2e_cov['invalid'] for ii in inputs), len(inputs)))
 	#print([ii.cycles for ii in inputs])
@@ -114,4 +115,8 @@ if __name__ == '__main__':
 	plt.legend(loc='best')
 	plt.ylabel("T/F Coverage")
 	plt.xlabel("Time (s)")
+	plt.ylim(ymax=1.0, ymin=0.0)
+	# hide lines on top and right side
+	plt.gca().spines['right'].set_visible(False)
+	plt.gca().spines['top'].set_visible(False)
 	plt.show()
