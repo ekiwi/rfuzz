@@ -111,6 +111,7 @@ if __name__ == '__main__':
 	fontname = None
 	fontsize = 20
 	legend_fontsize = 15
+	old_style = False
 
 	for ii, (disco_times, cov, stds, name) in enumerate(coverage_data):
 		if name.endswith('random'): name = 'random'
@@ -122,8 +123,9 @@ if __name__ == '__main__':
 	plt.legend(loc='best', fontsize=legend_fontsize)
 	plt.ylabel("T/F Coverage", fontname=fontname, fontsize=fontsize)
 	plt.xlabel("Time (s)", fontname=fontname, fontsize=fontsize)
-	plt.ylim(ymax=1.0, ymin=0.0)
-	# hide lines on top and right side
-	plt.gca().spines['right'].set_visible(False)
-	plt.gca().spines['top'].set_visible(False)
+	if not old_style:
+		plt.ylim(ymax=1.0, ymin=0.0)
+		# hide lines on top and right side
+		plt.gca().spines['right'].set_visible(False)
+		plt.gca().spines['top'].set_visible(False)
 	plt.show()
