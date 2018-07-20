@@ -107,14 +107,21 @@ if __name__ == '__main__':
 
 	#print(coverage_data)
 
+	# style
+	fontname = None
+	fontsize = 20
+	legend_fontsize = 15
+
 	for ii, (disco_times, cov, stds, name) in enumerate(coverage_data):
+		if name.endswith('random'): name = 'random'
+		else: name = 'RFUZZ'
 		plt.plot(disco_times, cov, label=name)
 		#plt.fill_between(disco_times, cov - stds, cov + stds,
 		#                 facecolor=color_cycle[ii], alpha=0.2,
 		#                 linestyle='dashed', edgecolor=color_cycle[ii])
-	plt.legend(loc='best')
-	plt.ylabel("T/F Coverage")
-	plt.xlabel("Time (s)")
+	plt.legend(loc='best', fontsize=legend_fontsize)
+	plt.ylabel("T/F Coverage", fontname=fontname, fontsize=fontsize)
+	plt.xlabel("Time (s)", fontname=fontname, fontsize=fontsize)
 	plt.ylim(ymax=1.0, ymin=0.0)
 	# hide lines on top and right side
 	plt.gca().spines['right'].set_visible(False)
