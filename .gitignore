@@ -13,3 +13,6 @@ __pycache__/
 
 # Vim
 *.swp
+
+# IntelliJ Idea
+.idea/
