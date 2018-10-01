@@ -1,15 +1,60 @@
-# RFUZZ: coverage-directed fuzzing for RTL research platform
+# rfuzz: coverage-directed fuzzing for RTL research platform
 
-This repository contains 
+This repository contains the `rfuzz` research platform which was
+created at UC Berkeley's [ADEPT Lab](https://adept.eecs.berkeley.edu/)
+to investigate the use of coverage-directed fuzzing for RTL
+pre-silicon testing.
+
+The source code is release under a BSD-3-Clause license in order to
+allow for reproduction of experimental results as well as a basis for
+further research.
 
 ## Instructions
 
 ### Clone the Repository
 
 ```.sh
+git clone https://github.com/ekiwi/rfuzz.git
+cd rfuzz
+# switch submodules to use HTTPS instead of SSH
+sed -i 's/git@github.com:/https:\/\/github.com\//'  .gitmodules
+# initialize and update submodules
 git submodule update --init
-make run
 ```
+
+### Install Dependencies
+
+On a fresh installation of `Ubuntu 18.04` (Bionic Beaver) the following
+installation steps were necessary:
+
+1. Install dependencies from the default repositories (requires root privileges):
+
+```.sh
+apt update && apt upgrade
+apt install build-essential meson pkg-config openjdk-8-jdk verilator cargo
+apt install python3-toml python3-numpy python3-matplotlib graphviz
+```
+
+
+2. Install `sbt` by following the [official docs](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html#Ubuntu+and+other+Debian-based+distributions):
+
+```.sh
+echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+sudo apt-get update
+sudo apt-get install sbt
+```
+
+3. On a _headless_ server: add the following to your `~/.config/matplotlib/matplotlibrc`:
+
+```
+backend: agg
+```
+([more info](https://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined))
+
+
+**Note:** _`rfuzz` is developed on  [Fedora Linux Workstation](https://getfedora.org/)
+which thus also offers good support_
 
 ### Benchmarks
 
