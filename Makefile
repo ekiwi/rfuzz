@@ -96,9 +96,9 @@ VERILATOR_BUILD = $(BUILD)/v$(DUT)
 
 $(FUZZ_SERVER): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED_V) $(VERILATOR_TB_SRC)
 	mkdir -p $(VERILATOR_BUILD)
-	cd $(VERILATOR_BUILD) && meson ../../verilator --buildtype=release
-	cd $(VERILATOR_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
-	cd $(VERILATOR_BUILD) && ninja
+	cd $(VERILATOR_BUILD) && meson ../../verilator --buildtype=release \
+	                         -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)' \
+	                      && ninja
 	mv $(VERILATOR_BUILD)/server $(FUZZ_SERVER)
 
 ################################################################################
@@ -110,9 +110,9 @@ VERILATOR_E2E_BUILD = $(BUILD)/v$(DUT).e2e
 
 $(E2ECOV): $(TOML) $(VERILATOR_HARNESS) $(INSTRUMENTED_V) $(VERILATOR_E2E_SRC)
 	mkdir -p $(VERILATOR_E2E_BUILD)
-	cd $(VERILATOR_E2E_BUILD) && meson ../../e2e --buildtype=release
-	cd $(VERILATOR_E2E_BUILD) && meson configure -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)'
-	cd $(VERILATOR_E2E_BUILD) && ninja
+	cd $(VERILATOR_E2E_BUILD) && meson ../../e2e --buildtype=release \
+	                             -Dtrace=false -Dbuild_dir='$(BUILD)' -Ddut='$(DUT)' \
+	                          && ninja
 	mv $(VERILATOR_E2E_BUILD)/cov $(E2ECOV)
 
 
