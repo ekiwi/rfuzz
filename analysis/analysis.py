@@ -7,7 +7,6 @@
 import argparse, os, subprocess
 
 # let's try to be a cool **data** scientist!
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
