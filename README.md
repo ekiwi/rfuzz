@@ -56,6 +56,97 @@ backend: agg
 **Note:** _`rfuzz` is developed on  [Fedora Linux Workstation](https://getfedora.org/)
 which thus also offers good support_
 
+### Software Simulation Fuzz Server
+
+In order to fuzz test a particular RTL design, we need to take the FIRRTL source
+code, instrument it and compile it into a fast RTL simulation using the
+[verilator](https://www.veripool.org/wiki/verilator) tool.
+
+The exact build steps are encoded in the toplevel `Makefile` provided with
+this repository.
+In order to build the final binary you can use the pseudo target `bin`.
+If you also want to start the binary you can use the pseudo target `run`
+(_WARNING: this will create the `/tmp/fpga` directory and will delete any
+existing directory of the same name_).
+
+Thus to start the RTL simulation (also called the **fuzz server**)
+for the default `Sodor3Stage` benchmark you just need to execute `make run`.
+This should provide you with the following output:
+```
+rm -rf /tmp/fpga
+mkdir /tmp/fpga
+/home/ubuntu/rfuzz/build/ICache_server
+Fuzz Server for ICache
+Allocated Bytes per Input:    40
+Allocated Bytes per Coverage: 30
+created tx fifo
+created rx fifo
+```
+
+This signals that the fuzz server is ready to receive test input from the
+fuzzer as well as provide coverage feedback.
+
+### Fuzzer
+
+The fuzzer is implemented in software an connects to the software simulation
+fuzz server or the FPGA driver through shared memory.
+As opposed to the fuzz server, the fuzzer itself is design agnostic and
+thus only needs to be compiled once. The design specific information
+is propagated through a TOML file generated alongside the fuzz server
+when executing `make bin` (or `make run`).
+
+To build the fuzzer change to the `fuzzer` directory and execute:
+```.sh
+cargo build --release
+```
+
+**Note:** _the performance of `release` builds can be around 10x faster.
+Do NOT run benchmarks with `debug` builds (the default configuration)._
+
+To see a list of options that the fuzzer supports run:
+```.sh
+cargo run --release -- -h
+```
+This should provide you with an output similar to this:
+```
+kfuzz 0.1.0
+Kevin Laeufer <ekiwi@berkeley.edu>
+AFL-style fuzzer specialized for fuzzing RTL circuits.
+
+USAGE:
+    kfuzz [FLAGS] [OPTIONS] <TOML> --output-directory <DIR>
+
+FLAGS:
+    -h, --help                      Prints help information
+    -q, --print-queue               Prints queue content at the end of a fuzzing run.
+    -c, --print-total-cov           Prints the union coverage at the end of a fuzzing run.
+    -r, --random                    Generate independent random inputs instead of using the fuzzing algorithm.
+    -d, --skip-deterministic        Skip all deterministic mutation strategies.
+    -n, --skip-non-deterministic    Skip all non-deterministic mutation strategies.
+    -t, --test-mode                 Test the fuzz server with known input/coverage pairs.
+    -v, --version                   Prints version information
+
+OPTIONS:
+    -s, --server-id <fuzz_server_id>    The id of the fuzz server isntance to connect to. [default: 0]
+    -i, --input-directory <DIR>         The output directory of a previous run from which to resume.
+    -j, --jqf-level <jqf_level>         Select which level of JQF to apply. [default: 2]  [possible values: 0, 1, 2]
+    -o, --output-directory <DIR>        Used to log this session. Must be empty!
+        --seed-cycles <seed_cycles>     The starting seed consits of all zeros for N cycles. [default: 5]
+
+ARGS:
+    <TOML>    TOML file describing the circuit being fuzzed
+```
+
+To quickly fuzz the default configuration, make sure that the fuzz server is
+running (see previous section) and the launch the fuzzer like this:
+```.sh
+cargo run --release -- -c -o out ../build/Sodor3Stage.toml
+```
+
+### FPGA Accelerated Fuzz Server
+
+**TODO:** document
+
 ### Benchmarks
 
 A collection of benchmarks in the form of
@@ -67,7 +158,7 @@ how each individual benchmark was created.
 Our `Makefile` takes the name of a FIRRTL (`*.fir`) file and the name
 of the corresponding RTL toplevel module as parameters, e.g.:
 ```.sh
-make FIR=TLI2C.fir DUT=TLI2C
+make FIR=TLI2C.fir DUT=TLI2C run
 ```
 
 The following benchmarks are available, benchmarks used in our `ICCAD'18` paper
