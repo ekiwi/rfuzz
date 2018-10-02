@@ -1,6 +1,6 @@
 
-FIR := ICacheCover.fir
-DUT := ICache
+FIR := Sodor3Stage.fir
+DUT := Sodor3Stage
 
 ROOT := $(shell pwd)
 BUILD := $(ROOT)/build
