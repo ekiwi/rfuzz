@@ -147,6 +147,43 @@ cargo run --release -- -c -o out ../build/Sodor3Stage.toml
 
 **TODO:** document
 
+### Analysis
+
+The scripts that were used to analyze the fuzzing results and generate
+graphs for our `ICCAD'18` paper can be found in the `analysis/` directory.
+Our raw results from running the fuzz server and fuzzer on the AWS cloud
+can be found in the [rfuzz-results](https://github.com/ekiwi/rfuzz-results)
+repository in the
+[jack](https://github.com/ekiwi/rfuzz-results/tree/390e4eedbca8254b8b4aac859b906827c6052f1c/jack)
+folder.
+In order to ignore any functional changes that were made to `rfuzz`
+after the `ICCAD'18` submission, please make sure that you use the
+`iccad18` branch in the `rfuzz` repository.
+
+In order to regenerate the graphs, make sure that your installation has a
+graphical desktop environment (or add the appropriate code to dump graphs to disk
+to [analysis.py](analysis/analysis.py)).
+The make sure that the appropriate binaries are available:
+
+```.sh
+make FIR=FFTSmall.fir DUT=FFTSmall bin
+make FIR=Sodor1Stage.fir DUT=Sodor1Stage bin
+make FIR=Sodor3Stage.fir DUT=Sodor3Stage bin
+make FIR=Sodor5Stage.fir DUT=Sodor5Stage bin
+make FIR=TLI2C.fir DUT=TLI2C bin
+make FIR=TLSPI.fir DUT=TLSPI bin
+```
+
+Now you can run the analysis script like this:
+```.sh
+./analysis.py ../../rfuzz-results/jack/Sodor3Stage.jqf1.seed5.random.out ../../rfuzz-results/jack/Sodor3Stage.jqf2.seed5.out
+```
+
+This will display the resulting graph which should be an exact copy of the one
+printed in our paper (assuming you used the `iccad18` branch).
+It will also generate a mutation history graph for each fuzzing run,
+e.g. `0.Sodor3Stage.out_mutations.png`.
+
 ### Benchmarks
 
 A collection of benchmarks in the form of
