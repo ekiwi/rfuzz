@@ -219,3 +219,17 @@ are listed in **bold**:
 _Please note that benchmarks not used in our paper have not been thoroughly
 evaluated and thus may not work reliably or may produce spurious results._
 
+## ICCAD'18 Paper
+
+You can learn more about `rfuzz` in our `ICCAD'18` paper which explains
+how we adapted the coverage-directed fuzzing ideas from software testing
+to RTL verification while building the basic research platform.
+
+In order to reproduce our results, please make sure to use the `iccad18`
+branch of this repository.
+
+Kevin Laeufer and Jack Koenig and Donggyu Kim and Jonathan Bachrach and Koushik Sen.
+**RFUZZ: Coverage-Directed Fuzz Testing of RTL on FPGAs**.
+_In International Conference On Computer Aided Design, 2018 (ICCAD'18)_, San Diego, CA, November 2018.
+
+[Preprint PDF](https://people.eecs.berkeley.edu/~laeufer/papers/rfuzz_kevin_laeufer_iccad2018.pdf)
