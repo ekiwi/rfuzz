@@ -88,7 +88,7 @@ fuzzer as well as provide coverage feedback.
 
 ### Fuzzer
 
-The fuzzer is implemented in software an connects to the software simulation
+The fuzzer is implemented in software and connects to the software simulation
 fuzz server or the FPGA driver through shared memory.
 As opposed to the fuzz server, the fuzzer itself is design agnostic and
 thus only needs to be compiled once. The design specific information
@@ -138,10 +138,13 @@ ARGS:
 ```
 
 To quickly fuzz the default configuration, make sure that the fuzz server is
-running (see previous section) and the launch the fuzzer like this:
+running (see previous section) and then launch the fuzzer like this:
 ```.sh
 cargo run --release -- -c -o out ../build/Sodor3Stage.toml
 ```
+
+To terminate fuzzing use `Ctrl+C` and wait for the fuzzer to shut down
+(this can take some time depending on how fast the design under test executes).
 
 ### FPGA Accelerated Fuzz Server
 
@@ -162,8 +165,8 @@ after the `ICCAD'18` submission, please make sure that you use the
 
 In order to regenerate the graphs, make sure that your installation has a
 graphical desktop environment (or add the appropriate code to dump graphs to disk
-to [analysis.py](analysis/analysis.py)).
-The make sure that the appropriate binaries are available:
+to the end of [analysis.py](analysis/analysis.py)).  
+Then make sure that the appropriate binaries are available:
 
 ```.sh
 make FIR=FFTSmall.fir DUT=FFTSmall bin
@@ -183,6 +186,13 @@ This will display the resulting graph which should be an exact copy of the one
 printed in our paper (assuming you used the `iccad18` branch).
 It will also generate a mutation history graph for each fuzzing run,
 e.g. `0.Sodor3Stage.out_mutations.png`.
+
+**Note:** _the `analysis.py` script uses a version of the design with minimal
+instrumentation and restarts the RTL simulator for each test input in order
+to increase our confidence in the analysis results.
+Invalid inputs as indicated by failing assumptions in the design
+are automatically discarded and excluded from the coverage results.
+Have a look at the scripts in the `analysis/` directory to learn the details._
 
 ### Benchmarks
 
@@ -216,7 +226,7 @@ are listed in **bold**:
 | **SPI Peripheral**      | `TLSPI.fir`             | `TLSPI`             | SPI controller connected to TileLink bus      | [sifive-blocks](https://github.com/sifive/sifive-blocks)       |
 | UART Peripheral         | `TLUART.fir`            | `TLUART`            | UART controller connected to TileLink bus     | [sifive-blocks](https://github.com/sifive/sifive-blocks)       |
 
-_Please note that benchmarks not used in our paper have not been thoroughly
+**Note:** _the benchmarks that were not used in our paper have not been thoroughly
 evaluated and thus may not work reliably or may produce spurious results._
 
 ## ICCAD'18 Paper
