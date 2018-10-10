@@ -24,6 +24,10 @@ git submodule update --init
 
 ### Install Dependencies
 
+**Note:** instead of setting up your system manually you can try the
+`Vagrantfile` provided with this repository. For more information see
+[vagrantup.com](vagrantup.com).
+
 On a fresh installation of `Ubuntu 18.04` (Bionic Beaver) the following
 installation steps were necessary:
 
