@@ -102,21 +102,64 @@ class Input:
 		self.fuzzer_cov = fuzzer_cov.get(stats, entry)
 		self.e2e_cov = e2e_cov.get(self.bytes)
 
+from typing import List
+
+collapse_leaves = True
+label_edges = False
+
+class TestInputNode:
+	def __init__(self, ii, parent):
+		self.id = ii.id
+		self.name = str(self.id)
+		self.valid = not ii.e2e_cov['invalid']
+		self.mutator = ii.mutator_name
+		self.children = []
+		if parent is not None:
+			self.depth = parent.depth + 1
+			parent.children.append(self)
+		else:
+			self.depth = 0
+
+	@property
+	def is_leaf(self): return len(self.children) == 0
+
+	@property
+	def leaf_count(self):
+		return sum(cc.is_leaf for cc in self.children)
+
+	@property
+	def reachable_count(self):
+		return sum(cc.reachable_count for cc in self.children) + 1
+
+	def dot_node(self) -> str:
+		lbl = self.name
+		if collapse_leaves:
+			lbl = str(self.reachable_count)
+			if self.is_leaf: return ""
+		style = "" if self.valid else ",style=dotted"
+		return f'\t{self.id} [label="{lbl}"{style}];'
+
+	def dot_edges(self) -> List[str]:
+		if collapse_leaves:
+			children = (cc for cc in self.children if not cc.is_leaf)
+		else:
+			children = (cc for cc in self.children)
+		if label_edges:
+			return [f'\t{self.id} -> {cc.id} [label="{cc.mutator}"];' for cc in children]
+		else:
+			return [f'\t{self.id} -> {cc.id};' for cc in children]
+
+
 def make_mutation_graph_dot(inputs):
-	nodes = []
-	edges = []
+	nodes = {}
 	for ii in inputs:
-		style = "" if not ii.e2e_cov['invalid'] else ",style=dotted"
-		nodes.append(
-			(ii.id, str(ii.id), style)
-		)
-		if ii.parent is not None:
-			edges.append(
-				(ii.parent, ii.id, ii.mutator_name)
-			)
+		parent = nodes.get(ii.parent, None)
+		nn = TestInputNode(ii, parent)
+		nodes[nn.id] = nn
 	dot = ["digraph g {"]
-	dot += ['\t{} [label="{}"{}];'.format(*n) for n in nodes]
-	dot += ['\t{} -> {} [label="{}"];'.format(*e) for e in edges]
+	dot += [n.dot_node() for n in nodes.values()]
+	for n in nodes.values():
+		dot += n.dot_edges()
 	dot += ["}"]
 	return "\n".join(dot)
 
@@ -128,5 +171,6 @@ def make_mutation_graph(filename, inputs, fmt=None):
 		out.write(dot)
 		dotfile = out.name
 	#cmd = ['dot', '-Tpdf', dotfile, '-o', filename]
-	cmd = ['sfdp', '-x', '-Goverlap=scale', '-T' + fmt, dotfile, '-o', filename]
+	cmd = ['sfdp', '-x', '-Goverlap=scale', '-Gdpi=200', '-T' + fmt, dotfile, '-o', filename]
 	subprocess.run(cmd, check=True)
+	subprocess.run(['cat', dotfile], check=True)
