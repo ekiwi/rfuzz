@@ -1,14 +1,12 @@
 
-package hardwareafl
-package firrtltransforms
+package rfuzz
 
-import firrtl._
-import firrtl.ir._
-import firrtl.annotations._
-import firrtl.passes.wiring.{SourceAnnotation, SinkAnnotation}
 import firrtl.Mappers._
-import firrtl.PrimOps._
 import firrtl.Utils.{BoolType, get_info}
+import firrtl._
+import firrtl.annotations._
+import firrtl.ir._
+import firrtl.passes.wiring.{SinkAnnotation, SourceAnnotation}
 
 import scala.collection.mutable
 

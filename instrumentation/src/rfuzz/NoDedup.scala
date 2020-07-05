@@ -1,10 +1,9 @@
-package hardwareafl
-package firrtltransforms
+package rfuzz
 
-import firrtl._
-import firrtl.ir._
 import firrtl.Mappers._
+import firrtl._
 import firrtl.annotations._
+import firrtl.ir._
 import firrtl.transforms.NoDedupAnnotation
 
 import scala.collection.mutable

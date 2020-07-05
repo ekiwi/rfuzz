@@ -1,14 +1,12 @@
 
-package hardwareafl
-package firrtltransforms
+package rfuzz
 
-import firrtl._
+import firrtl.Mappers._
 import firrtl.Utils.throwInternalError
-import firrtl.passes.RemoveValidIf
+import firrtl._
 import firrtl.analyses.InstanceGraph
 import firrtl.ir._
-import firrtl.Mappers._
-import firrtl.PrimOps._
+import firrtl.passes.RemoveValidIf
 
 // Add a meta-reset to all registers
 class AddMetaResetTransform extends Transform {

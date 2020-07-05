@@ -1,12 +1,11 @@
-package hardwareafl
-package firrtltransforms
+package rfuzz
 
-import firrtl._
-import firrtl.ir._
-import firrtl.annotations._
 import firrtl.Mappers._
 import firrtl.Utils.throwInternalError
-import firrtl.passes.MemPortUtils.{memPortField, memType}
+import firrtl._
+import firrtl.annotations._
+import firrtl.ir._
+import firrtl.passes.MemPortUtils.memType
 
 import scala.collection.mutable
 

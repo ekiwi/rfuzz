@@ -1,9 +1,8 @@
-package hardwareafl
-package firrtltransforms
+package rfuzz
 
+import firrtl.Mappers._
 import firrtl._
 import firrtl.ir._
-import firrtl.Mappers._
 
 import scala.collection.mutable
 
