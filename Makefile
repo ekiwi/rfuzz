@@ -16,8 +16,7 @@ FUZZ_SERVER := $(BUILD)/$(DUT)_server
 E2ECOV_HARNESS := $(BUILD)/$(DUT)_E2EHarness.v
 E2ECOV := $(BUILD)/$(DUT)_cov
 
-IVY := $(ROOT)/.ivy2
-SBT := sbt -ivy $(IVY)
+SBT := sbt
 
 
 
@@ -41,15 +40,14 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 COMMA := ,
 FIRRTL_TRANSFORMS := \
-	hardwareafl.firrtltransforms.NoDedupTransform \
-	hardwareafl.firrtltransforms.ReplaceMemsTransform \
-	hardwareafl.firrtltransforms.SplitMuxConditions \
-	hardwareafl.firrtltransforms.ProfilingTransform \
+	rfuzz.NoDedupTransform \
+	rfuzz.ReplaceMemsTransform \
+	rfuzz.SplitMuxConditions \
+	rfuzz.ProfilingTransform \
 	firrtl.passes.wiring.WiringTransform \
-	hardwareafl.firrtltransforms.AddMetaResetTransform
+	rfuzz.AddMetaResetTransform
 INSTRUMENTATION_SOURCES := $(shell find instrumentation -name '*.scala')
-CHISEL_STAMP := $(ROOT)/chisel.stamp
-FIRRTL_STAMP := $(ROOT)/firrtl.stamp
+
 
 ifeq ($(wildcard $(ANNO_FILE)),)
   ANNO_CMD =
@@ -58,19 +56,14 @@ else
 endif
 
 lookup_scala_srcs = $(shell find $(1)/ -iname "*.scala" 2> /dev/null)
-$(FIRRTL_STAMP): $(call lookup_scala_srcs,firrtl/)
-	cd firrtl ;\
-  $(SBT) publishLocal && touch $@
-$(CHISEL_STAMP): $(FIRRTL_STAMP) $(call lookup_scala_srcs,chisel3/)
-	cd chisel3 ;\
-  $(SBT) publishLocal && touch $@
 
 
-$(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES) $(CHISEL_STAMP)
+$(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
-	$(SBT) "runMain hardwareafl.firrtltransforms.CustomTop -i $< -o $(INSTRUMENTED_V) -X verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS)) $(ANNO_CMD)"
+	$(SBT) "runMain firrtl.stage.FirrtlMain -i $< -o $(DUT) -X verilog -E low -E verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS)) $(ANNO_CMD)"
 	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
 	mv instrumentation/$(DUT).lo.fir $(INSTRUMENTED_FIR)
+	mv instrumentation/$(DUT).v $(INSTRUMENTED_V)
 
 instrumentation: $(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML)
 
