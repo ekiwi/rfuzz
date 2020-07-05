@@ -117,7 +117,7 @@ class ProfilingTransform extends Transform {
 
     def onStmt(stmt: Statement): Statement = {
       val stmtx = stmt.map(onStmt)
-      configs.map(c => c.processStmt.lift(stmtx).map(c -> _)).flatten match {
+      configs.flatMap(c => c.processStmt.lift(stmtx).map(c -> _)) match {
         // No profiling on this Statement, just return it
         case Seq() => stmtx
         case Seq((config, (retStmt, signals))) =>
@@ -150,7 +150,7 @@ class ProfilingTransform extends Transform {
     val modName = ModuleName(mod.name, CircuitName(mod.name))
     val namespace = Namespace(mod)
 
-    val (newPorts, stmts, annos) = (profiledSignals.map { case (config, sourceAnnos) =>
+    val (newPorts, stmts, annos) = profiledSignals.flatMap { case (config, sourceAnnos) =>
       // Create wires and sink annos
       val (wires, sinkAnnos) = (sourceAnnos.map { case SourceAnnotation(_, pin) =>
         val w = DefWire(NoInfo, namespace.newTemp, BoolType)
@@ -168,7 +168,7 @@ class ProfilingTransform extends Transform {
       } else {
         None
       }
-    }).flatten.unzip3
+    }.unzip3
 
     val bodyx = Block(stmts.flatten.toSeq :+ mod.body)
     val portsx = mod.ports ++ newPorts
@@ -191,7 +191,7 @@ class ProfilingTransform extends Transform {
     val profiledSignals =
       configs.map(
         c => c -> profiledSignalMaps
-          .filter(!_.isEmpty)
+          .filterNot(_.isEmpty)
           .map(_.apply(c))
           .reduce(_ ++ _))
           .toMap
