@@ -14,7 +14,7 @@ object ReplaceMemsTransform {
   // TODO: increase for longer tests!
   val SparseMemSize = 32
 
-  def getMem(tpe: Type, depth: Int, nR: Int, nW: Int, syncRead: Boolean): Module = {
+  def getMem(tpe: Type, depth: BigInt, nR: Int, nW: Int, syncRead: Boolean): Module = {
     import chisel3._
     import chisel3.util.log2Ceil
     val chirrtl = chisel3.Driver.emit(() => new Module {
@@ -28,7 +28,7 @@ object ReplaceMemsTransform {
       val dataType = typeToData(tpe)
       val io = IO(new Bundle {})
       // No need for dontTouch because we retop to SparseMem right away
-      val size = math.min(SparseMemSize, depth) // Use actual mem depth if it's smaller
+      val size = math.min(SparseMemSize, depth.toInt) // Use actual mem depth if it's smaller
       val submod = Module(new SparseMem(dataType, size, log2Ceil(depth), nR, nW, syncRead))
     })
     val circuit = {
@@ -56,9 +56,9 @@ class ReplaceMemsTransform extends Transform {
   import ReplaceMemsTransform._
 
   def access(expr: Expression, index: Expression) =
-    WSubAccess(expr, index, UnknownType, UNKNOWNGENDER)
+    WSubAccess(expr, index, UnknownType, UnknownFlow)
   def subindex(expr: Expression, index: Int) =
-    WSubIndex(expr, index, UnknownType, UNKNOWNGENDER)
+    WSubIndex(expr, index, UnknownType, UnknownFlow)
 
   private def onStmt(ns: Namespace,
                      topNS: Namespace,

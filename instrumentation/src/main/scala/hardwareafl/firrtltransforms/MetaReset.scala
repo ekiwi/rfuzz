@@ -16,12 +16,12 @@ class AddMetaResetTransform extends Transform {
   def outputForm = LowForm
 
   val metaResetPort = Port(NoInfo, "metaReset", Input, Utils.BoolType)
-  val metaResetInput = WRef(metaResetPort.name, metaResetPort.tpe, PortKind, MALE)
+  val metaResetInput = WRef(metaResetPort.name, metaResetPort.tpe, PortKind, SourceFlow)
   def metaResetInstPort(inst: WDefInstance) = {
-    val instRef = WRef(inst.name, inst.tpe, InstanceKind, BIGENDER)
-    WSubField(instRef, metaResetPort.name, metaResetPort.tpe, MALE)
+    val instRef = WRef(inst.name, inst.tpe, InstanceKind, DuplexFlow)
+    WSubField(instRef, metaResetPort.name, metaResetPort.tpe, SourceFlow)
   }
-  val metaResetSinkRef = metaResetInput.copy(gender = FEMALE)
+  val metaResetSinkRef = metaResetInput.copy(flow = SinkFlow)
 
   // Make a firrtl util
   private def getZero(tpe: Type): Literal = tpe match {
@@ -49,9 +49,8 @@ class AddMetaResetTransform extends Transform {
     val bodyx = onStmt(modType)(m.body)
     m.copy(ports = portsx, body = bodyx)
   }
-  def cleanup: Seq[Transform] = Seq(
-    new transforms.RemoveReset
-  )
+  def cleanup: Seq[Transform] = Seq(firrtl.transforms.RemoveReset)
+
   def execute(state: CircuitState): CircuitState = {
     val modSet = state.circuit.modules.collect({ case m: Module => m }).toSet
     val modsLeafToRoot = (new InstanceGraph(state.circuit)).moduleOrder.reverse

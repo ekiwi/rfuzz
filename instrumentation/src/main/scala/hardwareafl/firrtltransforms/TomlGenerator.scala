@@ -150,7 +150,6 @@ object TomlGenerator {
           case Dshlw => s"(${a0} << ${a1})"
           case Dshl => s"(${a0} << ${a1})"
           case Dshr => s"(${a0} >> ${a1})"
-          case Shlw => s"(${a0} << ${c0})"
           case Shl => s"(${a0} << ${c0})"
           case Shr => s"(${a0} >> ${c0})"
           case Neg  => s"-${a0}"

@@ -2,7 +2,6 @@ package hardwareafl
 
 import chisel3._
 import chisel3.util._
-import scala.reflect.ClassTag
 
 object SparseMem {
   def getMaskWidth(data: Data): Int = data match {

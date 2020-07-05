@@ -162,8 +162,8 @@ class ProfilingTransform extends Transform {
       val numPoints = wires.size
       if (numPoints > 0) {
         val port = Port(NoInfo, config.topPortName, Output, UIntType(IntWidth(numPoints)))
-        val (catref, catstmts) = Cat(namespace, wires.map(w => WRef(w.name, BoolType, NodeKind, MALE)): _*)
-        val connect = Connect(NoInfo, WRef(port.name, port.tpe, PortKind, MALE), catref)
+        val (catref, catstmts) = Cat(namespace, wires.map(w => WRef(w.name, BoolType, NodeKind, SourceFlow)): _*)
+        val connect = Connect(NoInfo, WRef(port.name, port.tpe, PortKind, SourceFlow), catref)
         Some((port, wires ++ catstmts :+ connect, sourceAnnos ++ sinkAnnos))
       } else {
         None
@@ -175,10 +175,6 @@ class ProfilingTransform extends Transform {
     val modx = mod.copy(body = bodyx, ports = portsx)
     (modx, annos.flatten.toSeq)
   }
-
-  def cleanupTransforms = Seq(
-    new FixupOps // https://github.com/freechipsproject/firrtl/issues/498
-  )
 
   def execute(state: CircuitState): CircuitState = {
 
@@ -209,8 +205,6 @@ class ProfilingTransform extends Transform {
     TomlGenerator(circuitx, profiledSignals)
 
     val result = state.copy(circuit = circuitx, annotations = annosx)
-    cleanupTransforms.foldLeft(result) {
-      case (state, transform) => transform.runTransform(state)
-    }
+    result
   }
 }

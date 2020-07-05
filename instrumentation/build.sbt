@@ -1,5 +1,7 @@
+name := "rfuzz-instrumentation"
+organization := "edu.berkeley.cs"
+scalaVersion := "2.12.10"
 
-scalaVersion := "2.11.12"
-
-libraryDependencies += "edu.berkeley.cs" %% "chisel3" % "3.2-SNAPSHOT"
+scalacOptions := Seq("-deprecation", "-unchecked", "-Xsource:2.11")
+libraryDependencies += "edu.berkeley.cs" %% "chisel3" % "3.3.2"
 
