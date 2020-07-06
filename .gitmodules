@@ -1,18 +1,9 @@
-[submodule "firrtl"]
-	path = firrtl
-	url = git@github.com:ucb-bar/firrtl.git
 [submodule "harness/midas"]
 	path = midas/midas
 	url = git@github.com:ucb-bar/midas.git
-[submodule "harness/barstools"]
-	path = harness/barstools
-	url = git@github.com:ucb-bar/barstools.git
 [submodule "midas/barstools"]
 	path = midas/barstools
 	url = git@github.com:ucb-bar/barstools.git
 [submodule "midas/platforms/zynq"]
 	path = midas/platforms/zynq
 	url = git@github.com:ucb-bar/midas-zynq.git
-[submodule "chisel3"]
-	path = chisel3
-	url = git@github.com:freechipsproject/chisel3.git
