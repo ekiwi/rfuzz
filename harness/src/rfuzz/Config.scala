@@ -1,7 +1,5 @@
 // Copyright 2017 Kevin Laeufer <laeufer@cs.berkeley.edu>
-package pynq
-
-import scala.collection.immutable.ListMap
+package rfuzz
 // this file contains code to load our TOML config files and
 // extract the information needed to generate the harness
 
@@ -13,11 +11,12 @@ case class DUTConfig(src: String, name: String,
 
 
 object Config {
-	import java.time.OffsetDateTime
-	import java.nio.file.{Paths, Files}
 	import java.nio.charset.StandardCharsets
-	import toml._
+	import java.nio.file.{Files, Paths}
+	import java.time.OffsetDateTime
+
 	import toml.Codecs._
+	import toml._
 
 	case class General(filename: String, instrumented: String, top: String, timestamp: OffsetDateTime)
 	case class Coverage(port: String, name: String, index: Int, filename: String, line: Int, column: Int, human: String)

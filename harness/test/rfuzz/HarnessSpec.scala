@@ -1,10 +1,8 @@
 // See LICENSE for license details.
 
-package pynq
+package rfuzz
 
 import chisel3._
-import chisel3.iotesters
-import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
 
 class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	private val h = harness
@@ -180,7 +178,7 @@ extends PeekPokeTester(harness) {
 	//       Especially the input receiver should not accept any more test data!
 }
 
-class GCDTester extends ChiselFlatSpec {
+class HarnessSpec extends ChiselFlatSpec {
 	private val conf = Config.loadToml("../gcd.toml")
 
 	private val backendNames =

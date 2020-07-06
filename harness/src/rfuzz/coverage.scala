@@ -1,4 +1,4 @@
-package pynq
+package rfuzz
 
 import chisel3._
 import chisel3.util._

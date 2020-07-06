@@ -1,9 +1,8 @@
 // Copyright 2017 Kevin Laeufer <laeufer@cs.berkeley.edu>
-package pynq
+package rfuzz
+
 import chisel3._
 import chisel3.util._
-
-import scala.collection.mutable
 
 // This file contains an adaptor to interface the DUT with our
 // C++ verilator testbench.

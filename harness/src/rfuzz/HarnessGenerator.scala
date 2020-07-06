@@ -1,11 +1,7 @@
-package pynq
+package rfuzz
 
 import chisel3._
 import chisel3.util._
-import chisel3.experimental.withReset
-
-import scala.collection.immutable.ListMap
-import scala.collection.mutable
 
 // WARN: all circuts designed with 64bit AXIS interface in mind
 
