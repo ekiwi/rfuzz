@@ -3,7 +3,7 @@
 package rfuzz
 
 import chisel3._
-
+/*
 class HarnessUnitTester(harness: Harness) extends PeekPokeTester(harness) {
 	private val h = harness
 
@@ -200,3 +200,4 @@ class HarnessSpec extends ChiselFlatSpec {
 	// 	} should be (true)
 	// }
 }
+*/
