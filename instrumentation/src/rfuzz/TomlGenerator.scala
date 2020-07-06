@@ -47,17 +47,17 @@ object TomlGenerator {
     // sort decending by width (TODO: is sortWith stable?)
     possible_inputs.flatten.toSeq.sortWith(_.width > _.width)
   }
-  def parseFileInfo(info: FileInfo) : DebugInfo = {
+  def parseFileInfo(info: FileInfo) : Option[DebugInfo] = {
     val pattern = raw":([^@:]+)@(\d+)\.(\d+)".r.unanchored
     // yosys: gates.v:5.16-5.21
     info.info.string match {
-      case pattern(filename, line, col) => DebugInfo(filename, line.toInt, col.toInt)
-      case _ => throw new Exception(s"Unexpected FileInfo string: `${info.info.string}`")
+      case pattern(filename, line, col) => Some(DebugInfo(filename, line.toInt, col.toInt))
+      case _ => None
     }
   }
   def getDebugInfo(info: Info) : Seq[Option[DebugInfo]] = {
     info match {
-      case fi: FileInfo => Seq(Some(parseFileInfo(fi)))
+      case fi: FileInfo => Seq(parseFileInfo(fi))
       case mi: MultiInfo => mi.infos.flatMap(getDebugInfo)
       case _ => Seq()
     }
