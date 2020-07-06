@@ -43,7 +43,7 @@ class SparseMem[T <: Data]
      nR: Int,
      nW: Int,
      syncRead: Boolean)
-    (implicit maybe: MaybeVec[T]) extends Module {
+    (implicit maybe: MaybeVec[T]) extends Module with RequireSyncReset {
   val io = IO(new Bundle {
     val w = Vec(nW, new MemWriterIO(dataType, addrWidth))
     val r = Vec(nR, new MemReaderIO(dataType, addrWidth))
