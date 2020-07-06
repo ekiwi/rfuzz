@@ -2,24 +2,14 @@ package rfuzz
 
 import chisel3._
 import chisel3.util._
+import freechips.rocketchip.util.RecordMap
 
 import scala.collection.immutable.ListMap
 
-object ListBundle {
-	def apply(el: ListMap[String, Data]): Record = {
-		new Record {
-			val elements: ListMap[String, Data] = el
-			override def cloneType : this.type = {
-				throw new Exception(s"Cloning not supported until someone explains to me what it's for!")
-				this
-			}
-		}
-	}
-}
 
 class DUTBlackBox(conf: DUTConfig) extends HasBlackBoxInline {
 	override def desiredName = conf.name
-	val io = this.IO(ListBundle( {
+	val io = this.IO(RecordMap( {
 		ListMap("clock" -> Input(Clock()), "reset" -> Input(Bool()),
 		        "metaReset" -> Input(Bool())) ++
 		conf.input.map{ case inp => inp.name -> Input(UInt(inp.width.W)) } ++
