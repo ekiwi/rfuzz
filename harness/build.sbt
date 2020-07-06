@@ -1,27 +1,10 @@
-name := "harness"
-
+name := "rfuzz-harness"
 version := "0.1"
+organization := "edu.berkeley.cs"
+scalaVersion := "2.12.10"
 
-scalaVersion := "2.11.12"
-
-scalacOptions := Seq("-deprecation")
-
-resolvers ++= Seq(
-	Resolver.sonatypeRepo("snapshots"),
-	Resolver.sonatypeRepo("releases")
-)
-
-// Provide a managed dependency on X if -DXVersion="" is supplied on the command line.
-val defaultVersions = Map(
-	"chisel3" -> "3.0.0-RC1",
-	"chisel-iotesters" -> "1.1.0-RC1"
-)
-
-libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
-	dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(
-		dep + "Version", defaultVersions(dep))
-})
-
+scalacOptions := Seq("-deprecation", "-unchecked", "-Xsource:2.11")
+libraryDependencies += "edu.berkeley.cs" %% "chisel3" % "3.3.2"
 // toml-scala: https://github.com/sparsetech/toml-scala
 // (stoml does not support dates)
 libraryDependencies += "tech.sparse" %% "toml-scala" % "0.1.0"
