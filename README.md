@@ -152,7 +152,11 @@ To terminate fuzzing use `Ctrl+C` and wait for the fuzzer to shut down
 
 ### FPGA Accelerated Fuzz Server
 
-**TODO:** document
+The FPGA acceleration is not working on the current main branch anymore.
+Please have a look at the `iccad18` branch instead.
+Also, please feel free to contact the authors since the FPGA fuzzing
+is not very well documented.
+
 
 ### Analysis
 
