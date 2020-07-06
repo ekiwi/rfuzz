@@ -61,6 +61,7 @@ lookup_scala_srcs = $(shell find $(1)/ -iname "*.scala" 2> /dev/null)
 $(INSTRUMENTED_V) $(INSTRUMENTED_FIR) $(INSTRUMENTATION_TOML): $(INPUT) $(INSTRUMENTATION_SOURCES)
 	cd instrumentation ;\
 	$(SBT) "runMain firrtl.stage.FirrtlMain -i $< -o $(DUT) -X verilog -E low -E verilog -ll info -fct $(subst $(SPACE),$(COMMA),$(FIRRTL_TRANSFORMS)) $(ANNO_CMD)"
+	mkdir -p $(BUILD)
 	mv instrumentation/$(DUT).toml $(INSTRUMENTATION_TOML)
 	mv instrumentation/$(DUT).lo.fir $(INSTRUMENTED_FIR)
 	mv instrumentation/$(DUT).v $(INSTRUMENTED_V)
