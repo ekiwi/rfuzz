@@ -120,5 +120,5 @@ jobs:
         java-version: 11
 
     - name: Rocket Chip Tile
-      run: make FIR=RocketTile.fir DUT=RocketTile build/RocketTile_VHarness.v
+      run: make FIR=RocketTile.fir DUT=RocketTile
 
