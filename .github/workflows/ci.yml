@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  cache:
-    name: Instrument Caches
+  icache:
+    name: Instrument ICaches
     runs-on: ubuntu-latest
 
     steps:
@@ -26,11 +26,27 @@ jobs:
       run: make FIR=ICache.fir DUT=ICache bin
 
     - name: ICache w/ Coverage
-      run: make FIR=ICacheCover.fir DUT=ICache bin
+      run: |
+        make FIR=ICacheCover.fir DUT=ICache clean
+        make FIR=ICacheCover.fir DUT=ICache bin
+
+  dcache:
+    name: Instrument DCache
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: sudo apt-get install -y build-essential meson pkg-config verilator python3-toml
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
 
     - name: Non-Blocking Data Cache
       run: make FIR=NonBlockingDCache.fir DUT=NonBlockingDCache bin
-
 
   sodor:
     name: Instrument Sodor Cores
