@@ -7,7 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  test:
+  cache:
+    name: Instrument Caches
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +33,24 @@ jobs:
     - name: Non-Blocking Data Cache
       run: make FIR=NonBlockingDCache.fir DUT=NonBlockingDCache bin
 
+
+  sodor:
+    name: Instrument Sodor Cores
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: |
+       sudo apt-get install -y build-essential meson pkg-config openjdk-8-jdk verilator cargo
+       sudo apt-get install -y python3-toml python3-numpy python3-matplotlib graphviz
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
     - name: Sodor 1-Stage
       run: make FIR=Sodor1Stage.fir DUT=Sodor1Stage bin
 
@@ -40,6 +59,24 @@ jobs:
 
     - name: Sodor 5-Stage
       run: make FIR=Sodor5Stage.fir DUT=Sodor5Stage bin
+
+
+  peripheral:
+    name: Instrument TileLink Peripherals
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: |
+       sudo apt-get install -y build-essential meson pkg-config openjdk-8-jdk verilator cargo
+       sudo apt-get install -y python3-toml python3-numpy python3-matplotlib graphviz
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
 
     - name: I2C Peripheral
       run: make FIR=TLI2C.fir DUT=TLI2C bin
@@ -53,8 +90,45 @@ jobs:
     - name: UART Peripheral
       run: make FIR=TLUART.fir DUT=TLUART bin
 
+
+  fft:
+    name: Instrument FFT
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: |
+       sudo apt-get install -y build-essential meson pkg-config openjdk-8-jdk verilator cargo
+       sudo apt-get install -y python3-toml python3-numpy python3-matplotlib graphviz
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
     - name: FFT Small
       run: make FIR=FFTSmall.fir DUT=FFTSmall bin
 
+
+  rocket:
+    name: Instrument Rocket Chip
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Dependencies
+      run: |
+       sudo apt-get install -y build-essential meson pkg-config openjdk-8-jdk verilator cargo
+       sudo apt-get install -y python3-toml python3-numpy python3-matplotlib graphviz
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
     - name: Rocket Chip Tile
       run: make FIR=RocketTile.fir DUT=RocketTile bin
+
