@@ -9,9 +9,7 @@ import scala.collection.mutable
 // Removes compound expressions from mux conditions
 // Ensures they are a reference
 // Borrows from Firrtl's SplitExpressions
-class SplitMuxConditions extends Transform {
-  def inputForm = MidForm
-  def outputForm = MidForm
+class SplitMuxConditions extends Transform with DependencyAPIMigration {
 
   private def isRef(expr: Expression): Boolean = expr match {
     case ref @ (_: WRef | _: WSubField | _: WSubIndex) => true

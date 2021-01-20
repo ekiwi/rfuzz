@@ -89,7 +89,7 @@ class SparseMem[T <: Data]
       maybe.evidence match {
         case Some(ev) =>
           implicit val evidence = ev
-          mem.write(addr, w.data, w.mask.asUInt.toBools)
+          mem.write(addr, w.data, w.mask.asUInt.asBools())
         case None =>
           mem.write(addr, w.data)
       }

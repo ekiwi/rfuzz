@@ -13,9 +13,7 @@ import scala.collection.mutable
 // We need this because the WiringTransform cannot handle deduplicated modules
 // Turning off dedup should be a feature of FIRRTL
 // Note that we can't use InstanceGraph because it only works on WIR (needs to be checked)
-class NoDedupTransform extends Transform {
-  def inputForm = ChirrtlForm
-  def outputForm = ChirrtlForm
+class NoDedupTransform extends Transform with DependencyAPIMigration {
 
   // Returns a *relative* count of modules, ie. how many times the DefInstance shows up in the
   // Module graph
@@ -23,11 +21,11 @@ class NoDedupTransform extends Transform {
     val counts = mutable.HashMap.empty[String, Int]
     counts(circuit.main) = 1
     def onStmt(stmt: Statement): Statement = stmt.map(onStmt) match {
-      case inst @ DefInstance(_,_, mname) =>
+      case inst @ DefInstance(_,_, mname, _) =>
         counts(mname) = counts.getOrElse(mname, 0) + 1
         inst
       case (_: WDefInstance | _: WDefInstanceConnector) =>
-        throw new FIRRTLException("Unexpected non-Chirrtl Instance!")
+        throw new RuntimeException("Unexpected non-Chirrtl Instance!")
       case other => other
     }
     def onMod(mod: DefModule): DefModule = mod.map(onStmt)

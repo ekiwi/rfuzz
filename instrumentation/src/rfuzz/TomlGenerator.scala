@@ -50,7 +50,7 @@ object TomlGenerator {
   def parseFileInfo(info: FileInfo) : Option[DebugInfo] = {
     val pattern = raw":([^@:]+)@(\d+)\.(\d+)".r.unanchored
     // yosys: gates.v:5.16-5.21
-    info.info.string match {
+    info.unescaped match {
       case pattern(filename, line, col) => Some(DebugInfo(filename, line.toInt, col.toInt))
       case _ => None
     }
@@ -117,14 +117,6 @@ object TomlGenerator {
           }
         } else { ref.name }
       }
-      case ref: WRef => {
-        if(isGeneratedIdentifier(ref.name)) {
-          definitions.get(ref.name) match {
-            case Some(d) => getHumanReadableExpression(definitions, d)
-            case None => ref.name
-          }
-        } else { ref.name }
-      }
       case lit: Literal => { s"${lit.value}" }
       case doprim: DoPrim => {
         // lot's of code similar to the Verilog Emitter .... hm
@@ -166,7 +158,7 @@ object TomlGenerator {
         val fval = getHumanReadableExpression(definitions, mux.fval)
         s"(${cond}? ${tval} : ${fval})"
       }
-      case wsf: WSubField => {
+      case wsf: SubField => {
         val expr = getHumanReadableExpression(definitions, wsf.expr)
         s"(${expr}).${wsf.name}"
       }

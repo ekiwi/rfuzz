@@ -27,9 +27,7 @@ case class DoNotProfileModule(target: ModuleName) extends SingleTargetAnnotation
   * Cover points are expected to be of the form: printf(..., "COVER:..." signal)
   * Assertions are expected to be of the form: printf(..., "Assertion...")
   */
-class ProfilingTransform extends Transform {
-  def inputForm = LowForm
-  def outputForm = MidForm
+class ProfilingTransform extends Transform with DependencyAPIMigration {
 
   import ProfilingTransform._
 

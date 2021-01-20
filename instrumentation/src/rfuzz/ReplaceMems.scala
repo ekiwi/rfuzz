@@ -16,7 +16,7 @@ object ReplaceMemsTransform {
   def getMem(tpe: Type, depth: BigInt, nR: Int, nW: Int, syncRead: Boolean): Module = {
     import chisel3._
     import chisel3.util.log2Ceil
-    val chirrtl = chisel3.Driver.emit(() => new Module {
+    val chirrtl = (new chisel3.stage.ChiselStage).emitChirrtl(new Module {
       override def desiredName = "IgnoreMe"
       def typeToData(tpe: Type): Data = tpe match {
         case UIntType(IntWidth(w)) => UInt(w.toInt.W)
@@ -36,7 +36,7 @@ object ReplaceMemsTransform {
       assert(mods.size == 1)
       parsed.copy(modules = mods, main = mods.head.name)
     }
-    val state = (new MiddleFirrtlCompiler).compile(CircuitState(circuit, ChirrtlForm), Seq.empty)
+    val state = (new MiddleFirrtlCompiler).execute(CircuitState(circuit, Seq()))
     state.circuit.modules match {
       case Seq(one: firrtl.ir.Module) => one
       case other => throwInternalError(s"Invalid resulting modules ${other.map(_.name)}")
@@ -48,9 +48,7 @@ object ReplaceMemsTransform {
   * @note Assumes that clocks on all mem ports are the same (generally safe assumption)
   * @note Assumes that wrapping Module has a port named "reset"
   */
-class ReplaceMemsTransform extends Transform {
-  def inputForm = LowForm
-  def outputForm = HighForm
+class ReplaceMemsTransform extends Transform with DependencyAPIMigration {
 
   import ReplaceMemsTransform._
 

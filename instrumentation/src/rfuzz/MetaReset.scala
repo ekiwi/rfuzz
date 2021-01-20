@@ -4,14 +4,12 @@ package rfuzz
 import firrtl.Mappers._
 import firrtl.Utils.throwInternalError
 import firrtl._
-import firrtl.analyses.InstanceGraph
+import firrtl.analyses.InstanceKeyGraph
 import firrtl.ir._
 import firrtl.passes.RemoveValidIf
 
 // Add a meta-reset to all registers
-class AddMetaResetTransform extends Transform {
-  def inputForm = LowForm
-  def outputForm = LowForm
+class AddMetaResetTransform extends Transform with DependencyAPIMigration {
 
   val metaResetPort = Port(NoInfo, "metaReset", Input, Utils.BoolType)
   val metaResetInput = WRef(metaResetPort.name, metaResetPort.tpe, PortKind, SourceFlow)
@@ -51,7 +49,7 @@ class AddMetaResetTransform extends Transform {
 
   def execute(state: CircuitState): CircuitState = {
     val modSet = state.circuit.modules.collect({ case m: Module => m }).toSet
-    val modsLeafToRoot = (new InstanceGraph(state.circuit)).moduleOrder.reverse
+    val modsLeafToRoot = InstanceKeyGraph(state.circuit).moduleOrder.reverse
     val (modsUpdate, _) =
       modsLeafToRoot.foldLeft((Map.empty[String, DefModule], Map.empty[String, Type])) {
         case ((acc, types), m) => m match {
