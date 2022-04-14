@@ -1,0 +1,4 @@
+read_verilog ibex_decoder.v
+hierarchy -top ibex_decoder
+proc
+write_firrtl ibex_decoder.fir

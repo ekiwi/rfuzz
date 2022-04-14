@@ -1,0 +1,7 @@
+read_verilog ibex_decoder.v
+read_verilog ibex_controller.v
+read_verilog ibex_register_file_ff.v
+read_verilog ibex_id_stage.v
+hierarchy -top ibex_id_stage
+proc
+write_firrtl ibex_id_stage.fir
