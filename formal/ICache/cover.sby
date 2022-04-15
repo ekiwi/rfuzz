@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 50
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal ICache.v
+read -formal ICache_formal.sv
+prep -top ICacheTop
+
+[files]
+ICache.v
+ICache_formal.sv
