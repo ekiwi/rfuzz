@@ -113,8 +113,8 @@ if __name__ == '__main__':
 	old_style = False
 
 	for ii, (disco_times, cov, stds, name) in enumerate(coverage_data):
-		if name.endswith('random'): name = 'random'
-		else: name = 'RFUZZ'
+		#if name.endswith('random'): name = 'random'
+		#else: name = 'RFUZZ'
 		plt.plot(disco_times, cov, label=name)
 		#plt.fill_between(disco_times, cov - stds, cov + stds,
 		#                 facecolor=color_cycle[ii], alpha=0.2,

@@ -55,11 +55,18 @@ def to_bytes(input_bytes: int, value: str) -> list[int]:
   return bbs
 
 
-def inputs_to_entry(inputs: list[str], ii: int) -> dict:
+def parse_time(time: str) -> dict:
+  parts = time.split(":")
+  assert len(parts) == 3, time
+  minutes = int(parts[0]) * 60 + int(parts[1])
+  seconds = minutes * 60 + int(parts[2])
+  return {'secs': seconds, 'nanos': 0}
+
+def inputs_to_entry(inputs: list[str], ii: int, step: int, time: str) -> dict:
+  discovery_time = parse_time(time)
   entry = {
     'id': ii,
-    # TODO: actually calculate time!
-    'discovered_after': {'secs': 0, 'nanos': 0},
+    'discovered_after': discovery_time,
     # bogus default values to make the analysis script happy
     'is_valid': True,
     'not_covered': [],
@@ -79,13 +86,32 @@ def inputs_to_entry(inputs: list[str], ii: int) -> dict:
 
   return  { 'entry' : entry, 'stats': {} }
 
+
+_step_re = re.compile(r"in step (\d+)")
+_writing_trace_re = re.compile(r"(\d:\d+:\d+)\s+Writing trace to Verilog testbench: ([^\n]+)")
+
+def parse_log(filename: Path):
+  step = 0
+  traces = []
+  with open(filename) as ff:
+    for line in ff.readlines():
+      m = _step_re.search(line)
+      if m is not None:
+        step = int(m.group(1))
+      m = _writing_trace_re.search(line)
+      if m is not None:
+        t = (step, m.group(1), m.group(2).strip())
+        traces.append(t)
+  return traces
+
 def convert(inp, to):
-  assert os.path.isdir(inp)
-  files = [inp / f for f in glob.glob("*_tb.v", root_dir=inp)]
+  assert inp.is_dir()
+  traces = parse_log(inp / "logfile.txt")
+
   ii = 0
-  for filename in tqdm.tqdm(files):
-    mem = find_input_assignments(filename)
-    entry = inputs_to_entry(mem, ii)
+  for step, time, filename in tqdm.tqdm(traces):
+    mem = find_input_assignments(inp / filename)
+    entry = inputs_to_entry(mem, ii, step, time)
     ii += 1
     basename = os.path.basename(filename)
     with open(to / ("entry_" + basename + ".json"), 'w') as ff:
