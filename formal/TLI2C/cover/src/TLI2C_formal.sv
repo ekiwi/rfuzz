@@ -1,28 +1,6 @@
 module TLI2CTop(
   input          clock,
-  // inputs to the TLI2C
-  input          auto_in_a_valid,
-  input  [2:0]   auto_in_a_bits_opcode,
-  input  [2:0]   auto_in_a_bits_param,
-  input  [1:0]   auto_in_a_bits_size,
-  input  [6:0]   auto_in_a_bits_source,
-  input  [28:0]  auto_in_a_bits_address,
-  input  [3:0]   auto_in_a_bits_mask,
-  input  [31:0]  auto_in_a_bits_data,
-  input          auto_in_b_ready,
-  input          auto_in_c_valid,
-  input  [2:0]   auto_in_c_bits_opcode,
-  input  [2:0]   auto_in_c_bits_param,
-  input  [1:0]   auto_in_c_bits_size,
-  input  [6:0]   auto_in_c_bits_source,
-  input  [28:0]  auto_in_c_bits_address,
-  input  [31:0]  auto_in_c_bits_data,
-  input          auto_in_c_bits_error,
-  input          auto_in_d_ready,
-  input          auto_in_e_valid,
-  input          auto_in_e_bits_sink,
-  input          io_port_scl_in,
-  input          io_port_sda_in
+  input  [164:0] io_inputs
 );
 
 // reset generator
@@ -359,6 +337,55 @@ always @(posedge clock) begin
         assume(assert_out == 52'd0);
     end
 end
+
+
+// wire up the inputs
+// bunching them together makes it easier to conver coverage traces
+// into the same output format that the fuzzer uses
+wire         auto_in_a_valid;
+wire [2:0]   auto_in_a_bits_opcode;
+wire [2:0]   auto_in_a_bits_param;
+wire [1:0]   auto_in_a_bits_size;
+wire [6:0]   auto_in_a_bits_source;
+wire [28:0]  auto_in_a_bits_address;
+wire [3:0]   auto_in_a_bits_mask;
+wire [31:0]  auto_in_a_bits_data;
+wire         auto_in_b_ready;
+wire         auto_in_c_valid;
+wire [2:0]   auto_in_c_bits_opcode;
+wire [2:0]   auto_in_c_bits_param;
+wire [1:0]   auto_in_c_bits_size;
+wire [6:0]   auto_in_c_bits_source;
+wire [28:0]  auto_in_c_bits_address;
+wire [31:0]  auto_in_c_bits_data;
+wire         auto_in_c_bits_error;
+wire         auto_in_d_ready;
+wire         auto_in_e_valid;
+wire         auto_in_e_bits_sink;
+wire         io_port_scl_in;
+wire         io_port_sda_in;
+assign io_port_sda_in = io_inputs[0]; // @[DUT.scala 40:25]
+assign io_port_scl_in = io_inputs[1]; // @[DUT.scala 40:25]
+assign auto_in_e_bits_sink = io_inputs[2]; // @[DUT.scala 40:25]
+assign auto_in_e_valid = io_inputs[3]; // @[DUT.scala 40:25]
+assign auto_in_d_ready = io_inputs[4]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_error = io_inputs[5]; // @[DUT.scala 40:25]
+assign auto_in_c_valid = io_inputs[6]; // @[DUT.scala 40:25]
+assign auto_in_b_ready = io_inputs[7]; // @[DUT.scala 40:25]
+assign auto_in_a_valid = io_inputs[8]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_size = io_inputs[10:9]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_size = io_inputs[12:11]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_param = io_inputs[15:13]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_opcode = io_inputs[18:16]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_param = io_inputs[21:19]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_opcode = io_inputs[24:22]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_mask = io_inputs[28:25]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_source = io_inputs[35:29]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_source = io_inputs[42:36]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_address = io_inputs[71:43]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_address = io_inputs[100:72]; // @[DUT.scala 40:25]
+assign auto_in_c_bits_data = io_inputs[132:101]; // @[DUT.scala 40:25]
+assign auto_in_a_bits_data = io_inputs[164:133]; // @[DUT.scala 40:25]
 
 // dut instance
 TLI2C bb ( // @[DUT.scala 29:24]
