@@ -1,0 +1,412 @@
+##   0:00:00  Solver: boolector
+##   0:00:00  Checking cover reachability in step 0..
+##   0:00:00  Checking cover reachability in step 1..
+##   0:00:00  Checking cover reachability in step 2..
+##   0:00:00  Checking cover reachability in step 3..
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:200.33-201.32 ($cover$TLI2C_formal.sv:200$548) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:201.33-202.32 ($cover$TLI2C_formal.sv:201$549) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:203.33-204.32 ($cover$TLI2C_formal.sv:203$551) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:206.33-207.32 ($cover$TLI2C_formal.sv:206$554) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:207.33-208.32 ($cover$TLI2C_formal.sv:207$555) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:209.33-210.32 ($cover$TLI2C_formal.sv:209$557) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:212.33-213.32 ($cover$TLI2C_formal.sv:212$560) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:214.33-215.32 ($cover$TLI2C_formal.sv:214$562) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:216.33-217.32 ($cover$TLI2C_formal.sv:216$564) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:218.33-219.32 ($cover$TLI2C_formal.sv:218$566) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:220.33-221.32 ($cover$TLI2C_formal.sv:220$568) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:222.33-223.32 ($cover$TLI2C_formal.sv:222$570) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:224.33-225.32 ($cover$TLI2C_formal.sv:224$572) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:226.33-227.32 ($cover$TLI2C_formal.sv:226$574) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:228.33-229.32 ($cover$TLI2C_formal.sv:228$576) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:230.33-231.32 ($cover$TLI2C_formal.sv:230$578) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:232.33-233.32 ($cover$TLI2C_formal.sv:232$580) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:234.33-235.32 ($cover$TLI2C_formal.sv:234$582) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:236.33-237.32 ($cover$TLI2C_formal.sv:236$584) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:238.33-239.32 ($cover$TLI2C_formal.sv:238$586) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:240.33-241.32 ($cover$TLI2C_formal.sv:240$588) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:242.33-243.32 ($cover$TLI2C_formal.sv:242$590) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:244.33-245.32 ($cover$TLI2C_formal.sv:244$592) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:246.33-247.32 ($cover$TLI2C_formal.sv:246$594) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:248.33-249.32 ($cover$TLI2C_formal.sv:248$596) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:250.33-251.32 ($cover$TLI2C_formal.sv:250$598) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:252.33-253.32 ($cover$TLI2C_formal.sv:252$600) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:253.33-254.32 ($cover$TLI2C_formal.sv:253$601) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:256.33-257.32 ($cover$TLI2C_formal.sv:256$604) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:258.33-259.32 ($cover$TLI2C_formal.sv:258$606) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:260.33-261.32 ($cover$TLI2C_formal.sv:260$608) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:262.33-263.32 ($cover$TLI2C_formal.sv:262$610) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:264.33-265.32 ($cover$TLI2C_formal.sv:264$612) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:266.33-267.32 ($cover$TLI2C_formal.sv:266$614) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:268.33-269.32 ($cover$TLI2C_formal.sv:268$616) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:270.33-271.32 ($cover$TLI2C_formal.sv:270$618) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:271.33-272.32 ($cover$TLI2C_formal.sv:271$619) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:274.33-275.32 ($cover$TLI2C_formal.sv:274$622) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:276.33-277.32 ($cover$TLI2C_formal.sv:276$624) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:278.33-279.32 ($cover$TLI2C_formal.sv:278$626) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:280.33-281.32 ($cover$TLI2C_formal.sv:280$628) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:282.33-283.32 ($cover$TLI2C_formal.sv:282$630) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:284.33-285.32 ($cover$TLI2C_formal.sv:284$632) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:285.33-286.32 ($cover$TLI2C_formal.sv:285$633) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:287.33-288.32 ($cover$TLI2C_formal.sv:287$635) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:289.33-290.32 ($cover$TLI2C_formal.sv:289$637) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:291.33-292.32 ($cover$TLI2C_formal.sv:291$639) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:293.33-294.32 ($cover$TLI2C_formal.sv:293$641) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:296.33-297.32 ($cover$TLI2C_formal.sv:296$644) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:298.33-299.32 ($cover$TLI2C_formal.sv:298$646) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:300.33-301.32 ($cover$TLI2C_formal.sv:300$648) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:302.33-303.32 ($cover$TLI2C_formal.sv:302$650) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:304.33-305.32 ($cover$TLI2C_formal.sv:304$652) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:306.33-307.32 ($cover$TLI2C_formal.sv:306$654) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:308.33-309.32 ($cover$TLI2C_formal.sv:308$656) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:310.33-311.32 ($cover$TLI2C_formal.sv:310$658) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:312.33-313.32 ($cover$TLI2C_formal.sv:312$660) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:314.33-315.32 ($cover$TLI2C_formal.sv:314$662) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:316.33-317.32 ($cover$TLI2C_formal.sv:316$664) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:318.33-319.32 ($cover$TLI2C_formal.sv:318$666) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:320.33-321.32 ($cover$TLI2C_formal.sv:320$668) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:322.33-323.32 ($cover$TLI2C_formal.sv:322$670) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:324.33-325.32 ($cover$TLI2C_formal.sv:324$672) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:325.33-326.32 ($cover$TLI2C_formal.sv:325$673) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:327.33-328.32 ($cover$TLI2C_formal.sv:327$675) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:330.33-331.32 ($cover$TLI2C_formal.sv:330$678) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:331.33-332.32 ($cover$TLI2C_formal.sv:331$679) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:334.33-335.32 ($cover$TLI2C_formal.sv:334$682) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:335.33-336.32 ($cover$TLI2C_formal.sv:335$683) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:338.33-339.32 ($cover$TLI2C_formal.sv:338$686) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:339.33-340.32 ($cover$TLI2C_formal.sv:339$687) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:341.33-342.32 ($cover$TLI2C_formal.sv:341$689) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:344.33-345.32 ($cover$TLI2C_formal.sv:344$692) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:346.33-347.32 ($cover$TLI2C_formal.sv:346$694) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:348.33-349.32 ($cover$TLI2C_formal.sv:348$696) in step 3.
+##   0:00:00  Reached cover statement at TLI2C_formal.sv:350.33-351.32 ($cover$TLI2C_formal.sv:350$698) in step 3.
+##   0:00:00  Writing trace to VCD file: engine_0/trace0.vcd
+##   0:00:01  Writing trace to Verilog testbench: engine_0/trace0_tb.v
+##   0:00:01  Writing trace to constraints file: engine_0/trace0.smtc
+##   0:00:01  Checking cover reachability in step 3..
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:333.33-334.32 ($cover$TLI2C_formal.sv:333$681) in step 3.
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:337.33-338.32 ($cover$TLI2C_formal.sv:337$685) in step 3.
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:343.33-344.32 ($cover$TLI2C_formal.sv:343$691) in step 3.
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:345.33-346.32 ($cover$TLI2C_formal.sv:345$693) in step 3.
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:347.33-348.32 ($cover$TLI2C_formal.sv:347$695) in step 3.
+##   0:00:01  Reached cover statement at TLI2C_formal.sv:349.33-350.32 ($cover$TLI2C_formal.sv:349$697) in step 3.
+##   0:00:01  Writing trace to VCD file: engine_0/trace1.vcd
+##   0:00:02  Writing trace to Verilog testbench: engine_0/trace1_tb.v
+##   0:00:02  Writing trace to constraints file: engine_0/trace1.smtc
+##   0:00:02  Checking cover reachability in step 3..
+##   0:00:02  Reached cover statement at TLI2C_formal.sv:326.33-327.32 ($cover$TLI2C_formal.sv:326$674) in step 3.
+##   0:00:02  Reached cover statement at TLI2C_formal.sv:328.33-329.32 ($cover$TLI2C_formal.sv:328$676) in step 3.
+##   0:00:02  Writing trace to VCD file: engine_0/trace2.vcd
+##   0:00:02  Writing trace to Verilog testbench: engine_0/trace2_tb.v
+##   0:00:02  Writing trace to constraints file: engine_0/trace2.smtc
+##   0:00:02  Checking cover reachability in step 3..
+##   0:00:02  Reached cover statement at TLI2C_formal.sv:323.33-324.32 ($cover$TLI2C_formal.sv:323$671) in step 3.
+##   0:00:02  Writing trace to VCD file: engine_0/trace3.vcd
+##   0:00:03  Writing trace to Verilog testbench: engine_0/trace3_tb.v
+##   0:00:03  Writing trace to constraints file: engine_0/trace3.smtc
+##   0:00:03  Checking cover reachability in step 3..
+##   0:00:03  Reached cover statement at TLI2C_formal.sv:321.33-322.32 ($cover$TLI2C_formal.sv:321$669) in step 3.
+##   0:00:03  Writing trace to VCD file: engine_0/trace4.vcd
+##   0:00:04  Writing trace to Verilog testbench: engine_0/trace4_tb.v
+##   0:00:04  Writing trace to constraints file: engine_0/trace4.smtc
+##   0:00:04  Checking cover reachability in step 3..
+##   0:00:04  Reached cover statement at TLI2C_formal.sv:319.33-320.32 ($cover$TLI2C_formal.sv:319$667) in step 3.
+##   0:00:04  Writing trace to VCD file: engine_0/trace5.vcd
+##   0:00:05  Writing trace to Verilog testbench: engine_0/trace5_tb.v
+##   0:00:05  Writing trace to constraints file: engine_0/trace5.smtc
+##   0:00:05  Checking cover reachability in step 3..
+##   0:00:05  Reached cover statement at TLI2C_formal.sv:317.33-318.32 ($cover$TLI2C_formal.sv:317$665) in step 3.
+##   0:00:05  Writing trace to VCD file: engine_0/trace6.vcd
+##   0:00:06  Writing trace to Verilog testbench: engine_0/trace6_tb.v
+##   0:00:06  Writing trace to constraints file: engine_0/trace6.smtc
+##   0:00:06  Checking cover reachability in step 3..
+##   0:00:06  Reached cover statement at TLI2C_formal.sv:315.33-316.32 ($cover$TLI2C_formal.sv:315$663) in step 3.
+##   0:00:06  Writing trace to VCD file: engine_0/trace7.vcd
+##   0:00:06  Writing trace to Verilog testbench: engine_0/trace7_tb.v
+##   0:00:06  Writing trace to constraints file: engine_0/trace7.smtc
+##   0:00:06  Checking cover reachability in step 3..
+##   0:00:06  Reached cover statement at TLI2C_formal.sv:313.33-314.32 ($cover$TLI2C_formal.sv:313$661) in step 3.
+##   0:00:06  Writing trace to VCD file: engine_0/trace8.vcd
+##   0:00:07  Writing trace to Verilog testbench: engine_0/trace8_tb.v
+##   0:00:07  Writing trace to constraints file: engine_0/trace8.smtc
+##   0:00:07  Checking cover reachability in step 3..
+##   0:00:07  Reached cover statement at TLI2C_formal.sv:309.33-310.32 ($cover$TLI2C_formal.sv:309$657) in step 3.
+##   0:00:07  Reached cover statement at TLI2C_formal.sv:311.33-312.32 ($cover$TLI2C_formal.sv:311$659) in step 3.
+##   0:00:07  Writing trace to VCD file: engine_0/trace9.vcd
+##   0:00:08  Writing trace to Verilog testbench: engine_0/trace9_tb.v
+##   0:00:08  Writing trace to constraints file: engine_0/trace9.smtc
+##   0:00:08  Checking cover reachability in step 3..
+##   0:00:08  Reached cover statement at TLI2C_formal.sv:307.33-308.32 ($cover$TLI2C_formal.sv:307$655) in step 3.
+##   0:00:08  Writing trace to VCD file: engine_0/trace10.vcd
+##   0:00:09  Writing trace to Verilog testbench: engine_0/trace10_tb.v
+##   0:00:09  Writing trace to constraints file: engine_0/trace10.smtc
+##   0:00:09  Checking cover reachability in step 3..
+##   0:00:09  Reached cover statement at TLI2C_formal.sv:305.33-306.32 ($cover$TLI2C_formal.sv:305$653) in step 3.
+##   0:00:09  Writing trace to VCD file: engine_0/trace11.vcd
+##   0:00:10  Writing trace to Verilog testbench: engine_0/trace11_tb.v
+##   0:00:10  Writing trace to constraints file: engine_0/trace11.smtc
+##   0:00:10  Checking cover reachability in step 3..
+##   0:00:10  Reached cover statement at TLI2C_formal.sv:303.33-304.32 ($cover$TLI2C_formal.sv:303$651) in step 3.
+##   0:00:10  Writing trace to VCD file: engine_0/trace12.vcd
+##   0:00:10  Writing trace to Verilog testbench: engine_0/trace12_tb.v
+##   0:00:10  Writing trace to constraints file: engine_0/trace12.smtc
+##   0:00:10  Checking cover reachability in step 3..
+##   0:00:11  Reached cover statement at TLI2C_formal.sv:301.33-302.32 ($cover$TLI2C_formal.sv:301$649) in step 3.
+##   0:00:11  Writing trace to VCD file: engine_0/trace13.vcd
+##   0:00:11  Writing trace to Verilog testbench: engine_0/trace13_tb.v
+##   0:00:11  Writing trace to constraints file: engine_0/trace13.smtc
+##   0:00:11  Checking cover reachability in step 3..
+##   0:00:11  Reached cover statement at TLI2C_formal.sv:295.33-296.32 ($cover$TLI2C_formal.sv:295$643) in step 3.
+##   0:00:11  Writing trace to VCD file: engine_0/trace14.vcd
+##   0:00:12  Writing trace to Verilog testbench: engine_0/trace14_tb.v
+##   0:00:12  Writing trace to constraints file: engine_0/trace14.smtc
+##   0:00:12  Checking cover reachability in step 3..
+##   0:00:12  Reached cover statement at TLI2C_formal.sv:294.33-295.32 ($cover$TLI2C_formal.sv:294$642) in step 3.
+##   0:00:12  Writing trace to VCD file: engine_0/trace15.vcd
+##   0:00:13  Writing trace to Verilog testbench: engine_0/trace15_tb.v
+##   0:00:13  Writing trace to constraints file: engine_0/trace15.smtc
+##   0:00:13  Checking cover reachability in step 3..
+##   0:00:13  Reached cover statement at TLI2C_formal.sv:292.33-293.32 ($cover$TLI2C_formal.sv:292$640) in step 3.
+##   0:00:13  Writing trace to VCD file: engine_0/trace16.vcd
+##   0:00:14  Writing trace to Verilog testbench: engine_0/trace16_tb.v
+##   0:00:14  Writing trace to constraints file: engine_0/trace16.smtc
+##   0:00:14  Checking cover reachability in step 3..
+##   0:00:14  Reached cover statement at TLI2C_formal.sv:288.33-289.32 ($cover$TLI2C_formal.sv:288$636) in step 3.
+##   0:00:14  Writing trace to VCD file: engine_0/trace17.vcd
+##   0:00:15  Writing trace to Verilog testbench: engine_0/trace17_tb.v
+##   0:00:15  Writing trace to constraints file: engine_0/trace17.smtc
+##   0:00:15  Checking cover reachability in step 3..
+##   0:00:15  Reached cover statement at TLI2C_formal.sv:290.33-291.32 ($cover$TLI2C_formal.sv:290$638) in step 3.
+##   0:00:15  Writing trace to VCD file: engine_0/trace18.vcd
+##   0:00:15  Writing trace to Verilog testbench: engine_0/trace18_tb.v
+##   0:00:15  Writing trace to constraints file: engine_0/trace18.smtc
+##   0:00:15  Checking cover reachability in step 3..
+##   0:00:16  Checking cover reachability in step 4..
+##   0:00:16  Reached cover statement at TLI2C_formal.sv:265.33-266.32 ($cover$TLI2C_formal.sv:265$613) in step 4.
+##   0:00:16  Writing trace to VCD file: engine_0/trace19.vcd
+##   0:00:16  Writing trace to Verilog testbench: engine_0/trace19_tb.v
+##   0:00:17  Writing trace to constraints file: engine_0/trace19.smtc
+##   0:00:17  Checking cover reachability in step 4..
+##   0:00:17  Reached cover statement at TLI2C_formal.sv:204.33-205.32 ($cover$TLI2C_formal.sv:204$552) in step 4.
+##   0:00:17  Reached cover statement at TLI2C_formal.sv:208.33-209.32 ($cover$TLI2C_formal.sv:208$556) in step 4.
+##   0:00:17  Writing trace to VCD file: engine_0/trace20.vcd
+##   0:00:18  Writing trace to Verilog testbench: engine_0/trace20_tb.v
+##   0:00:18  Writing trace to constraints file: engine_0/trace20.smtc
+##   0:00:18  Checking cover reachability in step 4..
+##   0:00:18  Reached cover statement at TLI2C_formal.sv:261.33-262.32 ($cover$TLI2C_formal.sv:261$609) in step 4.
+##   0:00:18  Reached cover statement at TLI2C_formal.sv:267.33-268.32 ($cover$TLI2C_formal.sv:267$615) in step 4.
+##   0:00:18  Writing trace to VCD file: engine_0/trace21.vcd
+##   0:00:19  Writing trace to Verilog testbench: engine_0/trace21_tb.v
+##   0:00:19  Writing trace to constraints file: engine_0/trace21.smtc
+##   0:00:19  Checking cover reachability in step 4..
+##   0:00:19  Reached cover statement at TLI2C_formal.sv:263.33-264.32 ($cover$TLI2C_formal.sv:263$611) in step 4.
+##   0:00:19  Writing trace to VCD file: engine_0/trace22.vcd
+##   0:00:20  Writing trace to Verilog testbench: engine_0/trace22_tb.v
+##   0:00:20  Writing trace to constraints file: engine_0/trace22.smtc
+##   0:00:20  Checking cover reachability in step 4..
+##   0:00:20  Reached cover statement at TLI2C_formal.sv:273.33-274.32 ($cover$TLI2C_formal.sv:273$621) in step 4.
+##   0:00:20  Writing trace to VCD file: engine_0/trace23.vcd
+##   0:00:21  Writing trace to Verilog testbench: engine_0/trace23_tb.v
+##   0:00:21  Writing trace to constraints file: engine_0/trace23.smtc
+##   0:00:21  Checking cover reachability in step 4..
+##   0:00:21  Checking cover reachability in step 5..
+##   0:00:21  Reached cover statement at TLI2C_formal.sv:215.33-216.32 ($cover$TLI2C_formal.sv:215$563) in step 5.
+##   0:00:21  Reached cover statement at TLI2C_formal.sv:259.33-260.32 ($cover$TLI2C_formal.sv:259$607) in step 5.
+##   0:00:21  Reached cover statement at TLI2C_formal.sv:275.33-276.32 ($cover$TLI2C_formal.sv:275$623) in step 5.
+##   0:00:21  Reached cover statement at TLI2C_formal.sv:286.33-287.32 ($cover$TLI2C_formal.sv:286$634) in step 5.
+##   0:00:21  Writing trace to VCD file: engine_0/trace24.vcd
+##   0:00:22  Writing trace to Verilog testbench: engine_0/trace24_tb.v
+##   0:00:22  Writing trace to constraints file: engine_0/trace24.smtc
+##   0:00:22  Checking cover reachability in step 5..
+##   0:00:22  Reached cover statement at TLI2C_formal.sv:217.33-218.32 ($cover$TLI2C_formal.sv:217$565) in step 5.
+##   0:00:22  Reached cover statement at TLI2C_formal.sv:283.33-284.32 ($cover$TLI2C_formal.sv:283$631) in step 5.
+##   0:00:22  Writing trace to VCD file: engine_0/trace25.vcd
+##   0:00:23  Writing trace to Verilog testbench: engine_0/trace25_tb.v
+##   0:00:24  Writing trace to constraints file: engine_0/trace25.smtc
+##   0:00:24  Checking cover reachability in step 5..
+##   0:00:24  Reached cover statement at TLI2C_formal.sv:213.33-214.32 ($cover$TLI2C_formal.sv:213$561) in step 5.
+##   0:00:24  Reached cover statement at TLI2C_formal.sv:281.33-282.32 ($cover$TLI2C_formal.sv:281$629) in step 5.
+##   0:00:24  Writing trace to VCD file: engine_0/trace26.vcd
+##   0:00:25  Writing trace to Verilog testbench: engine_0/trace26_tb.v
+##   0:00:25  Writing trace to constraints file: engine_0/trace26.smtc
+##   0:00:25  Checking cover reachability in step 5..
+##   0:00:25  Reached cover statement at TLI2C_formal.sv:202.33-203.32 ($cover$TLI2C_formal.sv:202$550) in step 5.
+##   0:00:25  Reached cover statement at TLI2C_formal.sv:210.33-211.32 ($cover$TLI2C_formal.sv:210$558) in step 5.
+##   0:00:25  Writing trace to VCD file: engine_0/trace27.vcd
+##   0:00:26  Writing trace to Verilog testbench: engine_0/trace27_tb.v
+##   0:00:26  Writing trace to constraints file: engine_0/trace27.smtc
+##   0:00:26  Checking cover reachability in step 5..
+##   0:00:26  Reached cover statement at TLI2C_formal.sv:211.33-212.32 ($cover$TLI2C_formal.sv:211$559) in step 5.
+##   0:00:26  Reached cover statement at TLI2C_formal.sv:279.33-280.32 ($cover$TLI2C_formal.sv:279$627) in step 5.
+##   0:00:26  Writing trace to VCD file: engine_0/trace28.vcd
+##   0:00:27  Writing trace to Verilog testbench: engine_0/trace28_tb.v
+##   0:00:28  Writing trace to constraints file: engine_0/trace28.smtc
+##   0:00:28  Checking cover reachability in step 5..
+##   0:00:28  Checking cover reachability in step 6..
+##   0:00:28  Reached cover statement at TLI2C_formal.sv:233.33-234.32 ($cover$TLI2C_formal.sv:233$581) in step 6.
+##   0:00:28  Reached cover statement at TLI2C_formal.sv:254.33-255.32 ($cover$TLI2C_formal.sv:254$602) in step 6.
+##   0:00:28  Reached cover statement at TLI2C_formal.sv:272.33-273.32 ($cover$TLI2C_formal.sv:272$620) in step 6.
+##   0:00:28  Writing trace to VCD file: engine_0/trace29.vcd
+##   0:00:29  Writing trace to Verilog testbench: engine_0/trace29_tb.v
+##   0:00:29  Writing trace to constraints file: engine_0/trace29.smtc
+##   0:00:29  Checking cover reachability in step 6..
+##   0:00:29  Reached cover statement at TLI2C_formal.sv:251.33-252.32 ($cover$TLI2C_formal.sv:251$599) in step 6.
+##   0:00:29  Writing trace to VCD file: engine_0/trace30.vcd
+##   0:00:31  Writing trace to Verilog testbench: engine_0/trace30_tb.v
+##   0:00:31  Writing trace to constraints file: engine_0/trace30.smtc
+##   0:00:31  Checking cover reachability in step 6..
+##   0:00:31  Reached cover statement at TLI2C_formal.sv:225.33-226.32 ($cover$TLI2C_formal.sv:225$573) in step 6.
+##   0:00:31  Writing trace to VCD file: engine_0/trace31.vcd
+##   0:00:33  Writing trace to Verilog testbench: engine_0/trace31_tb.v
+##   0:00:33  Writing trace to constraints file: engine_0/trace31.smtc
+##   0:00:33  Checking cover reachability in step 6..
+##   0:00:33  Reached cover statement at TLI2C_formal.sv:241.33-242.32 ($cover$TLI2C_formal.sv:241$589) in step 6.
+##   0:00:33  Writing trace to VCD file: engine_0/trace32.vcd
+##   0:00:34  Writing trace to Verilog testbench: engine_0/trace32_tb.v
+##   0:00:34  Writing trace to constraints file: engine_0/trace32.smtc
+##   0:00:34  Checking cover reachability in step 6..
+##   0:00:34  Checking cover reachability in step 7..
+##   0:00:34  Reached cover statement at TLI2C_formal.sv:249.33-250.32 ($cover$TLI2C_formal.sv:249$597) in step 7.
+##   0:00:34  Writing trace to VCD file: engine_0/trace33.vcd
+##   0:00:36  Writing trace to Verilog testbench: engine_0/trace33_tb.v
+##   0:00:36  Writing trace to constraints file: engine_0/trace33.smtc
+##   0:00:36  Checking cover reachability in step 7..
+##   0:00:36  Reached cover statement at TLI2C_formal.sv:239.33-240.32 ($cover$TLI2C_formal.sv:239$587) in step 7.
+##   0:00:36  Writing trace to VCD file: engine_0/trace34.vcd
+##   0:00:38  Writing trace to Verilog testbench: engine_0/trace34_tb.v
+##   0:00:38  Writing trace to constraints file: engine_0/trace34.smtc
+##   0:00:38  Checking cover reachability in step 7..
+##   0:00:38  Reached cover statement at TLI2C_formal.sv:231.33-232.32 ($cover$TLI2C_formal.sv:231$579) in step 7.
+##   0:00:38  Writing trace to VCD file: engine_0/trace35.vcd
+##   0:00:40  Writing trace to Verilog testbench: engine_0/trace35_tb.v
+##   0:00:40  Writing trace to constraints file: engine_0/trace35.smtc
+##   0:00:40  Checking cover reachability in step 7..
+##   0:00:40  Reached cover statement at TLI2C_formal.sv:223.33-224.32 ($cover$TLI2C_formal.sv:223$571) in step 7.
+##   0:00:40  Writing trace to VCD file: engine_0/trace36.vcd
+##   0:00:42  Writing trace to Verilog testbench: engine_0/trace36_tb.v
+##   0:00:42  Writing trace to constraints file: engine_0/trace36.smtc
+##   0:00:42  Checking cover reachability in step 7..
+##   0:00:42  Checking cover reachability in step 8..
+##   0:00:42  Reached cover statement at TLI2C_formal.sv:329.33-330.32 ($cover$TLI2C_formal.sv:329$677) in step 8.
+##   0:00:42  Writing trace to VCD file: engine_0/trace37.vcd
+##   0:00:44  Writing trace to Verilog testbench: engine_0/trace37_tb.v
+##   0:00:44  Writing trace to constraints file: engine_0/trace37.smtc
+##   0:00:44  Checking cover reachability in step 8..
+##   0:00:45  Reached cover statement at TLI2C_formal.sv:247.33-248.32 ($cover$TLI2C_formal.sv:247$595) in step 8.
+##   0:00:45  Writing trace to VCD file: engine_0/trace38.vcd
+##   0:00:47  Writing trace to Verilog testbench: engine_0/trace38_tb.v
+##   0:00:47  Writing trace to constraints file: engine_0/trace38.smtc
+##   0:00:47  Checking cover reachability in step 8..
+##   0:00:47  Reached cover statement at TLI2C_formal.sv:229.33-230.32 ($cover$TLI2C_formal.sv:229$577) in step 8.
+##   0:00:47  Writing trace to VCD file: engine_0/trace39.vcd
+##   0:00:49  Writing trace to Verilog testbench: engine_0/trace39_tb.v
+##   0:00:49  Writing trace to constraints file: engine_0/trace39.smtc
+##   0:00:49  Checking cover reachability in step 8..
+##   0:00:49  Reached cover statement at TLI2C_formal.sv:205.33-206.32 ($cover$TLI2C_formal.sv:205$553) in step 8.
+##   0:00:49  Writing trace to VCD file: engine_0/trace40.vcd
+##   0:00:51  Writing trace to Verilog testbench: engine_0/trace40_tb.v
+##   0:00:51  Writing trace to constraints file: engine_0/trace40.smtc
+##   0:00:51  Checking cover reachability in step 8..
+##   0:00:51  Reached cover statement at TLI2C_formal.sv:237.33-238.32 ($cover$TLI2C_formal.sv:237$585) in step 8.
+##   0:00:51  Writing trace to VCD file: engine_0/trace41.vcd
+##   0:00:54  Writing trace to Verilog testbench: engine_0/trace41_tb.v
+##   0:00:54  Writing trace to constraints file: engine_0/trace41.smtc
+##   0:00:54  Checking cover reachability in step 8..
+##   0:00:54  Reached cover statement at TLI2C_formal.sv:221.33-222.32 ($cover$TLI2C_formal.sv:221$569) in step 8.
+##   0:00:54  Writing trace to VCD file: engine_0/trace42.vcd
+##   0:00:56  Writing trace to Verilog testbench: engine_0/trace42_tb.v
+##   0:00:56  Writing trace to constraints file: engine_0/trace42.smtc
+##   0:00:56  Checking cover reachability in step 8..
+##   0:00:56  Checking cover reachability in step 9..
+##   0:00:56  Reached cover statement at TLI2C_formal.sv:299.33-300.32 ($cover$TLI2C_formal.sv:299$647) in step 9.
+##   0:00:56  Writing trace to VCD file: engine_0/trace43.vcd
+##   0:01:00  Writing trace to Verilog testbench: engine_0/trace43_tb.v
+##   0:01:00  Writing trace to constraints file: engine_0/trace43.smtc
+##   0:01:00  Checking cover reachability in step 9..
+##   0:01:00  Reached cover statement at TLI2C_formal.sv:227.33-228.32 ($cover$TLI2C_formal.sv:227$575) in step 9.
+##   0:01:00  Writing trace to VCD file: engine_0/trace44.vcd
+##   0:01:03  Writing trace to Verilog testbench: engine_0/trace44_tb.v
+##   0:01:03  Writing trace to constraints file: engine_0/trace44.smtc
+##   0:01:03  Checking cover reachability in step 9..
+##   0:01:03  Reached cover statement at TLI2C_formal.sv:245.33-246.32 ($cover$TLI2C_formal.sv:245$593) in step 9.
+##   0:01:03  Writing trace to VCD file: engine_0/trace45.vcd
+##   0:01:06  Writing trace to Verilog testbench: engine_0/trace45_tb.v
+##   0:01:06  Writing trace to constraints file: engine_0/trace45.smtc
+##   0:01:06  Checking cover reachability in step 9..
+##   0:01:06  Reached cover statement at TLI2C_formal.sv:235.33-236.32 ($cover$TLI2C_formal.sv:235$583) in step 9.
+##   0:01:06  Writing trace to VCD file: engine_0/trace46.vcd
+##   0:01:09  Writing trace to Verilog testbench: engine_0/trace46_tb.v
+##   0:01:09  Writing trace to constraints file: engine_0/trace46.smtc
+##   0:01:09  Checking cover reachability in step 9..
+##   0:01:09  Reached cover statement at TLI2C_formal.sv:219.33-220.32 ($cover$TLI2C_formal.sv:219$567) in step 9.
+##   0:01:09  Writing trace to VCD file: engine_0/trace47.vcd
+##   0:01:12  Writing trace to Verilog testbench: engine_0/trace47_tb.v
+##   0:01:13  Writing trace to constraints file: engine_0/trace47.smtc
+##   0:01:13  Checking cover reachability in step 9..
+##   0:01:13  Checking cover reachability in step 10..
+##   0:01:13  Reached cover statement at TLI2C_formal.sv:243.33-244.32 ($cover$TLI2C_formal.sv:243$591) in step 10.
+##   0:01:13  Reached cover statement at TLI2C_formal.sv:255.33-256.32 ($cover$TLI2C_formal.sv:255$603) in step 10.
+##   0:01:13  Reached cover statement at TLI2C_formal.sv:297.33-298.32 ($cover$TLI2C_formal.sv:297$645) in step 10.
+##   0:01:13  Writing trace to VCD file: engine_0/trace48.vcd
+##   0:01:16  Writing trace to Verilog testbench: engine_0/trace48_tb.v
+##   0:01:16  Writing trace to constraints file: engine_0/trace48.smtc
+##   0:01:16  Checking cover reachability in step 10..
+##   0:01:16  Reached cover statement at TLI2C_formal.sv:269.33-270.32 ($cover$TLI2C_formal.sv:269$617) in step 10.
+##   0:01:16  Writing trace to VCD file: engine_0/trace49.vcd
+##   0:01:19  Writing trace to Verilog testbench: engine_0/trace49_tb.v
+##   0:01:19  Writing trace to constraints file: engine_0/trace49.smtc
+##   0:01:19  Checking cover reachability in step 10..
+##   0:01:19  Checking cover reachability in step 11..
+##   0:01:20  Reached cover statement at TLI2C_formal.sv:257.33-258.32 ($cover$TLI2C_formal.sv:257$605) in step 11.
+##   0:01:20  Writing trace to VCD file: engine_0/trace50.vcd
+##   0:01:23  Writing trace to Verilog testbench: engine_0/trace50_tb.v
+##   0:01:23  Writing trace to constraints file: engine_0/trace50.smtc
+##   0:01:23  Checking cover reachability in step 11..
+##   0:01:24  Checking cover reachability in step 12..
+##   0:01:24  Checking cover reachability in step 13..
+##   0:01:24  Checking cover reachability in step 14..
+##   0:01:24  Checking cover reachability in step 15..
+##   0:01:24  Checking cover reachability in step 16..
+##   0:01:25  Checking cover reachability in step 17..
+##   0:01:25  Checking cover reachability in step 18..
+##   0:01:25  Checking cover reachability in step 19..
+##   0:01:25  Checking cover reachability in step 20..
+##   0:01:25  Checking cover reachability in step 21..
+##   0:01:26  Checking cover reachability in step 22..
+##   0:01:26  Checking cover reachability in step 23..
+##   0:01:27  Checking cover reachability in step 24..
+##   0:01:27  Checking cover reachability in step 25..
+##   0:01:28  Checking cover reachability in step 26..
+##   0:01:28  Checking cover reachability in step 27..
+##   0:01:28  Checking cover reachability in step 28..
+##   0:01:28  Checking cover reachability in step 29..
+##   0:01:29  Checking cover reachability in step 30..
+##   0:01:29  Checking cover reachability in step 31..
+##   0:01:29  Checking cover reachability in step 32..
+##   0:01:29  Checking cover reachability in step 33..
+##   0:01:30  Checking cover reachability in step 34..
+##   0:01:30  Checking cover reachability in step 35..
+##   0:01:31  Checking cover reachability in step 36..
+##   0:01:31  Checking cover reachability in step 37..
+##   0:01:31  Checking cover reachability in step 38..
+##   0:01:32  Checking cover reachability in step 39..
+##   0:01:32  Checking cover reachability in step 40..
+##   0:01:33  Checking cover reachability in step 41..
+##   0:01:33  Checking cover reachability in step 42..
+##   0:01:34  Checking cover reachability in step 43..
+##   0:01:34  Checking cover reachability in step 44..
+##   0:01:35  Checking cover reachability in step 45..
+##   0:01:35  Checking cover reachability in step 46..
+##   0:01:36  Reached cover statement at TLI2C_formal.sv:277.33-278.32 ($cover$TLI2C_formal.sv:277$625) in step 46.
+##   0:01:36  Writing trace to VCD file: engine_0/trace51.vcd
+##   0:01:53  Writing trace to Verilog testbench: engine_0/trace51_tb.v
+##   0:01:53  Writing trace to constraints file: engine_0/trace51.smtc
+##   0:01:53  Checking cover reachability in step 46..
+##   0:01:54  Checking cover reachability in step 47..
+##   0:01:54  Checking cover reachability in step 48..
+##   0:01:55  Checking cover reachability in step 49..
+##   0:01:55  Unreached cover statement at TLI2C_formal.sv:199.55-200.32 ($cover$TLI2C_formal.sv:199$547).
+##   0:01:55  Unreached cover statement at TLI2C_formal.sv:332.33-333.32 ($cover$TLI2C_formal.sv:332$680).
+##   0:01:55  Unreached cover statement at TLI2C_formal.sv:336.33-337.32 ($cover$TLI2C_formal.sv:336$684).
+##   0:01:55  Unreached cover statement at TLI2C_formal.sv:340.33-341.32 ($cover$TLI2C_formal.sv:340$688).
+##   0:01:55  Unreached cover statement at TLI2C_formal.sv:342.33-343.32 ($cover$TLI2C_formal.sv:342$690).
+##   0:01:55  Status: failed

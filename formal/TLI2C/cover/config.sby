@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 50
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal TLI2C.v
+read -formal TLI2C_formal.sv
+prep -top TLI2CTop
+
+[files]
+TLI2C.v
+TLI2C_formal.sv
