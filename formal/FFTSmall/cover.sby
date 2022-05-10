@@ -1,6 +1,6 @@
 [options]
 mode cover
-depth 100
+depth 200
 
 [engines]
 smtbmc boolector

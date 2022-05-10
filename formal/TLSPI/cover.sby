@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 100
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal TLSPI.v
+read -formal TLSPI_formal.sv
+prep -top TLSPITop
+
+[files]
+TLSPI.v
+TLSPI_formal.sv
