@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 100
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal FFTSmall.v
+read -formal FFTSmall_formal.sv
+prep -top FFTSmallTop
+
+[files]
+FFTSmall.v
+FFTSmall_formal.sv
