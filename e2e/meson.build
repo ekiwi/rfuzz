@@ -30,7 +30,6 @@ verilator_files = ['V@0@.h'.format(toplevel),
                    #'V@0@__Inlines.h'.format(toplevel),
                    'V@0@.cpp'.format(toplevel),
                    'V@0@__Syms.cpp'.format(toplevel),
-                   'V@0@__Slow.cpp'.format(toplevel),
                    'verilated_vcd_c.cpp', 'verilated.cpp']
 if get_option('trace')
 	verilator_cmd = [verilator_py, '--trace']
