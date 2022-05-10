@@ -1,0 +1,15 @@
+[options]
+mode cover
+depth 100
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal Sodor1Stage.v
+read -formal Sodor1Stage_formal.sv
+prep -top Sodor1StageTop
+
+[files]
+Sodor1Stage.v
+Sodor1Stage_formal.sv
