@@ -19,6 +19,18 @@ def create_output_dir(to, overwrite: bool):
       raise RuntimeError(f"{to} already exists. Use `--overwrite` to allow it to be overwritten.")
   os.mkdir(to)
 
+_inputs_wit_re = re.compile(r"\d+ ([01]+) io_inputs@\d+")
+
+def find_input_assignments_wit(filename) -> list[str]:
+  res = []
+  with open(filename) as ff:
+    for line in ff.readlines():
+      m = _inputs_wit_re.search(line)
+      if m is not None:
+        data = m.group(1)
+        res.append(data)
+  return res
+
 _inputs_re = re.compile(r"io_inputs <?= \d+'b([01]+);")
 
 def find_input_assignments(filename) -> list[str]:
@@ -60,13 +72,12 @@ def parse_time(time: str) -> dict:
   assert len(parts) == 3, time
   minutes = int(parts[0]) * 60 + int(parts[1])
   seconds = minutes * 60 + int(parts[2])
-  return {'secs': seconds, 'nanos': 0}
+  return seconds
 
-def inputs_to_entry(inputs: list[str], ii: int, step: int, time: str) -> dict:
-  discovery_time = parse_time(time)
+def inputs_to_entry(inputs: list[str], ii: int, step: int, time: int) -> dict:
   entry = {
     'id': ii,
-    'discovered_after': discovery_time,
+    'discovered_after': {'secs': time, 'nanos': 0},
     # bogus default values to make the analysis script happy
     'is_valid': True,
     'not_covered': [],
@@ -88,29 +99,48 @@ def inputs_to_entry(inputs: list[str], ii: int, step: int, time: str) -> dict:
 
 
 _step_re = re.compile(r"in step (\d+)")
+_step_btor_re = re.compile(r"at bound k = (\d+)")
 _writing_trace_re = re.compile(r"(\d:\d+:\d+)\s+Writing trace to Verilog testbench: ([^\n]+)")
 
 def parse_log(filename: Path):
   step = 0
   traces = []
+  start_time = None
   with open(filename) as ff:
     for line in ff.readlines():
+      if start_time is None:
+        start_time = parse_time(line.split()[1])
       m = _step_re.search(line)
       if m is not None:
         step = int(m.group(1))
       m = _writing_trace_re.search(line)
       if m is not None:
-        t = (step, m.group(1), m.group(2).strip())
+        t = (step, parse_time(m.group(1)), m.group(2).strip())
         traces.append(t)
+      # btor alternatives
+      m = _step_btor_re.search(line)
+      if m is not None:
+        step = int(m.group(1))
+      if "starting process" in line and "btorsim -c --vcd" in line:
+        parts = line.split()
+        time = parse_time(parts[1])
+        file = next(p for p in parts if p.endswith(".vcd"))
+        t = (step, time - start_time, file[:-3] + "wit")
+        traces.append(t)
+
   return traces
 
 def convert(inp, to):
   assert inp.is_dir()
   traces = parse_log(inp / "logfile.txt")
+  assert len(traces) > 0, f"Found no traces in {inp / 'logfile.txt'}"
 
   ii = 0
   for step, time, filename in tqdm.tqdm(traces):
-    mem = find_input_assignments(inp / filename)
+    if filename.endswith(".wit"):
+      mem = find_input_assignments_wit(inp / filename)
+    else:
+      mem = find_input_assignments(inp / filename)
     entry = inputs_to_entry(mem, ii, step, time)
     ii += 1
     basename = os.path.basename(filename)
