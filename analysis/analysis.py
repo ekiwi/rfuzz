@@ -29,7 +29,7 @@ def analyse_out(inp_dir):
 	#if "sodor" in os.path.basename(inp_dir):
 	#	riscv.print_instructions(inputs)
 
-	make_mutation_graph("{}_mutations.png".format(name), inputs)
+	# make_mutation_graph("{}_mutations.png".format(name), inputs)
 
 	disco_times = [ii.discovered_after for ii in inputs if not ii.e2e_cov['invalid']]
 	cov = [ii.e2e_cov['total'] for ii in inputs if not ii.e2e_cov['invalid']]

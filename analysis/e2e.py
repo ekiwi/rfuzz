@@ -124,7 +124,7 @@ class CoverageOracle:
 		cov_toml = os.path.join(build_dir, "{}.e2e.toml".format(dut))
 		assert os.path.isfile(cov_toml)
 		cov_bin  = os.path.join(build_dir, "{}_cov".format(dut))
-		assert os.path.isfile(cov_bin)
+		assert os.path.isfile(cov_bin), f"not found: {cov_bin}"
 		self.config = toml.loads(open(cov_toml).read())
 		# make sure the coverage instrumentation is the way we want
 		self.counters = self.config['counter']
